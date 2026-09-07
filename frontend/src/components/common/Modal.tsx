@@ -58,7 +58,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-2 sm:p-6 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -72,7 +72,7 @@ export function Modal({
 
       {/* Modal Card */}
       <div
-        className={`relative w-full ${maxWidthStyles} bg-white rounded-2xl border border-[#DDDDDD] shadow-[0_16px_48px_rgba(0,0,0,0.2)] p-6 z-10 animate-fade-in my-auto max-h-[90vh] overflow-y-auto`}
+        className={`relative w-full ${maxWidthStyles} bg-white rounded-2xl border border-[#DDDDDD] shadow-[0_16px_48px_rgba(0,0,0,0.2)] p-4 sm:p-6 z-10 animate-fade-in my-auto max-h-[92vh] overflow-y-auto`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 pb-4 border-b border-[#F0F0F0]">

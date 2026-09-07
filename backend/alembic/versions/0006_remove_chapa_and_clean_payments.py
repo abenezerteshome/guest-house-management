@@ -23,7 +23,7 @@ def upgrade() -> None:
 	op.drop_constraint("ck_payments_status", "payments", type_="check")
 
 	op.drop_index("ix_payments_provider", table_name="payments")
-	op.drop_index("ix_payments_tx_ref", table_name="payments")
+	op.execute("DROP INDEX IF EXISTS ix_payments_tx_ref")
 
 	op.drop_column("payments", "provider")
 	op.drop_column("payments", "provider_transaction_id")

@@ -90,7 +90,30 @@ async def test_cancel_and_no_show_release_room(client: AsyncClient, users) -> No
 	reservation_id, room_id, _ = await setup_reservation(client, token, "102")
 	assert (await client.post(f"/api/v1/reservations/{reservation_id}/cancel", headers=auth(token))).status_code == 200
 	assert (await client.get(f"/api/v1/rooms/{room_id}", headers=auth(token))).json()["status"] == "AVAILABLE"
-	reservation_id, room_id, _ = await setup_reservation(client, token, "103")
+	room = await client.post(
+		"/api/v1/rooms",
+		headers=auth(token),
+		json={"room_number": "103", "room_type": "Single", "price": "50.00"},
+	)
+	guest = await client.post(
+		"/api/v1/guests",
+		headers=auth(token),
+		json={"full_name": "No Show Guest", "id_number": "ID-103", "phone": "555"},
+	)
+	arrival = datetime.now(timezone.utc) - timedelta(hours=1)
+	reservation = await client.post(
+		"/api/v1/reservations",
+		headers=auth(token),
+		json={
+			"guest_id": guest.json()["id"],
+			"room_id": room.json()["id"],
+			"expected_arrival": arrival.isoformat(),
+			"expected_checkout": (arrival + timedelta(days=1)).isoformat(),
+		},
+	)
+	assert reservation.status_code == 201
+	reservation_id = reservation.json()["id"]
+	room_id = room.json()["id"]
 	assert (await client.post(f"/api/v1/reservations/{reservation_id}/no-show", headers=auth(token))).status_code == 200
 	assert (await client.get(f"/api/v1/rooms/{room_id}", headers=auth(token))).json()["status"] == "AVAILABLE"
 

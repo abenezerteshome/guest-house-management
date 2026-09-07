@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -70,6 +71,8 @@ async def create_reservation(
 	room_id: int,
 	expected_arrival: datetime,
 	expected_checkout: datetime,
+	expected_amount: Decimal,
+	reason: str | None,
 	notes: str | None,
 ) -> Reservation:
 	if expected_checkout <= expected_arrival:
@@ -87,6 +90,8 @@ async def create_reservation(
 		room_id=room_id,
 		expected_arrival=expected_arrival,
 		expected_checkout=expected_checkout,
+		expected_amount=expected_amount,
+		reason=reason,
 		notes=notes,
 		status=ReservationStatus.RESERVED.value,
 	)
@@ -166,7 +171,12 @@ async def cancel_reservation(session: AsyncSession, reservation: Reservation, *,
 	)
 
 
-async def mark_no_show(session: AsyncSession, reservation: Reservation, *, user_id: int) -> Reservation:
+
+async def mark_no_show(
+	session: AsyncSession, reservation: Reservation, *, user_id: int, now: datetime
+) -> Reservation:
+	if now < reservation.expected_arrival:
+		raise InvalidTransitionError("Reservation cannot be marked no-show before expected arrival")
 	return await _release_reservation(
 		session, reservation, user_id=user_id, status=ReservationStatus.NO_SHOW, action="RESERVATION_NO_SHOW"
 	)

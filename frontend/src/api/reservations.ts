@@ -11,9 +11,14 @@ export async function createReservation(data: {
   room_id: number
   expected_arrival: string
   expected_checkout: string
+  expected_amount?: number | string
+  reason?: string
   notes?: string
 }): Promise<Reservation> {
-  const res = await api.post<Reservation>('/reservations', data)
+  const res = await api.post<Reservation>('/reservations', {
+    ...data,
+    expected_amount: data.expected_amount === undefined ? '0.00' : String(data.expected_amount),
+  })
   return res.data
 }
 

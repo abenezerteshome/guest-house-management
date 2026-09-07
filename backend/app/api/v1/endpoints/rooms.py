@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import get_current_user, require_admin, require_role
 from app.db.session import get_db
 from app.models.room import Room, RoomStatus
+from app.models.user import User, UserRole
 from app.repositories.room import RoomRepository
 from app.schemas.room import RoomCreate, RoomRead, RoomStatusUpdate, RoomUpdate
 from app.services.room import DuplicateRoomNumberError, create_room, delete_room, update_room
@@ -57,14 +58,21 @@ async def patch_room(
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
-@router.patch("/{room_id}/status", response_model=RoomRead, dependencies=[Depends(require_admin)])
+@router.patch("/{room_id}/status", response_model=RoomRead)
 async def patch_room_status(
 	room_id: int,
 	payload: RoomStatusUpdate,
-	current_user=Depends(require_admin),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
 	session: AsyncSession = Depends(get_db),
 ) -> Room:
 	room = await get_room_or_404(room_id, session)
+	if current_user.role == UserRole.RECEPTION.value and (
+		room.status != RoomStatus.CLEANING.value or payload.status != RoomStatus.AVAILABLE
+	):
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="Reception can only mark cleaned rooms as available",
+		)
 	return await update_room(session, room, user_id=current_user.id, status=payload.status.value)
 
 

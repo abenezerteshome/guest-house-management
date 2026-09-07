@@ -46,6 +46,8 @@ export function ReservationModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
+  const [expectedAmount, setExpectedAmount] = useState('')
+  const [reason, setReason] = useState('Reservation')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -120,6 +122,8 @@ export function ReservationModal({
         room_id: roomId,
         expected_arrival: arr.toISOString(),
         expected_checkout: dep.toISOString(),
+        expected_amount: expectedAmount || Number(selectedRoom?.price || 0),
+        reason: reason.trim() || undefined,
         notes: notes.trim() || undefined,
       })
 
@@ -145,6 +149,24 @@ export function ReservationModal({
               <Building2 className="w-5 h-5" />
             </div>
             <div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Expected Amount (ETB)"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder={selectedRoom ? String(Number(selectedRoom.price)) : '0.00'}
+                value={expectedAmount}
+                onChange={(e) => setExpectedAmount(e.target.value)}
+              />
+              <Input
+                label="Reason"
+                placeholder="Reservation"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Selected Room</p>
               <p className="text-sm font-bold text-neutral-900">
                 {selectedRoom ? `Room ${selectedRoom.room_number} • ${selectedRoom.room_type}` : 'Choose Room Below'}

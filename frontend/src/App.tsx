@@ -38,8 +38,8 @@ export function App() {
             <Route path="guests" element={<GuestsPage />} />
             <Route path="reservations" element={<ReservationsPage />} />
             <Route path="stays" element={<StaysPage />} />
+            <Route path="/expenses" element={<ExpensesPage />} />
             <Route element={<ProtectedRoute roles={['ADMIN']} />}>
-              <Route path="expenses" element={<ExpensesPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit-log" element={<PlaceholderPage {...secondaryModules.audit} />} />
               <Route path="settings" element={<SettingsPage />} />

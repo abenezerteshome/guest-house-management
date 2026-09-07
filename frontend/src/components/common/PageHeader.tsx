@@ -26,7 +26,7 @@ export function PageHeader({
 
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-[#DDDDDD] ${className}`}
+      className={`flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4 pb-5 sm:pb-6 border-b border-[#DDDDDD] ${className}`}
     >
       <div className="space-y-1">
         {kicker && (
@@ -37,7 +37,7 @@ export function PageHeader({
             {badge}
           </div>
         )}
-        <h1 className="text-2xl sm:text-3xl font-semibold text-[#222222] tracking-tight">
+        <h1 className="text-xl sm:text-3xl font-semibold text-[#222222] tracking-tight break-words">
           {title}
         </h1>
         {desc && (
@@ -47,7 +47,7 @@ export function PageHeader({
         )}
       </div>
       {actionSlot && (
-        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap w-full sm:w-auto">
           {actionSlot}
         </div>
       )}

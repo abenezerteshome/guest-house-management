@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -17,6 +18,8 @@ class ReservationCreate(BaseModel):
 	room_id: int = Field(gt=0)
 	expected_arrival: datetime
 	expected_checkout: datetime
+	expected_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
+	reason: str | None = None
 	notes: str | None = None
 
 	_notes_validator = field_validator("notes", mode="before")(validate_notes)
@@ -35,6 +38,8 @@ class ReservationUpdate(BaseModel):
 	room_id: int | None = Field(default=None, gt=0)
 	expected_arrival: datetime | None = None
 	expected_checkout: datetime | None = None
+	expected_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+	reason: str | None = None
 	notes: str | None = None
 
 	_notes_validator = field_validator("notes", mode="before")(validate_notes)
@@ -49,6 +54,8 @@ class ReservationRead(BaseModel):
 	status: ReservationStatus
 	expected_arrival: datetime
 	expected_checkout: datetime
+	expected_amount: Decimal
+	reason: str | None
 	notes: str | None
 	created_at: datetime
 	updated_at: datetime

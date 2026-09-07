@@ -48,9 +48,9 @@ const navSections: NavSection[] = [
   },
   {
     title: 'Management',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'RECEPTION'],
     items: [
-      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN'] },
+      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN'] },
     ],
   },
@@ -110,7 +110,7 @@ export function AppShell() {
 
       {/* Light Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-50 h-screen w-64 bg-white border-r border-[#DDDDDD] flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
+        className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white border-r border-[#DDDDDD] flex flex-col justify-between transition-transform duration-200 ease-in-out lg:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -143,7 +143,7 @@ export function AppShell() {
             </div>
             <button
               type="button"
-              className="md:hidden p-1.5 text-[#717171] hover:text-[#222222] rounded-lg hover:bg-[#F7F7F7]"
+              className="lg:hidden p-1.5 text-[#717171] hover:text-[#222222] rounded-lg hover:bg-[#F7F7F7]"
               onClick={() => setMobileOpen(false)}
               aria-label="Close navigation menu"
             >
@@ -227,12 +227,12 @@ export function AppShell() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Clean Top Bar */}
-        <header className="sticky top-0 z-30 h-[72px] bg-white border-b border-[#DDDDDD] px-4 sm:px-8 flex items-center justify-between gap-4">
+        <header className="sticky top-0 z-30 h-[64px] sm:h-[72px] bg-white border-b border-[#DDDDDD] px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4">
           {/* Left: Mobile trigger & Page context */}
           <div className="flex items-center gap-3 sm:gap-4">
             <button
               type="button"
-              className="md:hidden p-2 text-[#222222] rounded-xl hover:bg-[#F7F7F7] border border-[#DDDDDD]"
+              className="lg:hidden p-2 text-[#222222] rounded-xl hover:bg-[#F7F7F7] border border-[#DDDDDD]"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation menu"
             >
@@ -254,11 +254,11 @@ export function AppShell() {
           </div>
 
           {/* Center: Search pill button */}
-          <div className="flex-1 max-w-xs sm:max-w-md">
+          <div className="flex-1 min-w-0 max-w-xs sm:max-w-md">
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="w-full flex items-center justify-between px-3.5 py-2 rounded-full border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-white hover:border-[#CCCCCC] hover:shadow-xs transition-all text-left text-xs text-[#717171]"
+              className="w-full min-w-0 flex items-center justify-between px-2.5 sm:px-3.5 py-2 rounded-full border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-white hover:border-[#CCCCCC] hover:shadow-xs transition-all text-left text-xs text-[#717171]"
             >
               <span className="flex items-center gap-2 truncate">
                 <Search size={14} className="text-[#717171] shrink-0" />
@@ -344,7 +344,7 @@ export function AppShell() {
         </header>
 
         {/* Page Content Container */}
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto animate-fade-in">
           <Outlet />
         </main>
       </div>

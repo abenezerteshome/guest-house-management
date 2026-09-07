@@ -126,6 +126,6 @@ async def no_show_reservation(
 ) -> Reservation:
 	reservation = await get_reservation_or_404(reservation_id, session)
 	try:
-		return await mark_no_show(session, reservation, user_id=current_user.id)
+		return await mark_no_show(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
 	except InvalidTransitionError as exc:
 		raise service_error(exc) from exc

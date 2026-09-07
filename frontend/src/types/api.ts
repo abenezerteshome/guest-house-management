@@ -10,6 +10,17 @@ export interface User {
   updated_at: string
 }
 
+export interface AuditLog {
+  id: number
+  user_id: number | null
+  actor_name: string | null
+  action: string
+  entity_type: string
+  entity_id: number
+  timestamp: string
+  details: string | null
+}
+
 export interface LoginResponse {
   access_token: string
   token_type: string
@@ -48,6 +59,8 @@ export interface Reservation {
   status: string
   expected_arrival: string
   expected_checkout: string
+  expected_amount: string
+  reason: string | null
   notes: string | null
   created_at: string
   updated_at: string

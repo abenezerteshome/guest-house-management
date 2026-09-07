@@ -30,9 +30,11 @@ async def list_guests(
 
 @router.post("", response_model=GuestRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))])
 async def create_guest_endpoint(
-	payload: GuestCreate, session: AsyncSession = Depends(get_db)
+	payload: GuestCreate,
+	current_user=Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	session: AsyncSession = Depends(get_db),
 ) -> Guest:
-	return await create_guest(session, **payload.model_dump())
+	return await create_guest(session, user_id=current_user.id, **payload.model_dump())
 
 
 @router.get("/{guest_id}", response_model=GuestRead, dependencies=[Depends(get_current_user)])
@@ -42,13 +44,20 @@ async def get_guest(guest_id: int, session: AsyncSession = Depends(get_db)) -> G
 
 @router.patch("/{guest_id}", response_model=GuestRead, dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))])
 async def patch_guest(
-	guest_id: int, payload: GuestUpdate, session: AsyncSession = Depends(get_db)
+	guest_id: int,
+	payload: GuestUpdate,
+	current_user=Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	session: AsyncSession = Depends(get_db),
 ) -> Guest:
 	guest = await get_guest_or_404(guest_id, session)
-	return await update_guest(session, guest, **payload.model_dump(exclude_unset=True))
+	return await update_guest(session, guest, user_id=current_user.id, **payload.model_dump(exclude_unset=True))
 
 
 @router.delete("/{guest_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
-async def remove_guest(guest_id: int, session: AsyncSession = Depends(get_db)) -> None:
+async def remove_guest(
+	guest_id: int,
+	current_user=Depends(require_admin),
+	session: AsyncSession = Depends(get_db),
+) -> None:
 	guest = await get_guest_or_404(guest_id, session)
-	await delete_guest(session, guest)
+	await delete_guest(session, guest, user_id=current_user.id)

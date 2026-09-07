@@ -34,6 +34,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   background-color: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -44,6 +45,14 @@ button, input, select, textarea {
 
 button {
   cursor: pointer;
+}
+
+@media (max-width: 639px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* Custom subtle scrollbar */

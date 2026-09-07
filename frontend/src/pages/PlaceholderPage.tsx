@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   BedDouble,
@@ -18,6 +18,8 @@ import { Card } from '../components/common/Card'
 import { Badge } from '../components/common/Badge'
 import { Modal } from '../components/common/Modal'
 import { useAuth } from '../hooks/useAuth'
+import { getAuditLogs } from '../api/audit'
+import type { AuditLog } from '../types/api'
 
 export interface PlaceholderPageProps {
   id?: string
@@ -30,9 +32,20 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
   const { user } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
   const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE'>('ALL')
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [auditLoading, setAuditLoading] = useState(false)
 
   // Derive module key from id or title
   const moduleKey = id || title.toLowerCase()
+
+  useEffect(() => {
+    if (!moduleKey.includes('audit')) return
+    setAuditLoading(true)
+    getAuditLogs()
+      .then(setAuditLogs)
+      .catch(() => setAuditLogs([]))
+      .finally(() => setAuditLoading(false))
+  }, [moduleKey])
 
   // Sample architectural room models for the Rooms view
   const sampleRooms: RoomCardData[] = [
@@ -400,11 +413,17 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
     }
 
     if (moduleKey.includes('audit')) {
-      const auditColumns: Column<Record<string, unknown>>[] = [
-        { header: 'Timestamp', accessorKey: 'timestamp' },
-        { header: 'Staff Actor', accessorKey: 'actor' },
+      const auditColumns: Column<AuditLog>[] = [
+        {
+          header: 'Timestamp',
+          render: (item) => new Date(item.timestamp).toLocaleString(),
+        },
+        { header: 'Staff Actor', render: (item) => item.actor_name || 'System' },
         { header: 'Action', accessorKey: 'action' },
-        { header: 'Entity', accessorKey: 'entity' },
+        {
+          header: 'Entity',
+          render: (item) => `${item.entity_type} #${item.entity_id}`,
+        },
         { header: 'Result', cell: () => <Badge tone="available">Success</Badge> },
       ]
 
@@ -412,12 +431,13 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
         <div className="space-y-6">
           <Table
             columns={auditColumns}
-            data={[]}
+            data={auditLogs}
+            isLoading={auditLoading}
             emptyMessage="No audit logs recorded."
           />
           <EmptyState
             title="Audit trail active"
-            description="Critical security actions, financial logs, and state changes are persistently logged by the backend."
+            description="Critical operational, financial, and room state changes are persistently logged by the backend."
           />
         </div>
       )
