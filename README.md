@@ -1,4 +1,12 @@
-# Guest House Management System
+# Haven House Guest House Management System
+
+This is an internal staff system with exactly two actors: `ADMIN` and `RECEPTION`.
+Guests are database records and do not have accounts or login access. The system
+supports room operations, reservations, check-in/check-out, stay extensions,
+manual payments, credit balances, expenses, reports, and audit logging.
+
+Guests have no external account access. Payments are entered manually by staff
+using Cash, Telebirr, CBE Birr, Bank Transfer, or Credit.
 
 ## Phase 1 backend
 

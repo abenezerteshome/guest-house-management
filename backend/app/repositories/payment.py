@@ -13,10 +13,6 @@ class PaymentRepository:
 	async def get_by_id(self, payment_id: int) -> Payment | None:
 		return await self.session.get(Payment, payment_id)
 
-	async def get_by_tx_ref(self, tx_ref: str) -> Payment | None:
-		result = await self.session.execute(select(Payment).where(Payment.tx_ref == tx_ref))
-		return result.scalar_one_or_none()
-
 	async def list_for_stay(self, stay_id: int) -> list[Payment]:
 		result = await self.session.execute(
 			select(Payment).where(Payment.stay_id == stay_id).order_by(Payment.created_at, Payment.id)

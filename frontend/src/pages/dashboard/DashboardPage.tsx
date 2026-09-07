@@ -66,7 +66,7 @@ export function DashboardPage() {
     setLoading(true)
     try {
       const [reportData, roomsData, staysData, resData] = await Promise.all([
-        getDailyReport().catch(() => null),
+        isAdmin ? getDailyReport().catch(() => null) : Promise.resolve(null),
         getRooms(),
         getStays('CHECKED_IN').catch(() => []),
         getReservations('RESERVED').catch(() => []),
@@ -80,7 +80,7 @@ export function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [isAdmin])
 
   useEffect(() => {
     fetchDashboardData()
@@ -529,8 +529,8 @@ export function DashboardPage() {
                 <span className="font-bold text-rose-700">04:00 AM (600 ETB)</span>
               </div>
               <div className="p-3 rounded-xl bg-[#F7F7F7] border border-[#EEEEEE] flex items-center justify-between">
-                <span className="text-[#717171]">Payment Gateways</span>
-                <span className="font-semibold text-[#222222]">Telebirr, CBE, Chapa</span>
+                <span className="text-[#717171]">Payment Channels</span>
+                <span className="font-semibold text-[#222222]">Cash, Telebirr, CBE, Bank</span>
               </div>
               <div className="p-3 rounded-xl bg-[#F7F7F7] border border-[#EEEEEE] flex items-center justify-between">
                 <span className="text-[#717171]">Currency</span>
@@ -598,7 +598,7 @@ export function DashboardPage() {
                   </div>
                   <div>
                     <strong className="block text-xs text-[#222222]">Record Folio Payment</strong>
-                    <span className="block text-[11px] text-[#717171]">Cash, Telebirr, CBE, Chapa</span>
+                    <span className="block text-[11px] text-[#717171]">Cash, Telebirr, CBE, Bank, Credit</span>
                   </div>
                 </div>
                 <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />

@@ -7,7 +7,7 @@ import type { Room } from '../../types/api'
 import { createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
 import { checkInReservation, getStays } from '../../api/stays'
-import { initializeChapaPayment, recordManualPayment } from '../../api/payments'
+import { recordManualPayment } from '../../api/payments'
 
 interface CheckInModalProps {
   isOpen: boolean
@@ -37,9 +37,8 @@ export function CheckInModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CHAPA' | 'CREDIT'>('CASH')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'>('CASH')
   const [amountPaid, setAmountPaid] = useState<string>('')
-  const [email, setEmail] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -88,27 +87,12 @@ export function CheckInModal({
         const stayId = currentStay?.id || activeStays[0]?.id
 
         if (stayId) {
-          if (paymentMethod === 'CHAPA') {
-            const chapaRes = await initializeChapaPayment({
-              stay_id: stayId,
-              amount: paid,
-            })
-            if (chapaRes.checkout_url) {
-              sessionStorage.setItem('chapa_pending_tx_ref', chapaRes.tx_ref)
-              sessionStorage.setItem('chapa_pending_stay_id', String(stayId))
-              localStorage.setItem('chapa_pending_tx_ref', chapaRes.tx_ref)
-              localStorage.setItem('chapa_pending_stay_id', String(stayId))
-              window.location.href = chapaRes.checkout_url
-              return
-            }
-          } else {
-            await recordManualPayment({
-              stay_id: stayId,
-              amount: paid,
-              payment_method: paymentMethod,
-              reference: `Check-in deposit (${paymentMethod})`,
-            })
-          }
+          await recordManualPayment({
+            stay_id: stayId,
+            amount: paid,
+            payment_method: paymentMethod,
+            reference: `Check-in deposit (${paymentMethod})`,
+          })
         }
       }
 
@@ -248,7 +232,6 @@ export function CheckInModal({
                 <option value="TELEBIRR">Telebirr</option>
                 <option value="CBE_BIRR">CBE Birr</option>
                 <option value="BANK_TRANSFER">Bank Transfer</option>
-                <option value="CHAPA">Chapa Online</option>
                 <option value="CREDIT">Credit (Unpaid / Pay Later)</option>
               </select>
             </div>
@@ -263,16 +246,6 @@ export function CheckInModal({
               helperText={paymentMethod === 'CREDIT' ? 'Guest will pay remaining balance later' : undefined}
             />
           </div>
-
-          {paymentMethod === 'CHAPA' && (
-            <Input
-              label="Guest Email (Required for Chapa Checkout)"
-              type="email"
-              placeholder="guest@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          )}
 
           {/* Automatic Credit / Balance Breakdown */}
           <div className="p-3 bg-white rounded-xl border border-[#DDDDDD] flex items-center justify-between text-xs">

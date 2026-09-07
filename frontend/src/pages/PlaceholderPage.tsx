@@ -255,7 +255,7 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
           />
           <EmptyState
             title="No payments recorded yet"
-            description="Cash receipts, bank transfers, and Chapa online payment settlements will be listed here."
+            description="Cash receipts, mobile money, and bank transfer settlements will be listed here."
             actionLabel="Record payment"
             onAction={() => setModalOpen(true)}
           />

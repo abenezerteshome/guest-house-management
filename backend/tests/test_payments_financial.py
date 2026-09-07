@@ -1,16 +1,12 @@
-import hashlib
-import hmac
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 import pytest
 from httpx import AsyncClient
 
-from app.core.config import get_settings
 from app.db.session import AsyncSessionLocal
 from app.models.payment import Payment, PaymentStatus
 from app.repositories.payment import PaymentRepository
-from app.services.chapa_client import ChapaClient
 
 
 def auth(token: str) -> dict[str, str]:
@@ -87,117 +83,49 @@ async def test_extension_and_manual_payment_balance(client: AsyncClient, users) 
 
 
 @pytest.mark.asyncio
-async def test_payment_methods_and_failed_payment_not_counted(client: AsyncClient, users) -> None:
+async def test_manual_payment_methods_supported(client: AsyncClient, users) -> None:
 	token = await token_for(client)
 	stay_id, _ = await create_checked_in_stay(client, token)
-	for method in ("TELEBIRR", "CBE_BIRR", "BANK_TRANSFER"):
+	# All supported manual payment methods: CASH, TELEBIRR, CBE_BIRR, BANK_TRANSFER, CREDIT
+	for method in ("TELEBIRR", "CBE_BIRR", "BANK_TRANSFER", "CREDIT"):
 		response = await client.post(
 			f"/api/v1/stays/{stay_id}/payments", headers=auth(token),
-			json={"amount": "100.00", "payment_method": method},
+			json={"amount": "50.00", "payment_method": method, "reference": f"REF-{method}"},
 		)
 		assert response.status_code == 201
-	async with AsyncSessionLocal() as session:
-		payment = (await PaymentRepository(session).list_for_stay(stay_id))[-1]
-		payment.status = PaymentStatus.FAILED.value
-		await session.commit()
+		assert response.json()["status"] == "SUCCESS"
+		assert response.json()["payment_method"] == method
+
 	summary = (await client.get(f"/api/v1/stays/{stay_id}/financial-summary", headers=auth(token))).json()
 	assert summary["total_paid"] == "200.00"
+	assert summary["balance"] == "800.00"
 
 
 @pytest.mark.asyncio
-async def test_chapa_initialization_and_verified_reconciliation(client: AsyncClient, users, monkeypatch) -> None:
+async def test_cancelled_or_refunded_payment_not_counted_in_balance(client: AsyncClient, users) -> None:
 	token = await token_for(client)
 	stay_id, _ = await create_checked_in_stay(client, token)
-
-	async def initialize(self, **kwargs):
-		return {"data": {"checkout_url": "https://checkout.example/test"}}
-
-	async def verify(self, tx_ref):
-		return {"data": {"tx_ref": tx_ref, "amount": "100.00", "currency": "ETB", "status": "success", "reference": "CHAPA-1"}}
-
-	monkeypatch.setattr(ChapaClient, "initialize_transaction", initialize)
-	monkeypatch.setattr(ChapaClient, "verify_transaction", verify)
 	response = await client.post(
-		f"/api/v1/stays/{stay_id}/payments/chapa/initialize", headers=auth(token),
-		json={"amount": "100.00"},
+		f"/api/v1/stays/{stay_id}/payments", headers=auth(token),
+		json={"amount": "300.00", "payment_method": "CASH"},
 	)
-	assert response.status_code == 200
-	assert response.json()["checkout_url"] == "https://checkout.example/test"
-	callback = await client.get(f"/api/v1/payments/chapa/callback?tx_ref={response.json()['tx_ref']}")
-	assert callback.status_code == 200
-	payments = (await client.get(f"/api/v1/stays/{stay_id}/payments", headers=auth(token))).json()
-	assert payments[0]["status"] == "SUCCESS"
-	assert (await client.get(f"/api/v1/stays/{stay_id}/financial-summary", headers=auth(token))).json()["total_paid"] == "100.00"
+	assert response.status_code == 201
+	async with AsyncSessionLocal() as session:
+		payment = (await PaymentRepository(session).list_for_stay(stay_id))[-1]
+		payment.status = PaymentStatus.CANCELLED.value
+		await session.commit()
+	summary = (await client.get(f"/api/v1/stays/{stay_id}/financial-summary", headers=auth(token))).json()
+	assert summary["total_paid"] == "0.00"
+	assert summary["balance"] == "1000.00"
 
 
 @pytest.mark.asyncio
-async def test_chapa_webhook_signature_and_idempotency(client: AsyncClient, users, monkeypatch) -> None:
+async def test_invalid_payment_method_rejected(client: AsyncClient, users) -> None:
 	token = await token_for(client)
 	stay_id, _ = await create_checked_in_stay(client, token)
-
-	async def initialize(self, **kwargs):
-		return {"data": {"checkout_url": "https://checkout.example/test"}}
-
-	async def verify(self, tx_ref):
-		return {"data": {"tx_ref": tx_ref, "amount": "100.00", "currency": "ETB", "status": "success", "reference": "CHAPA-2"}}
-
-	monkeypatch.setattr(ChapaClient, "initialize_transaction", initialize)
-	monkeypatch.setattr(ChapaClient, "verify_transaction", verify)
-	initialized = await client.post(
-		f"/api/v1/stays/{stay_id}/payments/chapa/initialize", headers=auth(token),
-		json={"amount": "100.00"},
+	# Online gateway methods are not valid manual payment methods.
+	bad_method = await client.post(
+		f"/api/v1/stays/{stay_id}/payments", headers=auth(token),
+		json={"amount": "100.00", "payment_method": "CHAPA"},
 	)
-	payload = f'{{"tx_ref":"{initialized.json()["tx_ref"]}","status":"success"}}'.encode()
-	secret = get_settings().chapa_webhook_secret or "test-webhook-secret"
-	get_settings().chapa_webhook_secret = secret
-	signature = hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
-	first = await client.post("/api/v1/payments/chapa/webhook", content=payload, headers={"chapa-signature": signature})
-	second = await client.post("/api/v1/payments/chapa/webhook", content=payload, headers={"x-chapa-signature": signature})
-	assert first.status_code == 200
-	assert second.status_code == 200
-	assert len((await client.get(f"/api/v1/stays/{stay_id}/payments", headers=auth(token))).json()) == 1
-	bad = await client.post("/api/v1/payments/chapa/webhook", content=payload, headers={"chapa-signature": "bad"})
-	assert bad.status_code == 401
-
-
-@pytest.mark.asyncio
-async def test_payment_status_endpoint_and_financial_integrity(client: AsyncClient, users, monkeypatch) -> None:
-	token = await token_for(client)
-	stay_id, _ = await create_checked_in_stay(client, token)
-
-	async def initialize(self, **kwargs):
-		return {"data": {"checkout_url": "https://checkout.example/pay"}}
-
-	async def verify(self, tx_ref):
-		return {"data": {"tx_ref": tx_ref, "amount": "300.00", "currency": "ETB", "status": "success", "reference": "CHAPA-3"}}
-
-	monkeypatch.setattr(ChapaClient, "initialize_transaction", initialize)
-	monkeypatch.setattr(ChapaClient, "verify_transaction", verify)
-
-	init_res = await client.post(
-		f"/api/v1/stays/{stay_id}/payments/chapa/initialize", headers=auth(token),
-		json={"amount": "300.00"},
-	)
-	assert init_res.status_code == 200
-	payment_id = init_res.json()["payment_id"]
-	tx_ref = init_res.json()["tx_ref"]
-
-	# Check individual payment by ID
-	pay_by_id = await client.get(f"/api/v1/payments/{payment_id}", headers=auth(token))
-	assert pay_by_id.status_code == 200
-	assert pay_by_id.json()["status"] == "PENDING"
-
-	# Pending payment does not increase total_paid
-	summary_before = (await client.get(f"/api/v1/stays/{stay_id}/financial-summary", headers=auth(token))).json()
-	assert summary_before["total_paid"] == "0.00"
-	assert summary_before["balance"] == "1000.00"
-
-	# Query chapa status by tx_ref triggers reconciliation and returns SUCCESS
-	status_res = await client.get(f"/api/v1/payments/chapa/status/{tx_ref}")
-	assert status_res.status_code == 200
-	assert status_res.json()["status"] == "SUCCESS"
-
-	# Financial summary updated: total_paid increases, balance decreases
-	summary_after = (await client.get(f"/api/v1/stays/{stay_id}/financial-summary", headers=auth(token))).json()
-	assert summary_after["total_paid"] == "300.00"
-	assert summary_after["balance"] == "700.00"
+	assert bad_method.status_code == 422

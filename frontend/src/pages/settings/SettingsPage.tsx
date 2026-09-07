@@ -79,7 +79,7 @@ export function SettingsPage() {
     <div className="space-y-6 max-w-4xl">
       <PageHeader
         title="Property Settings & Policies"
-        subtitle="Manage checkout cutoff deadlines, late check-out penalties, and integrated payment gateways."
+        subtitle="Manage checkout cutoff deadlines, late check-out penalties, and manual payment channels."
       />
 
       {successMsg && (
@@ -189,17 +189,17 @@ export function SettingsPage() {
         )}
       </form>
 
-      {/* Payment Gateway Status Card */}
+      {/* Manual Payment Channels & Policy Card */}
       <div className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-neutral-900">Payment Gateway Integrations</h3>
+              <h3 className="text-base font-bold text-neutral-900">Manual Payment Recording Channels</h3>
               <p className="text-xs text-neutral-500">
-                Direct Telebirr, CBE Birr, and Chapa online checkout status.
+                Authorized front-desk cashier logging channels for guest settlements.
               </p>
             </div>
           </div>
@@ -211,17 +211,17 @@ export function SettingsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-neutral-800">Chapa Payment Gateway</span>
+              <span className="text-xs font-bold text-neutral-800">Physical Cash & Currency</span>
               <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-100/60 px-2 py-0.5 rounded-full">
-                Test Mode Ready
+                Front Desk Drawer
               </span>
             </div>
             <p className="text-xs text-neutral-600 leading-relaxed">
-              Enables online debit/credit card and Telebirr hosted checkout for guest check-ins, balance payments, and stay extensions.
+              Standard cash receipts in Ethiopian Birr (ETB) verified and recorded immediately upon guest check-in or check-out.
             </p>
             <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between text-xs">
-              <span className="text-neutral-500">API Key Config</span>
-              <span className="font-mono text-neutral-700">CHAPA_SECRET_KEY (.env)</span>
+              <span className="text-neutral-500">Receipt Logging</span>
+              <span className="font-medium text-neutral-800">Direct Folio Settlement</span>
             </div>
           </div>
 
@@ -233,11 +233,11 @@ export function SettingsPage() {
               </span>
             </div>
             <p className="text-xs text-neutral-600 leading-relaxed">
-              Supports manual transaction logging for Telebirr QR, CBE Birr mobile USSD, and Bank Wire receipts with reference tracking.
+              Manual transaction logging for Telebirr QR/USSD, CBE Birr, and Bank Wire slips with durable reference tracking.
             </p>
             <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between text-xs">
-              <span className="text-neutral-500">Supported</span>
-              <span className="font-medium text-neutral-800">CASH, TELEBIRR, CBE, BANK</span>
+              <span className="text-neutral-500">Supported Methods</span>
+              <span className="font-medium text-neutral-800">CASH, TELEBIRR, CBE, BANK, CREDIT</span>
             </div>
           </div>
         </div>

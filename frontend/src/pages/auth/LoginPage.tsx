@@ -55,7 +55,7 @@ export function LoginPage() {
               Haven House
             </span>
             <span className="block text-[11px] font-medium text-[#717171]">
-              Hospitality Management
+              Guest House Management System
             </span>
           </div>
         </div>
@@ -117,7 +117,7 @@ export function LoginPage() {
                 <div className="text-center mb-8">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F2] text-[#FF385C] text-xs font-semibold mb-3">
                     <ShieldCheck size={13} />
-                    <span>Operations Portal</span>
+                    <span>Staff Login</span>
                   </div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-[#222222] tracking-tight">
                     Welcome back

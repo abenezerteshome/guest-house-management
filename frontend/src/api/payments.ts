@@ -4,7 +4,7 @@ import type { Payment } from '../types/api'
 export async function recordManualPayment(data: {
   stay_id: number
   amount: number | string
-  payment_method: 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'
+  payment_method: 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'
   reference?: string
 }): Promise<Payment> {
   const res = await api.post<Payment>(`/stays/${data.stay_id}/payments`, {
@@ -15,26 +15,8 @@ export async function recordManualPayment(data: {
   return res.data
 }
 
-export async function initializeChapaPayment(data: {
-  stay_id: number
-  amount: number | string
-}): Promise<{ payment_id: number; checkout_url: string; tx_ref: string }> {
-  const res = await api.post<{ payment_id: number; checkout_url: string; tx_ref: string }>(
-    `/stays/${data.stay_id}/payments/chapa/initialize`,
-    {
-      amount: String(data.amount),
-    }
-  )
-  return res.data
-}
-
 export async function getPaymentById(paymentId: number): Promise<Payment> {
   const res = await api.get<Payment>(`/payments/${paymentId}`)
-  return res.data
-}
-
-export async function getChapaPaymentStatus(txRef: string): Promise<Payment> {
-  const res = await api.get<Payment>(`/payments/chapa/status/${encodeURIComponent(txRef)}`)
   return res.data
 }
 

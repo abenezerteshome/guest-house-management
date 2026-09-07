@@ -85,14 +85,10 @@ export interface Payment {
   amount: string
   payment_method: string
   status: string
-  provider: string
-  provider_transaction_id?: string | null
-  tx_ref?: string | null
   reference: string | null
   paid_at: string | null
   created_at: string
   updated_at: string
-  metadata_json?: Record<string, unknown> | null
 }
 
 export interface FinancialSummary {
@@ -190,8 +186,6 @@ export interface SettingsData {
   checkout_deadline_hour: number
   checkout_deadline_minute: number
   late_checkout_penalty: string
-  chapa_configured: boolean
-  chapa_public_key: string
   property_name: string
   currency: string
 }

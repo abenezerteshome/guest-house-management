@@ -76,7 +76,7 @@ export function ReportsPage() {
     TELEBIRR: 'Telebirr',
     CBE_BIRR: 'CBE Birr',
     BANK_TRANSFER: 'Bank Transfer',
-    CHAPA: 'Chapa Gateway',
+    CREDIT: 'Credit / Ledger',
   }
 
   return (

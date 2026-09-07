@@ -147,7 +147,7 @@ async def get_income_analysis(
 		PaymentMethod.TELEBIRR.value,
 		PaymentMethod.CBE_BIRR.value,
 		PaymentMethod.BANK_TRANSFER.value,
-		PaymentMethod.CHAPA.value,
+		PaymentMethod.CREDIT.value,
 	]
 	items = []
 	total_income = Decimal("0.00")

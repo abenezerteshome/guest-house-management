@@ -6,8 +6,6 @@ class SettingsRead(BaseModel):
 	checkout_deadline_hour: int
 	checkout_deadline_minute: int
 	late_checkout_penalty: Decimal
-	chapa_configured: bool
-	chapa_public_key: str
 	property_name: str = "Haven House"
 	currency: str = "ETB"
 

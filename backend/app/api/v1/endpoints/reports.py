@@ -23,10 +23,9 @@ from app.services.reports import (
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 admin_user = Depends(require_role(UserRole.ADMIN))
-operational_user = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))
 
 
-@router.get("/daily", response_model=DailyReport, dependencies=[operational_user])
+@router.get("/daily", response_model=DailyReport, dependencies=[admin_user])
 async def daily_report(
 	target_date: date | None = Query(default=None),
 	session: AsyncSession = Depends(get_db),

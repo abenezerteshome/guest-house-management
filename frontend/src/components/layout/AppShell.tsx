@@ -5,7 +5,6 @@ import {
   BedDouble,
   CalendarDays,
   ChevronDown,
-  CircleDollarSign,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -13,7 +12,6 @@ import {
   Menu,
   Search,
   Settings,
-  ShieldCheck,
   Users,
   Wallet,
   X,
@@ -46,7 +44,6 @@ const navSections: NavSection[] = [
       { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Stays', to: '/stays', icon: ClipboardList, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Payments', to: '/payments', icon: CircleDollarSign, roles: ['ADMIN', 'RECEPTION'] },
     ],
   },
   {
@@ -61,7 +58,6 @@ const navSections: NavSection[] = [
     title: 'Administration',
     roles: ['ADMIN'],
     items: [
-      { label: 'Users', to: '/users', icon: ShieldCheck, roles: ['ADMIN'] },
       { label: 'Audit Log', to: '/audit-log', icon: History, roles: ['ADMIN'] },
       { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN'] },
     ],
