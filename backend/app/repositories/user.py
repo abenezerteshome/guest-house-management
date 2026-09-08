@@ -12,7 +12,10 @@ class UserRepository:
 		return await self.session.get(User, user_id)
 
 	async def get_by_username(self, username: str) -> User | None:
-		result = await self.session.execute(select(User).where(User.username == username))
+		from sqlalchemy import func
+		result = await self.session.execute(
+			select(User).where(func.lower(User.username) == username.strip().lower())
+		)
 		return result.scalar_one_or_none()
 
 	async def list(self) -> list[User]:

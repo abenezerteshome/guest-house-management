@@ -12,7 +12,14 @@ class AuthenticationError(Exception):
 async def authenticate_user(
 	session: AsyncSession, username: str, password: str
 ) -> User:
-	user = await UserRepository(session).get_by_username(username)
+	identifier = username.strip().lower()
+	repo = UserRepository(session)
+	user = await repo.get_by_username(identifier)
+	if user is None:
+		if "@" not in identifier:
+			user = await repo.get_by_username(f"{identifier}@guesthousemail.com")
+		elif identifier.endswith("@guesthousemail.com"):
+			user = await repo.get_by_username(identifier.split("@")[0])
 	if user is None or not verify_password(password, user.password_hash):
 		raise AuthenticationError("Invalid username or password")
 	if not user.is_active:

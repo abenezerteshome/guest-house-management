@@ -135,7 +135,7 @@ export function LoginPage() {
                       htmlFor="username"
                       className="block text-xs font-semibold text-[#222222]"
                     >
-                      Username
+                      Username or Email
                     </label>
                     <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] hover:border-[#B0B0B0] focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222] bg-white px-3.5 transition-all">
                       <UserRound size={17} className="text-[#717171] shrink-0 mr-2.5" />
@@ -146,7 +146,7 @@ export function LoginPage() {
                         autoComplete="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="e.g. admin or reception"
+                        placeholder="e.g. admin@guesthousemail.com or admin"
                         className="w-full bg-transparent text-sm text-[#222222] placeholder:text-[#999999] focus:outline-none"
                       />
                     </div>

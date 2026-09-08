@@ -20,14 +20,14 @@ async def lifespan(app: FastAPI):
 				await create_user(
 					session,
 					full_name="System Administrator",
-					username="admin",
+					username="admin@guesthousemail.com",
 					password="admin-password-123",
 					role=UserRole.ADMIN,
 				)
 				await create_user(
 					session,
 					full_name="Reception Staff",
-					username="reception",
+					username="reception@guesthousemail.com",
 					password="reception-password-123",
 					role=UserRole.RECEPTION,
 				)
