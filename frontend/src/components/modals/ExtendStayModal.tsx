@@ -48,6 +48,12 @@ export function ExtendStayModal({
     minute: '2-digit',
   })
 
+  const selectedCheckoutDate = newCheckout ? new Date(newCheckout) : currentCheckoutDate
+  const diffDays = Math.round((selectedCheckoutDate.getTime() - currentCheckoutDate.getTime()) / (1000 * 60 * 60 * 24))
+  const extensionNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+  const unitPrice = Number(roomPrice || 0)
+  const totalExtensionFee = extensionNights * unitPrice
+
   function handleQuickAddDays(days: number) {
     const d = new Date(stay!.expected_checkout)
     d.setDate(d.getDate() + days)
@@ -157,8 +163,11 @@ export function ExtendStayModal({
           <div className="text-xs text-amber-900 leading-relaxed">
             <p className="font-semibold mb-0.5">Stay Extension Fee Applied Automatically</p>
             <p className="text-amber-800">
-              Extending the stay automatically appends the nightly room rate{' '}
-              {roomPrice ? `(${roomPrice.toLocaleString()} ETB)` : ''} to this stay's ledger as a room charge.
+              Extending by {extensionNights} day{extensionNights > 1 ? 's' : ''} automatically appends{' '}
+              <strong className="font-bold text-amber-950">
+                {totalExtensionFee.toLocaleString()} ETB ({extensionNights} × {unitPrice.toLocaleString()} ETB)
+              </strong>{' '}
+              to this stay's ledger as a room charge based on the admin room rate.
             </p>
           </div>
         </div>

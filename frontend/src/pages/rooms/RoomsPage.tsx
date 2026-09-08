@@ -219,6 +219,7 @@ export function RoomsPage() {
                   roomNumber: room.room_number,
                   roomType: room.room_type,
                   pricePerNight: Number(room.price),
+                  hourlyPrice: room.hourly_price ? Number(room.hourly_price) : undefined,
                   status: room.status,
                   bedType: 'Comfort Bed',
                 }}

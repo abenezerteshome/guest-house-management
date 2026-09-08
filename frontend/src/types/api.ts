@@ -34,6 +34,7 @@ export interface Room {
   room_number: string
   room_type: string
   price: string
+  hourly_price?: string | number | null
   status: RoomStatusType
   is_active: boolean
   created_at: string

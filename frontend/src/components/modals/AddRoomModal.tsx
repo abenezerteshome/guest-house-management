@@ -25,6 +25,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
   const [roomType, setRoomType] = useState(ROOM_TYPES[0])
   const [customType, setCustomType] = useState('')
   const [price, setPrice] = useState('')
+  const [hourlyPrice, setHourlyPrice] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -50,12 +51,14 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
         room_number: roomNumber.trim(),
         room_type: finalType,
         price: numPrice,
+        hourly_price: hourlyPrice ? Number(hourlyPrice) : undefined,
       })
 
       onSuccess()
       onClose()
       setRoomNumber('')
       setPrice('')
+      setHourlyPrice('')
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
@@ -104,16 +107,28 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
           />
         )}
 
-        <Input
-          label="Nightly Price (ETB) *"
-          type="number"
-          min="50"
-          step="1"
-          placeholder="e.g. 1800"
-          required
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input
+            label="Nightly Price (ETB) *"
+            type="number"
+            min="50"
+            step="1"
+            placeholder="e.g. 1000"
+            required
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          />
+          <Input
+            label="Hourly Rate (ETB / hr)"
+            type="number"
+            min="10"
+            step="1"
+            placeholder="e.g. 150"
+            helperText="For 3hr / 6hr day-use stays"
+            value={hourlyPrice}
+            onChange={(e) => setHourlyPrice(e.target.value)}
+          />
+        </div>
 
         {error && (
           <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700 border border-rose-200 flex items-center gap-2">

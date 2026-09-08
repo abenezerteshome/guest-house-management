@@ -7,6 +7,7 @@ export interface RoomCardData {
   roomNumber: string
   roomType: string
   pricePerNight: string | number
+  hourlyPrice?: string | number | null
   status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE' | 'RESERVED' | 'EXPECTED'
   capacity?: number
   bedType?: string
@@ -156,6 +157,11 @@ export function RoomCard({
                 {formattedPrice}
               </span>
               <span className="text-xs text-[#717171] font-normal"> / night</span>
+              {room.hourlyPrice && (
+                <span className="ml-2 text-[11px] font-semibold text-neutral-600 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-md">
+                  ETB {Number(room.hourlyPrice).toLocaleString()} / hr
+                </span>
+              )}
             </div>
           </div>
           {actionSlot && (
