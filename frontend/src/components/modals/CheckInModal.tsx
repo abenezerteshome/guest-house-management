@@ -39,6 +39,7 @@ export function CheckInModal({
   const [phone, setPhone] = useState('')
   const [idNumber, setIdNumber] = useState('')
   const [nationality, setNationality] = useState('Ethiopian')
+  const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().slice(0, 16))
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -61,6 +62,7 @@ export function CheckInModal({
 
   useEffect(() => {
     if (isOpen) {
+      setCheckInDate(new Date().toISOString().slice(0, 16))
       if (initialGuest) {
         setFullName(initialGuest.fullName || '')
         setPhone(initialGuest.phone || '')
@@ -72,14 +74,29 @@ export function CheckInModal({
   }, [isOpen, initialGuest])
 
   const activeRoom = availableRooms.find((r) => r.id === roomId) || availableRooms[0]
-  const roomPrice = Number(activeRoom?.price || 0)
-  const paid = Number(amountPaid || 0)
-  const remainingCredit = Math.max(0, roomPrice - paid)
+  const roomPricePerNight = Number(activeRoom?.price || 0)
+
+  // Calculate stay duration (nights) based on stay dates
+  const checkInTimestamp = new Date(checkInDate).getTime()
+  const checkoutTimestamp = new Date(checkoutDate).getTime()
+  const diffDays = Math.round((checkoutTimestamp - checkInTimestamp) / (1000 * 60 * 60 * 24))
+  const stayNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+
+  // Total price calculated from admin-set rate multiplied by stay dates
+  const totalRoomCharge = stayNights * roomPricePerNight
+  const paid = paymentMethod === 'CREDIT' ? 0 : Number(amountPaid || 0)
+  const remainingCredit = Math.max(0, totalRoomCharge - paid)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!roomId) {
       setError('Please select an available room.')
+      return
+    }
+    const checkInTime = new Date(checkInDate)
+    const checkOutTime = new Date(checkoutDate)
+    if (checkOutTime <= checkInTime) {
+      setError('Expected checkout must be after check-in date and time.')
       return
     }
     setError('')
@@ -96,12 +113,12 @@ export function CheckInModal({
       })
 
       // 2. Create Reservation
-      const now = new Date().toISOString()
       const reservation = await createReservation({
         guest_id: guest.id,
         room_id: roomId,
-        expected_arrival: now,
-        expected_checkout: new Date(checkoutDate).toISOString(),
+        expected_arrival: checkInTime.toISOString(),
+        expected_checkout: checkOutTime.toISOString(),
+        expected_amount: totalRoomCharge,
         notes: notes.trim() || undefined,
       })
 
@@ -114,7 +131,7 @@ export function CheckInModal({
           stay_id: stay.id,
           amount: paid,
           payment_method: paymentMethod,
-          reference: `Check-in deposit (${paymentMethod})`,
+          reference: `Check-in payment (${paymentMethod})`,
         })
       }
 
@@ -148,37 +165,50 @@ export function CheckInModal({
           </div>
         )}
 
-        {/* Step 1: Room Selection & Rate */}
+        {/* Step 1: Room Selection & Stay Dates */}
         <div className="p-4 rounded-2xl bg-[#F7F7F7] border border-[#DDDDDD] space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
               <KeyRound size={14} className="text-[#FF385C]" />
-              1. Room Assignment
+              1. Room Assignment & Stay Dates
             </span>
             {activeRoom && (
-              <span className="text-xs font-bold text-[#FF385C]">
+              <span className="text-xs font-bold text-[#FF385C] bg-[#FF385C]/10 px-2.5 py-1 rounded-full">
                 ETB {Number(activeRoom.price).toLocaleString()} / night
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-[#222222] mb-1">
+              Select Available Room (Rates set by Admin)
+            </label>
+            <select
+              value={roomId}
+              onChange={(e) => setRoomId(Number(e.target.value))}
+              className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
+              required
+            >
+              {availableRooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  Room {room.room_number} — {room.room_type} (ETB {Number(room.price).toLocaleString()} / night)
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <div>
               <label className="block text-xs font-semibold text-[#222222] mb-1">
-                Select Available Room
+                Check-in Date & Time
               </label>
-              <select
-                value={roomId}
-                onChange={(e) => setRoomId(Number(e.target.value))}
-                className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
+              <input
+                type="datetime-local"
+                value={checkInDate}
+                onChange={(e) => setCheckInDate(e.target.value)}
+                className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required
-              >
-                {availableRooms.map((room) => (
-                  <option key={room.id} value={room.id}>
-                    Room {room.room_number} — {room.room_type} (ETB {Number(room.price).toLocaleString()})
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div>
@@ -189,10 +219,17 @@ export function CheckInModal({
                 type="datetime-local"
                 value={checkoutDate}
                 onChange={(e) => setCheckoutDate(e.target.value)}
-                className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
+                className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required
               />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-1 text-xs text-[#717171] border-t border-[#EAEAEA]">
+            <span>Stay Duration:</span>
+            <span className="font-bold text-[#222222] bg-white px-2.5 py-0.5 rounded-lg border border-[#DDDDDD]">
+              {stayNights} Night{stayNights > 1 ? 's' : ''} ({stayNights} × ETB {roomPricePerNight.toLocaleString()})
+            </span>
           </div>
         </div>
 
@@ -239,10 +276,21 @@ export function CheckInModal({
 
         {/* Step 3: Payment & Credit Calculation */}
         <div className="p-4 rounded-2xl bg-[#FFF0F2]/40 border border-[#FFD2D9] space-y-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
-            <CircleDollarSign size={14} className="text-[#FF385C]" />
-            3. Payment & Credit Calculation
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
+              <CircleDollarSign size={14} className="text-[#FF385C]" />
+              3. Payment & Credit Calculation
+            </span>
+            {totalRoomCharge > 0 && paymentMethod !== 'CREDIT' && (
+              <button
+                type="button"
+                onClick={() => setAmountPaid(String(totalRoomCharge))}
+                className="text-[11px] font-bold text-[#FF385C] hover:underline"
+              >
+                Pay Full (ETB {totalRoomCharge.toLocaleString()})
+              </button>
+            )}
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -266,18 +314,20 @@ export function CheckInModal({
               label="Amount Paid Now (ETB)"
               type="number"
               min="0"
-              placeholder={`e.g. ${roomPrice}`}
-              value={amountPaid}
+              max={totalRoomCharge}
+              placeholder={paymentMethod === 'CREDIT' ? '0 (Credit)' : `e.g. ${totalRoomCharge}`}
+              disabled={paymentMethod === 'CREDIT'}
+              value={paymentMethod === 'CREDIT' ? '' : amountPaid}
               onChange={(e) => setAmountPaid(e.target.value)}
-              helperText={paymentMethod === 'CREDIT' ? 'Guest will pay remaining balance later' : undefined}
+              helperText={paymentMethod === 'CREDIT' ? 'Full stay amount will be recorded as outstanding credit' : undefined}
             />
           </div>
 
           {/* Automatic Credit / Balance Breakdown */}
           <div className="p-3 bg-white rounded-xl border border-[#DDDDDD] flex items-center justify-between text-xs">
             <div>
-              <span className="text-[#717171]">Room Charge: </span>
-              <strong className="text-[#222222]">ETB {roomPrice.toLocaleString()}</strong>
+              <span className="text-[#717171]">Total Room Charge: </span>
+              <strong className="text-[#222222]">ETB {totalRoomCharge.toLocaleString()}</strong>
             </div>
             <div>
               <span className="text-[#717171]">Paid: </span>

@@ -75,6 +75,14 @@ export function ReservationModal({
   )
 
   const selectedRoom = availableRooms.find((r) => r.id === roomId)
+  const roomPricePerNight = Number(selectedRoom?.price || 0)
+
+  // Calculate stay duration (nights) based on arrival and checkout dates
+  const arr = new Date(arrivalDate)
+  const dep = new Date(checkoutDate)
+  const diffDays = Math.round((dep.getTime() - arr.getTime()) / (1000 * 60 * 60 * 24))
+  const resNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+  const calculatedExpectedAmount = resNights * roomPricePerNight
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -83,8 +91,6 @@ export function ReservationModal({
       return
     }
 
-    const arr = new Date(arrivalDate)
-    const dep = new Date(checkoutDate)
     if (dep <= arr) {
       setError('Expected checkout must be after expected arrival date and time.')
       return
@@ -123,7 +129,7 @@ export function ReservationModal({
         room_id: roomId,
         expected_arrival: arr.toISOString(),
         expected_checkout: dep.toISOString(),
-        expected_amount: expectedAmount || Number(selectedRoom?.price || 0),
+        expected_amount: expectedAmount ? Number(expectedAmount) : calculatedExpectedAmount,
         reason: reason.trim() || undefined,
         notes: notes.trim() || undefined,
       })
@@ -214,6 +220,14 @@ export function ReservationModal({
           </div>
         </div>
 
+        {/* Calculation badge */}
+        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-neutral-100/70 border border-neutral-200 text-xs">
+          <span className="text-neutral-600">Calculated Stay Total:</span>
+          <span className="font-bold text-neutral-900">
+            {resNights} Night{resNights > 1 ? 's' : ''} × ETB {roomPricePerNight.toLocaleString()} = ETB {calculatedExpectedAmount.toLocaleString()}
+          </span>
+        </div>
+
         {/* Reservation Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
@@ -221,7 +235,8 @@ export function ReservationModal({
             type="number"
             min="0"
             step="0.01"
-            placeholder={selectedRoom ? String(Number(selectedRoom.price)) : '0.00'}
+            placeholder={String(calculatedExpectedAmount)}
+            helperText={`Defaults to calculated total (ETB ${calculatedExpectedAmount.toLocaleString()}) if left blank`}
             value={expectedAmount}
             onChange={(e) => setExpectedAmount(e.target.value)}
           />

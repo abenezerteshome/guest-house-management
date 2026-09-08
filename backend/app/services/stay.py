@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -69,18 +70,22 @@ async def extend_stay(
 		raise InvalidTransitionError("Only CHECKED_IN stays can be extended")
 	if new_expected_checkout <= stay.expected_checkout:
 		raise InvalidTransitionError("New checkout must be later than current expected checkout")
+	old_checkout = stay.expected_checkout
 	stay.expected_checkout = new_expected_checkout
 	room = await session.get(Room, stay.room_id)
 	if room is None:
 		raise ResourceNotFoundError("Room not found")
 	from app.services.payment import add_charge_record
 
+	extension_days = max(1, (new_expected_checkout.date() - old_checkout.date()).days)
+	extension_charge = Decimal(extension_days) * Decimal(str(room.price))
+
 	await add_charge_record(
 		session,
 		stay_id=stay.id,
 		charge_type=ChargeType.ROOM,
-		description="Stay extension room charge",
-		amount=room.price,
+		description=f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''} @ ETB {room.price:,.2f})",
+		amount=extension_charge,
 		created_by=user_id,
 	)
 	session.add(
