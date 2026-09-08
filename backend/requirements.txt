@@ -3,6 +3,7 @@ asyncpg>=0.29,<1
 fastapi>=0.115,<1
 httpx>=0.27,<1
 passlib[argon2]>=1.7,<2
+psycopg2-binary>=2.9.9
 pydantic>=2.8,<3
 pydantic-settings>=2.4,<3
 pytest>=8,<9
