@@ -201,13 +201,15 @@ export function AppShell() {
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-[#EEEEEE] space-y-3">
             <div className="px-3 py-2 rounded-xl bg-[#F7F7F7] border border-[#EBEBEB] flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-[#008A05] shrink-0" />
+              <div className="w-7 h-7 rounded-lg bg-neutral-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                {user?.full_name?.charAt(0) || (user?.role === 'ADMIN' ? 'A' : 'R')}
+              </div>
               <div className="min-w-0 flex-1">
                 <span className="block text-xs font-semibold text-[#222222] truncate">
-                  {user?.role === 'ADMIN' ? 'Administrator Mode' : 'Front Desk Mode'}
+                  {user?.full_name || (user?.role === 'ADMIN' ? 'Administrator' : 'Reception Staff')}
                 </span>
                 <span className="block text-[11px] text-[#717171] truncate">
-                  {user?.role === 'ADMIN' ? 'Full operations' : 'Speed-optimized'}
+                  {user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
                 </span>
               </div>
             </div>

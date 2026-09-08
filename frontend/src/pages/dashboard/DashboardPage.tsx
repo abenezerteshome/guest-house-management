@@ -14,7 +14,6 @@ import {
   LogOut,
   Plus,
   RefreshCw,
-  Sparkles,
   TrendingUp,
   UserCheck,
   Wallet,
@@ -61,12 +60,6 @@ export function DashboardPage() {
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
   const [selectedStay, setSelectedStay] = useState<Stay | null>(null)
 
-  // Derive personalized greeting based on local time
-  const hour = new Date().getHours()
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const firstName = user?.full_name?.split(' ')[0] || 'Team'
-
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
     try {
@@ -111,53 +104,16 @@ export function DashboardPage() {
   const firstActiveStay = activeStays[0] || null
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hospitality Welcome Strip */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#DDDDDD]">
+    <div className="space-y-6 animate-fade-in">
+      {/* Clean Operations Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DDDDDD]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-              {isAdmin ? 'Guest House Overview' : 'Front Desk Operations'}
-            </span>
-            <span className="text-[11px] text-[#717171]">·</span>
-            <span className="text-[11px] font-medium text-[#008A05] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-              House Online
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#222222] tracking-tight">
-            {greeting}, {firstName} 👋
+          <h1 className="text-2xl font-bold text-[#222222] tracking-tight">
+            {isAdmin ? 'Guest House Overview' : 'Daily Room Logbook'}
           </h1>
-          <p className="text-sm text-[#717171] mt-1">
-            Here’s what’s happening at Haven House today.
-          </p>
         </div>
 
-        {/* Status Stamp & Refresh */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchDashboardData()}
-            className="gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh Desk
-          </Button>
-          <div className="px-3.5 py-1.5 rounded-full bg-[#F7F7F7] border border-[#DDDDDD] flex items-center gap-2 text-xs text-[#222222]">
-            <Sparkles size={14} className="text-[#FF385C]" />
-            <span className="font-semibold">Boutique Guest House</span>
-            <span className="text-[#717171]">| Addis Ababa</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Prominent Quick Actions Bar */}
-      <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-          Desk Actions
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             variant="primary"
             size="md"
@@ -167,7 +123,7 @@ export function DashboardPage() {
               setCheckInOpen(true)
             }}
           >
-            + Check in guest
+            + Check In Guest
           </Button>
           <Button
             variant="secondary"
@@ -178,7 +134,7 @@ export function DashboardPage() {
               setReservationOpen(true)
             }}
           >
-            + New reservation
+            + New Reservation
           </Button>
           {isAdmin && (
             <Button
@@ -187,9 +143,18 @@ export function DashboardPage() {
               leftIcon={<Wallet size={16} />}
               onClick={() => setExpenseOpen(true)}
             >
-              + Record expense
+              + Record Expense
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => fetchDashboardData()}
+            className="gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </Button>
         </div>
       </div>
 
