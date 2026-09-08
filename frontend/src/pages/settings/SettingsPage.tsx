@@ -78,7 +78,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <PageHeader
-        title="Property Settings & Policies"
+        title="Guest House Settings & Policies"
         subtitle="Manage checkout cutoff deadlines, late check-out penalties, and manual payment channels."
       />
 

@@ -137,7 +137,7 @@ export function AppShell() {
                   Haven House
                 </span>
                 <span className="block text-[11px] font-medium text-[#717171]">
-                  Property Management
+                  Guest House Management
                 </span>
               </div>
             </div>
@@ -204,7 +204,7 @@ export function AppShell() {
               <span className="w-2 h-2 rounded-full bg-[#008A05] shrink-0" />
               <div className="min-w-0 flex-1">
                 <span className="block text-xs font-semibold text-[#222222] truncate">
-                  {user?.role === 'ADMIN' ? 'Property Host Mode' : 'Front Desk Mode'}
+                  {user?.role === 'ADMIN' ? 'Administrator Mode' : 'Front Desk Mode'}
                 </span>
                 <span className="block text-[11px] text-[#717171] truncate">
                   {user?.role === 'ADMIN' ? 'Full operations' : 'Speed-optimized'}
@@ -322,7 +322,7 @@ export function AppShell() {
                       className="flex items-center gap-2 px-3.5 py-2 text-[#222222] hover:bg-[#F7F7F7] transition"
                     >
                       <Settings size={14} className="text-[#717171]" />
-                      <span>Property Settings</span>
+                      <span>Guest House Settings</span>
                     </Link>
                   )}
                   <div className="border-t border-[#F0F0F0] my-1" />

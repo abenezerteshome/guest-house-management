@@ -104,7 +104,7 @@ export function DashboardPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-              {isAdmin ? 'Property Host Overview' : 'Front Desk Operations'}
+              {isAdmin ? 'Guest House Overview' : 'Front Desk Operations'}
             </span>
             <span className="text-[11px] text-[#717171]">·</span>
             <span className="text-[11px] font-medium text-[#008A05] flex items-center gap-1">

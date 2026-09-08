@@ -30,7 +30,7 @@ export function App() {
         {/* STAFF DESK LOGIN */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* PROTECTED STAFF PROPERTY MANAGEMENT SYSTEM */}
+        {/* PROTECTED STAFF GUEST HOUSE MANAGEMENT SYSTEM */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route path="dashboard" element={<DashboardPage />} />

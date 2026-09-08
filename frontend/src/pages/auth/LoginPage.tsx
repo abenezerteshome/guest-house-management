@@ -214,7 +214,7 @@ export function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#F0F0F0] text-center">
               <span className="text-xs text-[#717171] flex items-center justify-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-                Staff access only · Haven House PMS
+                Staff access only · Haven House Guest House
               </span>
             </div>
           </div>
@@ -230,7 +230,7 @@ export function LoginPage() {
             <span>·</span>
             <span>Terms</span>
             <span>·</span>
-            <span>Property Management System</span>
+            <span>Guest House Management System</span>
           </div>
         </div>
       </footer>
@@ -248,7 +248,7 @@ export function LoginPage() {
               Account Credentials
             </strong>
             <p className="text-xs text-[#717171] leading-relaxed">
-              Standard credentials are provided to designated staff members by the Property Administrator. If you have forgotten your password or need a role change, contact your general manager.
+              Standard credentials are provided to designated staff members by the Guest House Administrator. If you have forgotten your password or need a role change, contact your general manager.
             </p>
           </div>
           <div className="p-3.5 rounded-xl bg-[#F7F7F7] border border-[#DDDDDD]">

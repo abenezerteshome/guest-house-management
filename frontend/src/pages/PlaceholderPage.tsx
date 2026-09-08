@@ -159,7 +159,7 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
 
           <div className="p-4 bg-white rounded-2xl border border-[#DDDDDD] text-center text-xs text-[#717171]">
             <span className="font-semibold text-[#222222]">Phase 5.1 Architecture:</span>{' '}
-            Visual property cards ready. Live room statuses will connect to the room repository in Phase 5.2.
+            Visual guest house cards ready. Live room statuses will connect to the room repository in Phase 5.2.
           </div>
         </div>
       )
@@ -447,11 +447,11 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card padding="md">
-            <h3 className="text-base font-semibold text-[#222222] mb-1">Property Profile</h3>
+            <h3 className="text-base font-semibold text-[#222222] mb-1">Guest House Profile</h3>
             <p className="text-xs text-[#717171] mb-4">Core guest house attributes and local business identity.</p>
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] flex justify-between">
-                <span className="text-[#717171]">Property Name</span>
+                <span className="text-[#717171]">Guest House Name</span>
                 <span className="font-semibold text-[#222222]">Haven House</span>
               </div>
               <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] flex justify-between">

@@ -99,7 +99,7 @@ export function RoomsPage() {
       {/* Page Header */}
       <PageHeader
         title="Room Status Board"
-        subtitle="Live property room matrix, real-time availability, and quick guest allocation."
+        subtitle="Live guest house room matrix, real-time availability, and quick guest allocation."
         action={
           <div className="flex items-center gap-2.5">
             <Button
