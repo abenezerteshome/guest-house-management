@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   ArrowRight,
   BedDouble,
+  BookOpen,
   CalendarDays,
   CalendarPlus,
   CheckCircle2,
   CircleDollarSign,
   ClipboardList,
   KeyRound,
+  LayoutGrid,
   LogIn,
   LogOut,
   Plus,
@@ -29,15 +31,20 @@ import { ReservationModal } from '../../components/modals/ReservationModal'
 import { RecordPaymentModal } from '../../components/modals/RecordPaymentModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
+import { getGuests } from '../../api/guests'
 import type { DailyReport, Room, Stay, Reservation } from '../../types/api'
 
 export function DashboardPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
+
+  // Operational View Mode: 'LOGBOOK' (Paper notebook ledger replica) vs 'CARDS' (Matrix)
+  const [viewMode, setViewMode] = useState<'LOGBOOK' | 'CARDS'>('LOGBOOK')
 
   // Live state
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
@@ -65,15 +72,23 @@ export function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
     try {
-      const [reportData, roomsData, staysData, resData] = await Promise.all([
+      const [reportData, roomsData, staysData, resData, guestsData] = await Promise.all([
         isAdmin ? getDailyReport().catch(() => null) : Promise.resolve(null),
         getRooms(),
         getStays('CHECKED_IN').catch(() => []),
         getReservations('RESERVED').catch(() => []),
+        getGuests().catch(() => []),
       ])
       if (reportData) setDailyReport(reportData)
       setRooms(roomsData)
-      setActiveStays(staysData)
+
+      // Map guest information onto active stays so guest names display clearly
+      const guestMap = new Map(guestsData.map((g) => [g.id, g]))
+      const enrichedStays = staysData.map((s) => ({
+        ...s,
+        guest: guestMap.get(s.guest_id),
+      }))
+      setActiveStays(enrichedStays)
       setReservations(resData)
     } catch (err) {
       console.error('Failed to load dashboard data:', err)
@@ -272,21 +287,83 @@ export function DashboardPage() {
         </div>
       </div>
 
+      {/* Operational View Switcher Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+        <div className="flex items-center gap-1.5 p-1 bg-[#F1F1F1] rounded-2xl border border-[#E5E5E5] w-fit">
+          <button
+            type="button"
+            onClick={() => setViewMode('LOGBOOK')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              viewMode === 'LOGBOOK'
+                ? 'bg-neutral-900 text-white shadow-sm'
+                : 'text-[#555555] hover:text-neutral-900'
+            }`}
+          >
+            <BookOpen size={15} />
+            <span>Daily Room Logbook (Register Sheet)</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
+              LEDGER
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('CARDS')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              viewMode === 'CARDS'
+                ? 'bg-neutral-900 text-white shadow-sm'
+                : 'text-[#555555] hover:text-neutral-900'
+            }`}
+          >
+            <LayoutGrid size={15} />
+            <span>Room Cards Matrix</span>
+          </button>
+        </div>
+
+        <div className="text-xs text-[#717171] font-medium hidden md:block">
+          {viewMode === 'LOGBOOK'
+            ? 'Rows = Room Numbers · Columns = Rolling 7 Days · Click vacant cell to Check In'
+            : 'Visual status card glance for all guest house rooms'}
+        </div>
+      </div>
+
+      {/* Primary Logbook Sheet View (Notebook Replica) */}
+      {viewMode === 'LOGBOOK' && (
+        <LogbookSheet
+          rooms={rooms}
+          stays={activeStays}
+          reservations={reservations}
+          onCheckInRoom={(roomId) => {
+            setSelectedRoomId(roomId)
+            setCheckInOpen(true)
+          }}
+          onRecordPayment={(stay) => {
+            setSelectedStay(stay)
+            setPaymentOpen(true)
+          }}
+          onCheckOut={(stay) => {
+            setSelectedStay(stay)
+            setSelectedRoomId(stay.room_id)
+            setCheckOutOpen(true)
+          }}
+          onRefresh={() => fetchDashboardData()}
+        />
+      )}
+
       {/* Main Operational Grids */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Operations Feed & Room Cards */}
+        {/* Left 2 Cols: Operations Feed & (in CARDS view) Room Cards */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Room Availability Visual Section */}
-          <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#F0F0F0]">
-              <div>
-                <h2 className="text-base font-semibold text-[#222222]">
-                  Room Readiness Glance
-                </h2>
-                <p className="text-xs text-[#717171] mt-0.5">
-                  Visual card matrix for instant front-desk check-in and checkout.
-                </p>
-              </div>
+          {viewMode === 'CARDS' && (
+            <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#F0F0F0]">
+                <div>
+                  <h2 className="text-base font-semibold text-[#222222]">
+                    Room Readiness Glance
+                  </h2>
+                  <p className="text-xs text-[#717171] mt-0.5">
+                    Visual card matrix for instant front-desk check-in and checkout.
+                  </p>
+                </div>
 
               {/* Status Filter Tabs */}
               <div className="flex items-center gap-1.5 p-1 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] overflow-x-auto">
@@ -421,6 +498,7 @@ export function DashboardPage() {
               </div>
             )}
           </div>
+          )}
 
           {/* Today's Operational Live Feed */}
           <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">

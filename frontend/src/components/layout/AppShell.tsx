@@ -39,7 +39,7 @@ const navSections: NavSection[] = [
     title: 'Operations',
     roles: ['ADMIN', 'RECEPTION'],
     items: [
-      { label: 'Overview', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION'] },
+      { label: 'Daily Logbook', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION'] },

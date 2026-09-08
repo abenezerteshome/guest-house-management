@@ -113,14 +113,14 @@ export function RecordPaymentModal({
   if (!stayId) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Settle Folio Payment" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Record Received Payment" size="md">
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Prominent Amount Due Banner */}
         <div className="rounded-2xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white p-5 shadow-sm border border-neutral-700/50">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-                Authoritative Balance Due
+                Remaining Amount to Pay
               </p>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-black tracking-tight text-white">
@@ -143,11 +143,11 @@ export function RecordPaymentModal({
 
           <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/10 text-xs">
             <div>
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Incurred</span>
+              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Room Bill</span>
               <span className="font-bold text-neutral-200">{totalCharges.toLocaleString()} ETB</span>
             </div>
             <div className="text-right">
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Settled</span>
+              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Amount Already Paid</span>
               <span className="font-bold text-emerald-400">{totalPayments.toLocaleString()} ETB</span>
             </div>
           </div>
