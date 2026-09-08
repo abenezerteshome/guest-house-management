@@ -7,6 +7,7 @@ import type { FinancialSummary, Stay } from '../../types/api'
 import { checkOutStay, getStayFinancialSummary } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
 import { getSettings } from '../../api/settings'
+import { getApiError } from '../../api/client'
 
 interface CheckOutModalProps {
   isOpen: boolean
@@ -65,7 +66,7 @@ export function CheckOutModal({
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Failed to load stay financial summary.')
+        setError(getApiError(err, 'Failed to load stay financial summary.'))
       })
       .finally(() => {
         setLoading(false)
@@ -85,23 +86,28 @@ export function CheckOutModal({
     setError('')
     setSubmitting(true)
     try {
-      // 1. If settlement payment is provided and > 0, record it
+      // 1. Perform checkout first so backend applies late checkout penalty charge if past cutoff
+      await checkOutStay(stay.id)
+
+      // 2. If settlement payment is provided and > 0, record it
       const settleNum = Number(settleAmount)
       if (settleNum > 0) {
-        await recordManualPayment({
-          stay_id: stay.id,
-          amount: settleNum,
-          payment_method: settleMethod,
-          reference: `Checkout final settlement (${settleMethod})`,
-        })
+        try {
+          await recordManualPayment({
+            stay_id: stay.id,
+            amount: settleNum,
+            payment_method: settleMethod,
+            reference: `Checkout final settlement (${settleMethod})`,
+          })
+        } catch (payErr) {
+          console.error('Checkout succeeded but settlement payment error:', payErr)
+        }
       }
 
-      // 2. Perform checkout (backend automatically applies penalty if late)
-      await checkOutStay(stay.id)
       onSuccess()
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to complete checkout.')
+      setError(getApiError(err, 'Unable to complete checkout.'))
     } finally {
       setSubmitting(false)
     }

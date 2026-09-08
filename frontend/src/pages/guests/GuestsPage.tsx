@@ -27,6 +27,7 @@ export function GuestsPage() {
   // Modals
   const [createGuestOpen, setCreateGuestOpen] = useState(false)
   const [checkInOpen, setCheckInOpen] = useState(false)
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
 
   // New Guest Form
   const [fullName, setFullName] = useState('')
@@ -168,11 +169,14 @@ export function GuestsPage() {
       key: 'actions',
       header: 'Actions',
       align: 'right',
-      render: () => (
+      render: (g) => (
         <Button
           variant="outline"
           size="xs"
-          onClick={() => setCheckInOpen(true)}
+          onClick={() => {
+            setSelectedGuest(g)
+            setCheckInOpen(true)
+          }}
           className="gap-1 text-xs"
         >
           <KeyRound className="w-3.5 h-3.5" />
@@ -316,8 +320,21 @@ export function GuestsPage() {
 
       <CheckInModal
         isOpen={checkInOpen}
-        onClose={() => setCheckInOpen(false)}
+        onClose={() => {
+          setCheckInOpen(false)
+          setSelectedGuest(null)
+        }}
         availableRooms={availableRooms}
+        initialGuest={
+          selectedGuest
+            ? {
+                fullName: selectedGuest.full_name,
+                phone: selectedGuest.phone,
+                idNumber: selectedGuest.id_number,
+                nationality: selectedGuest.nationality,
+              }
+            : undefined
+        }
         onSuccess={() => fetchData()}
       />
     </div>

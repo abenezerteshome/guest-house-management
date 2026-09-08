@@ -29,13 +29,18 @@ import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { getGuests } from '../../api/guests'
-import type { DailyReport, Room, Stay, Reservation } from '../../types/api'
+import type { DailyReport, Room, Stay, Reservation, Guest } from '../../types/api'
+
+interface StayWithGuest extends Stay {
+  guest?: Guest
+}
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -47,7 +52,7 @@ export function DashboardPage() {
   // Live state
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
-  const [activeStays, setActiveStays] = useState<Stay[]>([])
+  const [activeStays, setActiveStays] = useState<StayWithGuest[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [_loading, setLoading] = useState(true)
 
@@ -57,8 +62,9 @@ export function DashboardPage() {
   const [reservationOpen, setReservationOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
+  const [extendOpen, setExtendOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
-  const [selectedStay, setSelectedStay] = useState<Stay | null>(null)
+  const [selectedStay, setSelectedStay] = useState<StayWithGuest | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
@@ -291,6 +297,11 @@ export function DashboardPage() {
             setSelectedRoomId(stay.room_id)
             setCheckOutOpen(true)
           }}
+          onExtendStay={(stay) => {
+            setSelectedStay(stay)
+            setSelectedRoomId(stay.room_id)
+            setExtendOpen(true)
+          }}
           onRefresh={() => fetchDashboardData()}
         />
       )}
@@ -506,6 +517,17 @@ export function DashboardPage() {
 
                       <div className="flex items-center gap-2">
                         <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => {
+                            setSelectedStay(stay)
+                            setSelectedRoomId(stay.room_id)
+                            setExtendOpen(true)
+                          }}
+                        >
+                          Extend
+                        </Button>
+                        <Button
                           variant="primary"
                           size="xs"
                           className="bg-neutral-900 hover:bg-neutral-800 text-white"
@@ -625,7 +647,17 @@ export function DashboardPage() {
         isOpen={checkOutOpen}
         onClose={() => setCheckOutOpen(false)}
         stay={selectedStay}
-        roomNumber={String(selectedStay?.room_id || '')}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number || String(selectedStay?.room_id || '')}
+        guestName={selectedStay?.guest?.full_name}
+        onSuccess={() => fetchDashboardData()}
+      />
+
+      <ExtendStayModal
+        isOpen={extendOpen}
+        onClose={() => setExtendOpen(false)}
+        stay={selectedStay}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
+        guestName={selectedStay?.guest?.full_name}
         onSuccess={() => fetchDashboardData()}
       />
     </div>

@@ -6,6 +6,7 @@ import { Input } from '../common/Input'
 import type { Room, Guest } from '../../types/api'
 import { getGuests, createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
+import { getApiError } from '../../api/client'
 
 interface ReservationModalProps {
   isOpen: boolean
@@ -55,10 +56,10 @@ export function ReservationModal({
   useEffect(() => {
     if (selectedRoomId) {
       setRoomId(selectedRoomId)
-    } else if (availableRooms.length > 0 && !roomId) {
+    } else if (availableRooms.length > 0 && (!roomId || !availableRooms.some((r) => r.id === roomId))) {
       setRoomId(availableRooms[0].id)
     }
-  }, [selectedRoomId, availableRooms, roomId])
+  }, [selectedRoomId, availableRooms, roomId, isOpen])
 
   useEffect(() => {
     if (isOpen && useExistingGuest) {
@@ -104,7 +105,7 @@ export function ReservationModal({
         guestId = Number(selectedGuestId)
       } else {
         if (!fullName.trim() || !phone.trim() || !idNumber.trim()) {
-          setError('Please provide Guest Full Name, Phone, and ID/Passport Number.')
+          setError('Please fill in all required guest fields (Name, Phone, ID).')
           setLoading(false)
           return
         }
@@ -127,13 +128,16 @@ export function ReservationModal({
         notes: notes.trim() || undefined,
       })
 
+      // Reset form
+      setFullName('')
+      setPhone('')
+      setIdNumber('')
+      setExpectedAmount('')
+      setNotes('')
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to create reservation. Please try again.'
-      setError(msg)
+      setError(getApiError(err, 'Failed to create reservation. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -149,24 +153,6 @@ export function ReservationModal({
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Expected Amount (ETB)"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder={selectedRoom ? String(Number(selectedRoom.price)) : '0.00'}
-                value={expectedAmount}
-                onChange={(e) => setExpectedAmount(e.target.value)}
-              />
-              <Input
-                label="Reason"
-                placeholder="Reservation"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-              />
-            </div>
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Selected Room</p>
               <p className="text-sm font-bold text-neutral-900">
                 {selectedRoom ? `Room ${selectedRoom.room_number} • ${selectedRoom.room_type}` : 'Choose Room Below'}
@@ -226,6 +212,25 @@ export function ReservationModal({
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
           </div>
+        </div>
+
+        {/* Reservation Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="Expected Amount (ETB)"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder={selectedRoom ? String(Number(selectedRoom.price)) : '0.00'}
+            value={expectedAmount}
+            onChange={(e) => setExpectedAmount(e.target.value)}
+          />
+          <Input
+            label="Booking Reference / Reason"
+            placeholder="Reservation"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
         </div>
 
         {/* Guest selector toggle */}
