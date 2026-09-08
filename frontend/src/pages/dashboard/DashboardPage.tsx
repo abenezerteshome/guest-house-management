@@ -28,7 +28,6 @@ import { EmptyState } from '../../components/common/StatePanel'
 import { Badge } from '../../components/common/Badge'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
-import { RecordPaymentModal } from '../../components/modals/RecordPaymentModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
@@ -57,7 +56,6 @@ export function DashboardPage() {
   const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'MAINTENANCE'>('ALL')
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
-  const [paymentOpen, setPaymentOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
@@ -182,21 +180,6 @@ export function DashboardPage() {
           >
             + New reservation
           </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={<CircleDollarSign size={16} />}
-            onClick={() => {
-              if (activeStays.length > 0) {
-                setSelectedStay(activeStays[0])
-                setPaymentOpen(true)
-              } else {
-                alert('No active in-house stays currently available to record payments.')
-              }
-            }}
-          >
-            + Record payment
-          </Button>
           {isAdmin && (
             <Button
               variant="outline"
@@ -210,82 +193,84 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards Grid — 6 clean hospitality cards with LIVE PostgreSQL data */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-            Key Performance Metrics
-          </span>
-          <span className="text-xs text-[#717171]">
-            Real-time operations & financial summary
-          </span>
-        </div>
+      {/* KPI Cards Grid — Visible strictly to Administrator */}
+      {isAdmin && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
+              Key Performance Metrics
+            </span>
+            <span className="text-xs text-[#717171]">
+              Real-time financial & occupancy summary (Administrator only)
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
-          <KpiCard
-            label="Today's Income"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Guest settlements today"
-            icon={CircleDollarSign}
-            tone="success"
-          />
-          <KpiCard
-            label="Today's Expenses"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Disbursed petty cash"
-            icon={Wallet}
-            tone="neutral"
-          />
-          <KpiCard
-            label="Net Cashflow"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Revenue minus expenses"
-            icon={TrendingUp}
-            tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
-          />
-          <KpiCard
-            label="Occupied Rooms"
-            value={
-              dailyReport
-                ? `${dailyReport.occupied_rooms} / ${rooms.length || dailyReport.occupied_rooms + dailyReport.available_rooms}`
-                : `${occupiedRooms.length} / ${rooms.length}`
-            }
-            detail={`${
-              rooms.length > 0
-                ? Math.round((occupiedRooms.length / rooms.length) * 100)
-                : 0
-            }% occupancy rate`}
-            icon={BedDouble}
-            tone="accent"
-          />
-          <KpiCard
-            label="Available Rooms"
-            value={String(availableRooms.length)}
-            detail="Ready for instant check-in"
-            icon={CheckCircle2}
-            tone="success"
-          />
-          <KpiCard
-            label="Expected Arrivals"
-            value={String(reservations.length)}
-            detail="Scheduled bookings pending"
-            icon={CalendarDays}
-            tone={reservations.length > 0 ? 'warning' : 'neutral'}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            <KpiCard
+              label="Today's Income"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Guest settlements today"
+              icon={CircleDollarSign}
+              tone="success"
+            />
+            <KpiCard
+              label="Today's Expenses"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Disbursed petty cash"
+              icon={Wallet}
+              tone="neutral"
+            />
+            <KpiCard
+              label="Net Cashflow"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Revenue minus expenses"
+              icon={TrendingUp}
+              tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
+            />
+            <KpiCard
+              label="Occupied Rooms"
+              value={
+                dailyReport
+                  ? `${dailyReport.occupied_rooms} / ${rooms.length || dailyReport.occupied_rooms + dailyReport.available_rooms}`
+                  : `${occupiedRooms.length} / ${rooms.length}`
+              }
+              detail={`${
+                rooms.length > 0
+                  ? Math.round((occupiedRooms.length / rooms.length) * 100)
+                  : 0
+              }% occupancy rate`}
+              icon={BedDouble}
+              tone="accent"
+            />
+            <KpiCard
+              label="Available Rooms"
+              value={String(availableRooms.length)}
+              detail="Ready for instant check-in"
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <KpiCard
+              label="Expected Arrivals"
+              value={String(reservations.length)}
+              detail="Scheduled bookings pending"
+              icon={CalendarDays}
+              tone={reservations.length > 0 ? 'warning' : 'neutral'}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Operational View Switcher Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -335,10 +320,6 @@ export function DashboardPage() {
           onCheckInRoom={(roomId) => {
             setSelectedRoomId(roomId)
             setCheckInOpen(true)
-          }}
-          onRecordPayment={(stay) => {
-            setSelectedStay(stay)
-            setPaymentOpen(true)
           }}
           onCheckOut={(stay) => {
             setSelectedStay(stay)
@@ -560,16 +541,6 @@ export function DashboardPage() {
 
                       <div className="flex items-center gap-2">
                         <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => {
-                            setSelectedStay(stay)
-                            setPaymentOpen(true)
-                          }}
-                        >
-                          Payment
-                        </Button>
-                        <Button
                           variant="primary"
                           size="xs"
                           className="bg-neutral-900 hover:bg-neutral-800 text-white"
@@ -657,30 +628,6 @@ export function DashboardPage() {
                 </div>
                 <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
               </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeStays.length > 0) {
-                    setSelectedStay(activeStays[0])
-                    setPaymentOpen(true)
-                  } else {
-                    alert('No active stay to record payment for.')
-                  }
-                }}
-                className="w-full p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center justify-between text-left group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#EBF9EB] text-[#008A05] flex items-center justify-center">
-                    <CircleDollarSign size={16} />
-                  </div>
-                  <div>
-                    <strong className="block text-xs text-[#222222]">Record Folio Payment</strong>
-                    <span className="block text-[11px] text-[#717171]">Cash, Telebirr, CBE, Bank, Credit</span>
-                  </div>
-                </div>
-                <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
-              </button>
             </div>
           </div>
         </div>
@@ -700,14 +647,6 @@ export function DashboardPage() {
         onClose={() => setReservationOpen(false)}
         availableRooms={availableRooms}
         selectedRoomId={selectedRoomId}
-        onSuccess={() => fetchDashboardData()}
-      />
-
-      <RecordPaymentModal
-        isOpen={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        stayId={selectedStay?.id || firstActiveStay?.id || null}
-        roomNumber={String(selectedStay?.room_id || '')}
         onSuccess={() => fetchDashboardData()}
       />
 
