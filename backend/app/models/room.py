@@ -32,6 +32,7 @@ class Room(Base):
 	room_number: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
 	room_type: Mapped[str] = mapped_column(String(100), nullable=False)
 	price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+	hourly_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True, default=None)
 	status: Mapped[str] = mapped_column(String(20), nullable=False, default=RoomStatus.AVAILABLE.value)
 	is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 	created_at: Mapped[datetime] = mapped_column(

@@ -15,11 +15,17 @@ export async function createRoom(data: {
   room_number: string
   room_type: string
   price: number | string
+  hourly_price?: number | string | null
 }): Promise<Room> {
-  const res = await api.post<Room>('/rooms', {
-    ...data,
+  const payload: Record<string, unknown> = {
+    room_number: data.room_number,
+    room_type: data.room_type,
     price: String(data.price),
-  })
+  }
+  if (data.hourly_price !== undefined && data.hourly_price !== null && data.hourly_price !== '') {
+    payload.hourly_price = String(data.hourly_price)
+  }
+  const res = await api.post<Room>('/rooms', payload)
   return res.data
 }
 

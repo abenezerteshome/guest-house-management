@@ -46,6 +46,7 @@ export function CheckInModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
+  const [stayType, setStayType] = useState<'OVERNIGHT' | '3_HOURS' | '6_HOURS' | '12_HOURS'>('OVERNIGHT')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'>('CASH')
   const [amountPaid, setAmountPaid] = useState<string>('')
   const [notes, setNotes] = useState('')
@@ -62,7 +63,13 @@ export function CheckInModal({
 
   useEffect(() => {
     if (isOpen) {
-      setCheckInDate(new Date().toISOString().slice(0, 16))
+      const now = new Date()
+      setCheckInDate(now.toISOString().slice(0, 16))
+      setStayType('OVERNIGHT')
+      const tomorrow = new Date(now)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(11, 0, 0, 0)
+      setCheckoutDate(tomorrow.toISOString().slice(0, 16))
       if (initialGuest) {
         setFullName(initialGuest.fullName || '')
         setPhone(initialGuest.phone || '')
@@ -75,15 +82,53 @@ export function CheckInModal({
 
   const activeRoom = availableRooms.find((r) => r.id === roomId) || availableRooms[0]
   const roomPricePerNight = Number(activeRoom?.price || 0)
+  const roomHourlyRate = activeRoom?.hourly_price
+    ? Number(activeRoom.hourly_price)
+    : Math.max(50, Math.round(roomPricePerNight / 8))
 
-  // Calculate stay duration (nights) based on stay dates
-  const checkInTimestamp = new Date(checkInDate).getTime()
-  const checkoutTimestamp = new Date(checkoutDate).getTime()
-  const diffDays = Math.round((checkoutTimestamp - checkInTimestamp) / (1000 * 60 * 60 * 24))
-  const stayNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+  function handleSelectStayType(type: 'OVERNIGHT' | '3_HOURS' | '6_HOURS' | '12_HOURS') {
+    setStayType(type)
+    const base = new Date(checkInDate)
+    if (type === 'OVERNIGHT') {
+      const tomorrow = new Date(base)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(11, 0, 0, 0)
+      setCheckoutDate(tomorrow.toISOString().slice(0, 16))
+    } else if (type === '3_HOURS') {
+      const checkout = new Date(base.getTime() + 3 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    } else if (type === '6_HOURS') {
+      const checkout = new Date(base.getTime() + 6 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    } else if (type === '12_HOURS') {
+      const checkout = new Date(base.getTime() + 12 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    }
+  }
 
-  // Total price calculated from admin-set rate multiplied by stay dates
-  const totalRoomCharge = stayNights * roomPricePerNight
+  // Calculate duration description & total room charge
+  let totalRoomCharge = 0
+  let durationDescription = ''
+
+  if (stayType === '3_HOURS') {
+    totalRoomCharge = 3 * roomHourlyRate
+    durationDescription = `3 Hours Stay (3 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else if (stayType === '6_HOURS') {
+    totalRoomCharge = 6 * roomHourlyRate
+    durationDescription = `6 Hours Stay (6 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else if (stayType === '12_HOURS') {
+    totalRoomCharge = 12 * roomHourlyRate
+    durationDescription = `12 Hours Stay (12 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else {
+    // Overnight / By Dates
+    const checkInTimestamp = new Date(checkInDate).getTime()
+    const checkoutTimestamp = new Date(checkoutDate).getTime()
+    const diffDays = Math.round((checkoutTimestamp - checkInTimestamp) / (1000 * 60 * 60 * 24))
+    const stayNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+    totalRoomCharge = stayNights * roomPricePerNight
+    durationDescription = `${stayNights} Night${stayNights > 1 ? 's' : ''} (${stayNights} × ETB ${roomPricePerNight.toLocaleString()})`
+  }
+
   const paid = paymentMethod === 'CREDIT' ? 0 : Number(amountPaid || 0)
   const remainingCredit = Math.max(0, totalRoomCharge - paid)
 
@@ -170,12 +215,19 @@ export function CheckInModal({
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
               <KeyRound size={14} className="text-[#FF385C]" />
-              1. Room Assignment & Stay Dates
+              1. Room Assignment & Stay Pricing
             </span>
             {activeRoom && (
-              <span className="text-xs font-bold text-[#FF385C] bg-[#FF385C]/10 px-2.5 py-1 rounded-full">
-                ETB {Number(activeRoom.price).toLocaleString()} / night
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-[#FF385C] bg-[#FF385C]/10 px-2.5 py-1 rounded-full">
+                  ETB {Number(activeRoom.price).toLocaleString()} / night
+                </span>
+                {activeRoom.hourly_price && (
+                  <span className="text-xs font-semibold text-neutral-600 bg-neutral-200/70 px-2.5 py-1 rounded-full">
+                    ETB {Number(activeRoom.hourly_price).toLocaleString()} / hr
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -191,10 +243,63 @@ export function CheckInModal({
             >
               {availableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
-                  Room {room.room_number} — {room.room_type} (ETB {Number(room.price).toLocaleString()} / night)
+                  Room {room.room_number} — {room.room_type} (ETB {Number(room.price).toLocaleString()} / night{room.hourly_price ? ` • ETB ${Number(room.hourly_price).toLocaleString()}/hr` : ''})
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Stay Mode Buttons: Hourly vs Daily */}
+          <div>
+            <label className="block text-xs font-semibold text-[#222222] mb-1.5">
+              Stay Duration Type (Pay by Hours or Dates)
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => handleSelectStayType('OVERNIGHT')}
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                  stayType === 'OVERNIGHT'
+                    ? 'bg-[#222222] text-white border-[#222222] shadow-xs'
+                    : 'bg-white text-[#222222] border-[#DDDDDD] hover:border-[#717171]'
+                }`}
+              >
+                Overnight / Daily
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectStayType('3_HOURS')}
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                  stayType === '3_HOURS'
+                    ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                    : 'bg-white text-[#222222] border-[#DDDDDD] hover:border-[#717171]'
+                }`}
+              >
+                3 Hours
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectStayType('6_HOURS')}
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                  stayType === '6_HOURS'
+                    ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                    : 'bg-white text-[#222222] border-[#DDDDDD] hover:border-[#717171]'
+                }`}
+              >
+                6 Hours
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectStayType('12_HOURS')}
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                  stayType === '12_HOURS'
+                    ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                    : 'bg-white text-[#222222] border-[#DDDDDD] hover:border-[#717171]'
+                }`}
+              >
+                12 Hours (Half-Day)
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -218,7 +323,10 @@ export function CheckInModal({
               <input
                 type="datetime-local"
                 value={checkoutDate}
-                onChange={(e) => setCheckoutDate(e.target.value)}
+                onChange={(e) => {
+                  setCheckoutDate(e.target.value)
+                  setStayType('OVERNIGHT')
+                }}
                 className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required
               />
@@ -226,9 +334,9 @@ export function CheckInModal({
           </div>
 
           <div className="flex items-center justify-between pt-1 text-xs text-[#717171] border-t border-[#EAEAEA]">
-            <span>Stay Duration:</span>
-            <span className="font-bold text-[#222222] bg-white px-2.5 py-0.5 rounded-lg border border-[#DDDDDD]">
-              {stayNights} Night{stayNights > 1 ? 's' : ''} ({stayNights} × ETB {roomPricePerNight.toLocaleString()})
+            <span>Stay Duration & Pricing:</span>
+            <span className="font-bold text-[#222222] bg-white px-2.5 py-1 rounded-lg border border-[#DDDDDD]">
+              {durationDescription}
             </span>
           </div>
         </div>

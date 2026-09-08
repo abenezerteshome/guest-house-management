@@ -47,6 +47,7 @@ export function ReservationModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
+  const [stayType, setStayType] = useState<'OVERNIGHT' | '3_HOURS' | '6_HOURS' | '12_HOURS'>('OVERNIGHT')
   const [expectedAmount, setExpectedAmount] = useState('')
   const [reason, setReason] = useState('Reservation')
   const [notes, setNotes] = useState('')
@@ -76,13 +77,51 @@ export function ReservationModal({
 
   const selectedRoom = availableRooms.find((r) => r.id === roomId)
   const roomPricePerNight = Number(selectedRoom?.price || 0)
+  const roomHourlyRate = selectedRoom?.hourly_price
+    ? Number(selectedRoom.hourly_price)
+    : Math.max(50, Math.round(roomPricePerNight / 8))
 
-  // Calculate stay duration (nights) based on arrival and checkout dates
-  const arr = new Date(arrivalDate)
-  const dep = new Date(checkoutDate)
-  const diffDays = Math.round((dep.getTime() - arr.getTime()) / (1000 * 60 * 60 * 24))
-  const resNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
-  const calculatedExpectedAmount = resNights * roomPricePerNight
+  function handleSelectStayType(type: 'OVERNIGHT' | '3_HOURS' | '6_HOURS' | '12_HOURS') {
+    setStayType(type)
+    const base = new Date(arrivalDate)
+    if (type === 'OVERNIGHT') {
+      const tomorrow = new Date(base)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(11, 0, 0, 0)
+      setCheckoutDate(tomorrow.toISOString().slice(0, 16))
+    } else if (type === '3_HOURS') {
+      const checkout = new Date(base.getTime() + 3 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    } else if (type === '6_HOURS') {
+      const checkout = new Date(base.getTime() + 6 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    } else if (type === '12_HOURS') {
+      const checkout = new Date(base.getTime() + 12 * 60 * 60 * 1000)
+      setCheckoutDate(checkout.toISOString().slice(0, 16))
+    }
+  }
+
+  // Calculate stay duration & expected amount
+  let calculatedExpectedAmount = 0
+  let durationDescription = ''
+
+  if (stayType === '3_HOURS') {
+    calculatedExpectedAmount = 3 * roomHourlyRate
+    durationDescription = `3 Hours Stay (3 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else if (stayType === '6_HOURS') {
+    calculatedExpectedAmount = 6 * roomHourlyRate
+    durationDescription = `6 Hours Stay (6 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else if (stayType === '12_HOURS') {
+    calculatedExpectedAmount = 12 * roomHourlyRate
+    durationDescription = `12 Hours Stay (12 × ETB ${roomHourlyRate.toLocaleString()})`
+  } else {
+    const arr = new Date(arrivalDate)
+    const dep = new Date(checkoutDate)
+    const diffDays = Math.round((dep.getTime() - arr.getTime()) / (1000 * 60 * 60 * 24))
+    const resNights = Math.max(1, isNaN(diffDays) ? 1 : diffDays)
+    calculatedExpectedAmount = resNights * roomPricePerNight
+    durationDescription = `${resNights} Night${resNights > 1 ? 's' : ''} (${resNights} × ETB ${roomPricePerNight.toLocaleString()})`
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -91,6 +130,8 @@ export function ReservationModal({
       return
     }
 
+    const arr = new Date(arrivalDate)
+    const dep = new Date(checkoutDate)
     if (dep <= arr) {
       setError('Expected checkout must be after expected arrival date and time.')
       return
@@ -173,6 +214,59 @@ export function ReservationModal({
           )}
         </div>
 
+        {/* Stay Duration Type */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+            Reservation Stay Type
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              type="button"
+              onClick={() => handleSelectStayType('OVERNIGHT')}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                stayType === 'OVERNIGHT'
+                  ? 'bg-neutral-900 text-white border-neutral-900 shadow-xs'
+                  : 'bg-white text-neutral-800 border-neutral-200 hover:border-neutral-400'
+              }`}
+            >
+              Overnight / Daily
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectStayType('3_HOURS')}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                stayType === '3_HOURS'
+                  ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                  : 'bg-white text-neutral-800 border-neutral-200 hover:border-neutral-400'
+              }`}
+            >
+              3 Hours
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectStayType('6_HOURS')}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                stayType === '6_HOURS'
+                  ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                  : 'bg-white text-neutral-800 border-neutral-200 hover:border-neutral-400'
+              }`}
+            >
+              6 Hours
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectStayType('12_HOURS')}
+              className={`px-3 py-2 text-xs font-bold rounded-xl border transition ${
+                stayType === '12_HOURS'
+                  ? 'bg-[#FF385C] text-white border-[#FF385C] shadow-xs'
+                  : 'bg-white text-neutral-800 border-neutral-200 hover:border-neutral-400'
+              }`}
+            >
+              12 Hours (Half-Day)
+            </button>
+          </div>
+        </div>
+
         {/* Room & Dates */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -187,7 +281,7 @@ export function ReservationModal({
             >
               {availableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
-                  Room {room.room_number} ({room.room_type} - {Number(room.price).toLocaleString()} ETB)
+                  Room {room.room_number} ({room.room_type} - {Number(room.price).toLocaleString()} ETB{room.hourly_price ? ` • ETB ${Number(room.hourly_price).toLocaleString()}/hr` : ''})
                 </option>
               ))}
             </select>
@@ -214,7 +308,10 @@ export function ReservationModal({
               type="datetime-local"
               required
               value={checkoutDate}
-              onChange={(e) => setCheckoutDate(e.target.value)}
+              onChange={(e) => {
+                setCheckoutDate(e.target.value)
+                setStayType('OVERNIGHT')
+              }}
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
           </div>
@@ -222,9 +319,9 @@ export function ReservationModal({
 
         {/* Calculation badge */}
         <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-neutral-100/70 border border-neutral-200 text-xs">
-          <span className="text-neutral-600">Calculated Stay Total:</span>
+          <span className="text-neutral-600">Duration & Pricing:</span>
           <span className="font-bold text-neutral-900">
-            {resNights} Night{resNights > 1 ? 's' : ''} × ETB {roomPricePerNight.toLocaleString()} = ETB {calculatedExpectedAmount.toLocaleString()}
+            {durationDescription} = ETB {calculatedExpectedAmount.toLocaleString()}
           </span>
         </div>
 

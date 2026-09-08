@@ -260,7 +260,7 @@ export function LogbookSheet({
           </div>
         </div>
 
-        {/* Right: Search room & Quick check-in */}
+        {/* Right: Search room */}
         <div className="flex items-center gap-3">
           <div className="relative w-48 sm:w-56">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -272,16 +272,6 @@ export function LogbookSheet({
               className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-neutral-200 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
           </div>
-
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => onCheckInRoom(rooms[0]?.id || 0)}
-            className="gap-1.5 whitespace-nowrap"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Quick Check-In</span>
-          </Button>
         </div>
       </div>
 

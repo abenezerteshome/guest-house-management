@@ -210,15 +210,20 @@ async def check_in(
 		await session.flush()
 		from app.services.payment import add_charge_record
 
-		stay_duration_days = (reservation.expected_checkout.date() - now.date()).days
-		nights = max(1, stay_duration_days)
-		total_charge = Decimal(nights) * Decimal(str(room.price))
+		if reservation.expected_amount and reservation.expected_amount > 0:
+			total_charge = Decimal(str(reservation.expected_amount))
+			description = f"Room charge (ETB {total_charge:,.2f})"
+		else:
+			stay_duration_days = (reservation.expected_checkout.date() - now.date()).days
+			nights = max(1, stay_duration_days)
+			total_charge = Decimal(nights) * Decimal(str(room.price))
+			description = f"Room charge ({nights} night{'s' if nights > 1 else ''} @ ETB {room.price:,.2f})"
 
 		await add_charge_record(
 			session,
 			stay_id=stay.id,
 			charge_type=ChargeType.ROOM,
-			description=f"Initial room charge ({nights} night{'s' if nights > 1 else ''} @ ETB {room.price:,.2f})",
+			description=description,
 			amount=total_charge,
 			created_by=user_id,
 		)
