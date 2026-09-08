@@ -1,30 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  ArrowRight,
   BedDouble,
-  BookOpen,
   CalendarDays,
-  CalendarPlus,
   CheckCircle2,
   CircleDollarSign,
-  ClipboardList,
   KeyRound,
-  LayoutGrid,
-  LogIn,
-  LogOut,
   Plus,
   RefreshCw,
   TrendingUp,
-  UserCheck,
   Wallet,
-  Wrench,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/common/Button'
 import { KpiCard } from '../../components/common/KpiCard'
-import { RoomCard } from '../../components/common/RoomCard'
-import { EmptyState } from '../../components/common/StatePanel'
-import { Badge } from '../../components/common/Badge'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
@@ -46,9 +34,6 @@ export function DashboardPage() {
   const { user } = useAuth()
   const isAdmin = user?.role === 'ADMIN'
 
-  // Operational View Mode: 'LOGBOOK' (Paper notebook ledger replica) vs 'CARDS' (Matrix)
-  const [viewMode, setViewMode] = useState<'LOGBOOK' | 'CARDS'>('LOGBOOK')
-
   // Live state
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
@@ -56,8 +41,7 @@ export function DashboardPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [_loading, setLoading] = useState(true)
 
-  // Filters & Modals
-  const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'MAINTENANCE'>('ALL')
+  // Modals
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
@@ -100,14 +84,6 @@ export function DashboardPage() {
 
   const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
-
-  const filteredRooms = rooms.filter((r) => {
-    if (roomFilter === 'ALL') return true
-    return r.status === roomFilter
-  })
-
-  // Selected stay for payments
-  const firstActiveStay = activeStays[0] || null
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -243,382 +219,27 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Operational View Switcher Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-1.5 p-1 bg-[#F1F1F1] rounded-2xl border border-[#E5E5E5] w-fit">
-          <button
-            type="button"
-            onClick={() => setViewMode('LOGBOOK')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              viewMode === 'LOGBOOK'
-                ? 'bg-neutral-900 text-white shadow-sm'
-                : 'text-[#555555] hover:text-neutral-900'
-            }`}
-          >
-            <BookOpen size={15} />
-            <span>Daily Room Logbook (Register Sheet)</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/20 text-emerald-600 border border-emerald-500/30">
-              LEDGER
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('CARDS')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              viewMode === 'CARDS'
-                ? 'bg-neutral-900 text-white shadow-sm'
-                : 'text-[#555555] hover:text-neutral-900'
-            }`}
-          >
-            <LayoutGrid size={15} />
-            <span>Room Cards Matrix</span>
-          </button>
-        </div>
-
-        <div className="text-xs text-[#717171] font-medium hidden md:block">
-          {viewMode === 'LOGBOOK'
-            ? 'Rows = Room Numbers · Columns = Rolling 7 Days · Click vacant cell to Check In'
-            : 'Visual status card glance for all guest house rooms'}
-        </div>
-      </div>
-
       {/* Primary Logbook Sheet View (Notebook Replica) */}
-      {viewMode === 'LOGBOOK' && (
-        <LogbookSheet
-          rooms={rooms}
-          stays={activeStays}
-          reservations={reservations}
-          onCheckInRoom={(roomId) => {
-            setSelectedRoomId(roomId)
-            setCheckInOpen(true)
-          }}
-          onCheckOut={(stay) => {
-            setSelectedStay(stay)
-            setSelectedRoomId(stay.room_id)
-            setCheckOutOpen(true)
-          }}
-          onExtendStay={(stay) => {
-            setSelectedStay(stay)
-            setSelectedRoomId(stay.room_id)
-            setExtendOpen(true)
-          }}
-          onRefresh={() => fetchDashboardData()}
-        />
-      )}
-
-      {/* Main Operational Grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Operations Feed & (in CARDS view) Room Cards */}
-        <div className="lg:col-span-2 space-y-6">
-          {viewMode === 'CARDS' && (
-            <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#F0F0F0]">
-                <div>
-                  <h2 className="text-base font-semibold text-[#222222]">
-                    Room Readiness Glance
-                  </h2>
-                  <p className="text-xs text-[#717171] mt-0.5">
-                    Visual card matrix for instant front-desk check-in and checkout.
-                  </p>
-                </div>
-
-              {/* Status Filter Tabs */}
-              <div className="flex items-center gap-1.5 p-1 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] overflow-x-auto">
-                {(['ALL', 'AVAILABLE', 'OCCUPIED', 'EXPECTED', 'MAINTENANCE'] as const).map(
-                  (filter) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      onClick={() => setRoomFilter(filter)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                        roomFilter === filter
-                          ? 'bg-white text-[#222222] shadow-xs'
-                          : 'text-[#717171] hover:text-[#222222]'
-                      }`}
-                    >
-                      {filter === 'ALL'
-                        ? 'All Rooms'
-                        : filter.charAt(0) + filter.slice(1).toLowerCase()}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Room Cards Grid */}
-            {filteredRooms.length === 0 ? (
-              <p className="text-center py-8 text-xs text-[#717171]">
-                No rooms match the selected filter.
-              </p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-                {filteredRooms.map((room) => {
-                  const isAvail = room.status === 'AVAILABLE'
-                  const isOcc = room.status === 'OCCUPIED'
-                  const isExp = room.status === 'EXPECTED'
-                  const stay = activeStays.find((s) => s.room_id === room.id)
-
-                  return (
-                    <RoomCard
-                      key={room.id}
-                      room={{
-                        id: String(room.id),
-                        roomNumber: `Room ${room.room_number}`,
-                        roomType: room.room_type,
-                        pricePerNight: Number(room.price),
-                        status: room.status,
-                        capacity: 2,
-                        bedType: 'Standard Suite',
-                      }}
-                      onSelect={() => {
-                        if (isAvail) {
-                          setSelectedRoomId(room.id)
-                          setCheckInOpen(true)
-                        } else if (isOcc && stay) {
-                          setSelectedStay(stay)
-                          setSelectedRoomId(room.id)
-                          setCheckOutOpen(true)
-                        } else if (isExp) {
-                          setSelectedRoomId(room.id)
-                          setCheckInOpen(true)
-                        }
-                      }}
-                      actionSlot={
-                        isAvail ? (
-                          <div className="flex items-center gap-1.5 w-full">
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              leftIcon={<CalendarPlus size={13} />}
-                              className="flex-1 whitespace-nowrap"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedRoomId(room.id)
-                                setReservationOpen(true)
-                              }}
-                            >
-                              Reserve
-                            </Button>
-                            <Button
-                              variant="primary"
-                              size="xs"
-                              leftIcon={<LogIn size={13} />}
-                              className="flex-1 whitespace-nowrap"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedRoomId(room.id)
-                                setCheckInOpen(true)
-                              }}
-                            >
-                              Check In
-                            </Button>
-                          </div>
-                        ) : isOcc && stay ? (
-                          <Button
-                            variant="outline"
-                            size="xs"
-                            leftIcon={<LogOut size={13} />}
-                            className="w-full whitespace-nowrap text-rose-600 border-rose-200 hover:bg-rose-50"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedStay(stay)
-                              setSelectedRoomId(room.id)
-                              setCheckOutOpen(true)
-                            }}
-                          >
-                            Checkout
-                          </Button>
-                        ) : isExp ? (
-                          <Button
-                            variant="primary"
-                            size="xs"
-                            leftIcon={<UserCheck size={13} />}
-                            className="w-full whitespace-nowrap bg-amber-600 hover:bg-amber-700 text-white"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedRoomId(room.id)
-                              setCheckInOpen(true)
-                            }}
-                          >
-                            Arrive Guest
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-[#717171] flex items-center justify-center gap-1 w-full py-1">
-                            <Wrench size={13} />
-                            <span>In Maintenance</span>
-                          </span>
-                        )
-                      }
-                    />
-                  )
-                })}
-              </div>
-            )}
-          </div>
-          )}
-
-          {/* Today's Operational Live Feed */}
-          <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-            <div className="flex items-center justify-between pb-3 border-b border-[#F0F0F0]">
-              <div>
-                <h2 className="text-base font-semibold text-[#222222]">
-                  Today's Operational Feed
-                </h2>
-                <p className="text-xs text-[#717171] mt-0.5">
-                  Active in-house resident guests and scheduled movements.
-                </p>
-              </div>
-              <Badge tone="occupied" size="sm">
-                {activeStays.length} In-House
-              </Badge>
-            </div>
-
-            {activeStays.length === 0 ? (
-              <EmptyState
-                icon={<ClipboardList size={22} className="text-[#717171]" />}
-                title="No active guests in-house"
-                description="When guests check in, their live stay folios and schedules will appear here."
-                actionLabel="Check In Guest"
-                onAction={() => setCheckInOpen(true)}
-              />
-            ) : (
-              <div className="divide-y divide-[#F0F0F0]">
-                {activeStays.map((stay) => {
-                  const room = rooms.find((r) => r.id === stay.room_id)
-                  const checkInTime = new Date(stay.check_in_at).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                  const checkoutDate = new Date(stay.expected_checkout).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-
-                  return (
-                    <div
-                      key={stay.id}
-                      className="py-3 flex items-center justify-between hover:bg-[#F9F9F9] px-2 rounded-xl transition"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-[#FFF0F2] text-[#FF385C] flex items-center justify-center font-bold text-xs">
-                          {room ? room.room_number : stay.room_id}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-[#222222]">
-                            Stay #{stay.id} • Room {room ? room.room_number : stay.room_id}
-                          </p>
-                          <p className="text-[11px] text-[#717171]">
-                            Checked in today at {checkInTime} • Checkout: {checkoutDate}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="xs"
-                          onClick={() => {
-                            setSelectedStay(stay)
-                            setSelectedRoomId(stay.room_id)
-                            setExtendOpen(true)
-                          }}
-                        >
-                          Extend
-                        </Button>
-                        <Button
-                          variant="primary"
-                          size="xs"
-                          className="bg-neutral-900 hover:bg-neutral-800 text-white"
-                          onClick={() => {
-                            setSelectedStay(stay)
-                            setSelectedRoomId(stay.room_id)
-                            setCheckOutOpen(true)
-                          }}
-                        >
-                          Checkout
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right 1 Col: Desk Speed Shortcuts & House Info */}
-        <div className="space-y-6">
-          {/* Desk Summary Card */}
-          <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-            <h2 className="text-base font-semibold text-[#222222]">
-              Operational Desk Context
-            </h2>
-            <div className="space-y-3 text-xs">
-              <div className="p-3 rounded-xl bg-[#F7F7F7] border border-[#EEEEEE] flex items-center justify-between">
-                <span className="text-[#717171]">Current Shift</span>
-                <span className="font-semibold text-[#222222]">Reception Shift</span>
-              </div>
-              <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/70 flex items-center justify-between">
-                <span className="text-rose-800 font-medium">Late Checkout Cutoff</span>
-                <span className="font-bold text-rose-700">04:00 AM (600 ETB)</span>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F7F7F7] border border-[#EEEEEE] flex items-center justify-between">
-                <span className="text-[#717171]">Payment Channels</span>
-                <span className="font-semibold text-[#222222]">Cash, Telebirr, CBE, Bank</span>
-              </div>
-              <div className="p-3 rounded-xl bg-[#F7F7F7] border border-[#EEEEEE] flex items-center justify-between">
-                <span className="text-[#717171]">Currency</span>
-                <span className="font-semibold text-[#222222]">ETB (Ethiopian Birr)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Shortcuts */}
-          <div className="bg-white rounded-2xl border border-[#DDDDDD] p-6 space-y-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
-            <h2 className="text-base font-semibold text-[#222222]">
-              Front Desk Shortcuts
-            </h2>
-
-            <div className="space-y-2">
-              <button
-                type="button"
-                onClick={() => setCheckInOpen(true)}
-                className="w-full p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center justify-between text-left group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#FFF0F2] text-[#FF385C] flex items-center justify-center">
-                    <UserCheck size={16} />
-                  </div>
-                  <div>
-                    <strong className="block text-xs text-[#222222]">Fast Guest Check-In</strong>
-                    <span className="block text-[11px] text-[#717171]">Register & assign room instantly</span>
-                  </div>
-                </div>
-                <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setReservationOpen(true)}
-                className="w-full p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center justify-between text-left group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#FFF6EB] text-[#C76A00] flex items-center justify-center">
-                    <CalendarDays size={16} />
-                  </div>
-                  <div>
-                    <strong className="block text-xs text-[#222222]">New Expected Reservation</strong>
-                    <span className="block text-[11px] text-[#717171]">Reserve room for upcoming arrival</span>
-                  </div>
-                </div>
-                <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <LogbookSheet
+        rooms={rooms}
+        stays={activeStays}
+        reservations={reservations}
+        onCheckInRoom={(roomId) => {
+          setSelectedRoomId(roomId)
+          setCheckInOpen(true)
+        }}
+        onCheckOut={(stay) => {
+          setSelectedStay(stay)
+          setSelectedRoomId(stay.room_id)
+          setCheckOutOpen(true)
+        }}
+        onExtendStay={(stay) => {
+          setSelectedStay(stay)
+          setSelectedRoomId(stay.room_id)
+          setExtendOpen(true)
+        }}
+        onRefresh={() => fetchDashboardData()}
+      />
 
       {/* Interactive Modals */}
       <CheckInModal
