@@ -6,11 +6,9 @@ import {
   CalendarDays,
   ChevronDown,
   ClipboardList,
-  History,
   LayoutDashboard,
   LogOut,
   Menu,
-  Search,
   Settings,
   Users,
   Wallet,
@@ -18,7 +16,6 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Avatar } from '../common/Avatar'
-import { Modal } from '../common/Modal'
 
 interface NavItem {
   label: string
@@ -43,22 +40,15 @@ const navSections: NavSection[] = [
       { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Stays', to: '/stays', icon: ClipboardList, roles: ['ADMIN', 'RECEPTION'] },
     ],
   },
   {
     title: 'Management',
-    roles: ['ADMIN', 'RECEPTION'],
-    items: [
-      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN'] },
-    ],
-  },
-  {
-    title: 'Administration',
     roles: ['ADMIN'],
     items: [
-      { label: 'Audit Log', to: '/audit-log', icon: History, roles: ['ADMIN'] },
+      { label: 'Stays Archive', to: '/stays', icon: ClipboardList, roles: ['ADMIN'] },
+      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN'] },
+      { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN'] },
       { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN'] },
     ],
   },
@@ -67,8 +57,6 @@ const navSections: NavSection[] = [
 export function AppShell() {
   const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
@@ -229,7 +217,8 @@ export function AppShell() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Clean Top Bar */}
-        <header className="sticky top-0 z-30 h-[64px] sm:h-[72px] bg-white border-b border-[#DDDDDD] px-3 sm:px-8 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Clean Top Bar */}
+        <header className="sticky top-0 z-30 h-[64px] sm:h-[72px] bg-white border-b border-[#DDDDDD] px-4 sm:px-8 flex items-center justify-between gap-4">
           {/* Left: Mobile trigger & Page context */}
           <div className="flex items-center gap-3 sm:gap-4">
             <button
@@ -240,50 +229,29 @@ export function AppShell() {
             >
               <Menu size={19} />
             </button>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-[#717171]">
-              <span className="font-medium text-[#222222]">
-                {currentItem?.label || 'Haven House'}
+            <div className="flex items-center gap-2 text-xs text-[#717171]">
+              <span className="font-bold text-sm text-[#222222]">
+                {currentItem?.label || 'Haven House Guest House'}
               </span>
-              <span>/</span>
+              <span className="text-[#CCCCCC]">/</span>
               <span>
                 {new Intl.DateTimeFormat('en', {
                   weekday: 'short',
                   month: 'short',
                   day: 'numeric',
+                  year: 'numeric',
                 }).format(new Date())}
               </span>
             </div>
           </div>
 
-          {/* Center: Search pill button */}
-          <div className="flex-1 min-w-0 max-w-xs sm:max-w-md">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="w-full min-w-0 flex items-center justify-between px-2.5 sm:px-3.5 py-2 rounded-full border border-[#DDDDDD] bg-[#F7F7F7] hover:bg-white hover:border-[#CCCCCC] hover:shadow-xs transition-all text-left text-xs text-[#717171]"
-            >
-              <span className="flex items-center gap-2 truncate">
-                <Search size={14} className="text-[#717171] shrink-0" />
-                <span className="truncate">Search reservations, rooms, guests...</span>
-              </span>
-              <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-semibold text-[#717171] bg-white rounded border border-[#DDDDDD]">
-                ⌘K
-              </kbd>
-            </button>
-          </div>
-
-          {/* Right: Operational Status + User Avatar */}
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#EBF9EB] text-[#008A05] text-xs font-medium border border-[#BFE4C1]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#008A05] animate-pulse-subtle" />
-              <span>Live Desk</span>
-            </div>
-
+          {/* Right: User Avatar Dropdown */}
+          <div className="flex items-center gap-3">
             <div className="relative" ref={userMenuRef}>
               <button
                 type="button"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-[#EEEEEE] hover:bg-[#F7F7F7] py-1.5 px-2 rounded-xl transition text-left cursor-pointer"
+                className="flex items-center gap-2.5 py-1.5 px-3 rounded-xl hover:bg-[#F7F7F7] border border-[#EEEEEE] transition text-left cursor-pointer"
                 aria-label="User account menu"
               >
                 <Avatar
@@ -292,11 +260,11 @@ export function AppShell() {
                   size="sm"
                 />
                 <div className="hidden sm:block text-left">
-                  <span className="block text-xs font-semibold text-[#222222] leading-tight truncate max-w-[120px]">
+                  <span className="block text-xs font-semibold text-[#222222] leading-tight truncate max-w-[140px]">
                     {user?.full_name}
                   </span>
                   <span className="block text-[11px] text-[#717171] leading-tight capitalize">
-                    {user?.role === 'ADMIN' ? 'Administrator' : 'Receptionist'}
+                    {user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
                   </span>
                 </div>
                 <ChevronDown
@@ -314,7 +282,7 @@ export function AppShell() {
                       {user?.full_name}
                     </span>
                     <span className="block text-[11px] text-[#717171]">
-                      @{user?.username} · {user?.role === 'ADMIN' ? 'Administrator' : 'Receptionist'}
+                      @{user?.username} · {user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
                     </span>
                   </div>
                   {user?.role === 'ADMIN' && (
@@ -350,68 +318,6 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
-
-      {/* Global Quick Search Modal */}
-      <Modal
-        isOpen={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        title="Quick Search"
-        description="Search across guest house rooms, active reservations, and guest files."
-      >
-        <div className="space-y-4">
-          <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] bg-white px-3.5 focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222]">
-            <Search size={16} className="text-[#717171] mr-2.5" />
-            <input
-              autoFocus
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by room (e.g. 101), guest name, or booking ID…"
-              className="w-full bg-transparent text-sm text-[#222222] placeholder:text-[#999999] focus:outline-none"
-            />
-          </div>
-
-          <div className="py-2 space-y-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-              Quick Shortcuts
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <NavLink
-                to="/rooms"
-                onClick={() => setSearchOpen(false)}
-                className="p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center gap-3 text-xs font-semibold text-[#222222]"
-              >
-                <BedDouble size={16} className="text-[#FF385C]" />
-                <span>View All Rooms</span>
-              </NavLink>
-              <NavLink
-                to="/reservations"
-                onClick={() => setSearchOpen(false)}
-                className="p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center gap-3 text-xs font-semibold text-[#222222]"
-              >
-                <CalendarDays size={16} className="text-[#FF385C]" />
-                <span>View Reservations</span>
-              </NavLink>
-              <NavLink
-                to="/guests"
-                onClick={() => setSearchOpen(false)}
-                className="p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center gap-3 text-xs font-semibold text-[#222222]"
-              >
-                <Users size={16} className="text-[#FF385C]" />
-                <span>Guest Registry</span>
-              </NavLink>
-              <NavLink
-                to="/stays"
-                onClick={() => setSearchOpen(false)}
-                className="p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center gap-3 text-xs font-semibold text-[#222222]"
-              >
-                <ClipboardList size={16} className="text-[#FF385C]" />
-                <span>Active In-House Stays</span>
-              </NavLink>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   )
 }
