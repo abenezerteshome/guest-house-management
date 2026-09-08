@@ -26,7 +26,6 @@ interface LogbookSheetProps {
   stays: Stay[]
   reservations: Reservation[]
   onCheckInRoom: (roomId: number) => void
-  onRecordPayment: (stay: Stay) => void
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
   onRefresh: () => void
@@ -37,7 +36,6 @@ export function LogbookSheet({
   stays,
   reservations,
   onCheckInRoom,
-  onRecordPayment,
   onCheckOut,
   onExtendStay,
 }: LogbookSheetProps) {
@@ -553,18 +551,6 @@ export function LogbookSheet({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => {
-                onRecordPayment(activeStayPopover.stay)
-                setActiveStayPopover(null)
-              }}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-            >
-              <CreditCard className="w-3.5 h-3.5" />
-              <span>Record Payment</span>
-            </button>
-
             {onExtendStay && (
               <button
                 type="button"

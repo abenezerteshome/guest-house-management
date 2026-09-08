@@ -14,7 +14,6 @@ import {
   LogOut,
   Plus,
   RefreshCw,
-  Sparkles,
   TrendingUp,
   UserCheck,
   Wallet,
@@ -28,16 +27,20 @@ import { EmptyState } from '../../components/common/StatePanel'
 import { Badge } from '../../components/common/Badge'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
-import { RecordPaymentModal } from '../../components/modals/RecordPaymentModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { getGuests } from '../../api/guests'
-import type { DailyReport, Room, Stay, Reservation } from '../../types/api'
+import type { DailyReport, Room, Stay, Reservation, Guest } from '../../types/api'
+
+interface StayWithGuest extends Stay {
+  guest?: Guest
+}
 
 export function DashboardPage() {
   const { user } = useAuth()
@@ -49,7 +52,7 @@ export function DashboardPage() {
   // Live state
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
-  const [activeStays, setActiveStays] = useState<Stay[]>([])
+  const [activeStays, setActiveStays] = useState<StayWithGuest[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [_loading, setLoading] = useState(true)
 
@@ -57,17 +60,11 @@ export function DashboardPage() {
   const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'MAINTENANCE'>('ALL')
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
-  const [paymentOpen, setPaymentOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
+  const [extendOpen, setExtendOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
-  const [selectedStay, setSelectedStay] = useState<Stay | null>(null)
-
-  // Derive personalized greeting based on local time
-  const hour = new Date().getHours()
-  const greeting =
-    hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const firstName = user?.full_name?.split(' ')[0] || 'Team'
+  const [selectedStay, setSelectedStay] = useState<StayWithGuest | null>(null)
 
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
@@ -113,53 +110,16 @@ export function DashboardPage() {
   const firstActiveStay = activeStays[0] || null
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Hospitality Welcome Strip */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#DDDDDD]">
+    <div className="space-y-6 animate-fade-in">
+      {/* Clean Operations Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DDDDDD]">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-              {isAdmin ? 'Guest House Overview' : 'Front Desk Operations'}
-            </span>
-            <span className="text-[11px] text-[#717171]">·</span>
-            <span className="text-[11px] font-medium text-[#008A05] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-              House Online
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#222222] tracking-tight">
-            {greeting}, {firstName} 👋
+          <h1 className="text-2xl font-bold text-[#222222] tracking-tight">
+            {isAdmin ? 'Guest House Overview' : 'Daily Room Logbook'}
           </h1>
-          <p className="text-sm text-[#717171] mt-1">
-            Here’s what’s happening at Haven House today.
-          </p>
         </div>
 
-        {/* Status Stamp & Refresh */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => fetchDashboardData()}
-            className="gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh Desk
-          </Button>
-          <div className="px-3.5 py-1.5 rounded-full bg-[#F7F7F7] border border-[#DDDDDD] flex items-center gap-2 text-xs text-[#222222]">
-            <Sparkles size={14} className="text-[#FF385C]" />
-            <span className="font-semibold">Boutique Guest House</span>
-            <span className="text-[#717171]">| Addis Ababa</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Prominent Quick Actions Bar */}
-      <div className="space-y-2">
-        <div className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-          Desk Actions
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button
             variant="primary"
             size="md"
@@ -169,7 +129,7 @@ export function DashboardPage() {
               setCheckInOpen(true)
             }}
           >
-            + Check in guest
+            + Check In Guest
           </Button>
           <Button
             variant="secondary"
@@ -180,22 +140,7 @@ export function DashboardPage() {
               setReservationOpen(true)
             }}
           >
-            + New reservation
-          </Button>
-          <Button
-            variant="secondary"
-            size="md"
-            leftIcon={<CircleDollarSign size={16} />}
-            onClick={() => {
-              if (activeStays.length > 0) {
-                setSelectedStay(activeStays[0])
-                setPaymentOpen(true)
-              } else {
-                alert('No active in-house stays currently available to record payments.')
-              }
-            }}
-          >
-            + Record payment
+            + New Reservation
           </Button>
           {isAdmin && (
             <Button
@@ -204,88 +149,99 @@ export function DashboardPage() {
               leftIcon={<Wallet size={16} />}
               onClick={() => setExpenseOpen(true)}
             >
-              + Record expense
+              + Record Expense
             </Button>
           )}
+          <Button
+            variant="outline"
+            size="md"
+            onClick={() => fetchDashboardData()}
+            className="gap-1.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Refresh
+          </Button>
         </div>
       </div>
 
-      {/* KPI Cards Grid — 6 clean hospitality cards with LIVE PostgreSQL data */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
-            Key Performance Metrics
-          </span>
-          <span className="text-xs text-[#717171]">
-            Real-time operations & financial summary
-          </span>
-        </div>
+      {/* KPI Cards Grid — Visible strictly to Administrator */}
+      {isAdmin && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171]">
+              Key Performance Metrics
+            </span>
+            <span className="text-xs text-[#717171]">
+              Real-time financial & occupancy summary (Administrator only)
+            </span>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
-          <KpiCard
-            label="Today's Income"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Guest settlements today"
-            icon={CircleDollarSign}
-            tone="success"
-          />
-          <KpiCard
-            label="Today's Expenses"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Disbursed petty cash"
-            icon={Wallet}
-            tone="neutral"
-          />
-          <KpiCard
-            label="Net Cashflow"
-            value={
-              dailyReport
-                ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
-                : '0 ETB'
-            }
-            detail="Revenue minus expenses"
-            icon={TrendingUp}
-            tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
-          />
-          <KpiCard
-            label="Occupied Rooms"
-            value={
-              dailyReport
-                ? `${dailyReport.occupied_rooms} / ${rooms.length || dailyReport.occupied_rooms + dailyReport.available_rooms}`
-                : `${occupiedRooms.length} / ${rooms.length}`
-            }
-            detail={`${
-              rooms.length > 0
-                ? Math.round((occupiedRooms.length / rooms.length) * 100)
-                : 0
-            }% occupancy rate`}
-            icon={BedDouble}
-            tone="accent"
-          />
-          <KpiCard
-            label="Available Rooms"
-            value={String(availableRooms.length)}
-            detail="Ready for instant check-in"
-            icon={CheckCircle2}
-            tone="success"
-          />
-          <KpiCard
-            label="Expected Arrivals"
-            value={String(reservations.length)}
-            detail="Scheduled bookings pending"
-            icon={CalendarDays}
-            tone={reservations.length > 0 ? 'warning' : 'neutral'}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+            <KpiCard
+              label="Today's Income"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Guest settlements today"
+              icon={CircleDollarSign}
+              tone="success"
+            />
+            <KpiCard
+              label="Today's Expenses"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Disbursed petty cash"
+              icon={Wallet}
+              tone="neutral"
+            />
+            <KpiCard
+              label="Net Cashflow"
+              value={
+                dailyReport
+                  ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
+                  : '0 ETB'
+              }
+              detail="Revenue minus expenses"
+              icon={TrendingUp}
+              tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
+            />
+            <KpiCard
+              label="Occupied Rooms"
+              value={
+                dailyReport
+                  ? `${dailyReport.occupied_rooms} / ${rooms.length || dailyReport.occupied_rooms + dailyReport.available_rooms}`
+                  : `${occupiedRooms.length} / ${rooms.length}`
+              }
+              detail={`${
+                rooms.length > 0
+                  ? Math.round((occupiedRooms.length / rooms.length) * 100)
+                  : 0
+              }% occupancy rate`}
+              icon={BedDouble}
+              tone="accent"
+            />
+            <KpiCard
+              label="Available Rooms"
+              value={String(availableRooms.length)}
+              detail="Ready for instant check-in"
+              icon={CheckCircle2}
+              tone="success"
+            />
+            <KpiCard
+              label="Expected Arrivals"
+              value={String(reservations.length)}
+              detail="Scheduled bookings pending"
+              icon={CalendarDays}
+              tone={reservations.length > 0 ? 'warning' : 'neutral'}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Operational View Switcher Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
@@ -336,14 +292,15 @@ export function DashboardPage() {
             setSelectedRoomId(roomId)
             setCheckInOpen(true)
           }}
-          onRecordPayment={(stay) => {
-            setSelectedStay(stay)
-            setPaymentOpen(true)
-          }}
           onCheckOut={(stay) => {
             setSelectedStay(stay)
             setSelectedRoomId(stay.room_id)
             setCheckOutOpen(true)
+          }}
+          onExtendStay={(stay) => {
+            setSelectedStay(stay)
+            setSelectedRoomId(stay.room_id)
+            setExtendOpen(true)
           }}
           onRefresh={() => fetchDashboardData()}
         />
@@ -564,10 +521,11 @@ export function DashboardPage() {
                           size="xs"
                           onClick={() => {
                             setSelectedStay(stay)
-                            setPaymentOpen(true)
+                            setSelectedRoomId(stay.room_id)
+                            setExtendOpen(true)
                           }}
                         >
-                          Payment
+                          Extend
                         </Button>
                         <Button
                           variant="primary"
@@ -657,30 +615,6 @@ export function DashboardPage() {
                 </div>
                 <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
               </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeStays.length > 0) {
-                    setSelectedStay(activeStays[0])
-                    setPaymentOpen(true)
-                  } else {
-                    alert('No active stay to record payment for.')
-                  }
-                }}
-                className="w-full p-3 rounded-xl border border-[#DDDDDD] hover:border-[#222222] hover:bg-[#F7F7F7] transition-all flex items-center justify-between text-left group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#EBF9EB] text-[#008A05] flex items-center justify-center">
-                    <CircleDollarSign size={16} />
-                  </div>
-                  <div>
-                    <strong className="block text-xs text-[#222222]">Record Folio Payment</strong>
-                    <span className="block text-[11px] text-[#717171]">Cash, Telebirr, CBE, Bank, Credit</span>
-                  </div>
-                </div>
-                <ArrowRight size={14} className="text-[#717171] group-hover:text-[#222222] transition-colors" />
-              </button>
             </div>
           </div>
         </div>
@@ -703,14 +637,6 @@ export function DashboardPage() {
         onSuccess={() => fetchDashboardData()}
       />
 
-      <RecordPaymentModal
-        isOpen={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        stayId={selectedStay?.id || firstActiveStay?.id || null}
-        roomNumber={String(selectedStay?.room_id || '')}
-        onSuccess={() => fetchDashboardData()}
-      />
-
       <RecordExpenseModal
         isOpen={expenseOpen}
         onClose={() => setExpenseOpen(false)}
@@ -721,7 +647,17 @@ export function DashboardPage() {
         isOpen={checkOutOpen}
         onClose={() => setCheckOutOpen(false)}
         stay={selectedStay}
-        roomNumber={String(selectedStay?.room_id || '')}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number || String(selectedStay?.room_id || '')}
+        guestName={selectedStay?.guest?.full_name}
+        onSuccess={() => fetchDashboardData()}
+      />
+
+      <ExtendStayModal
+        isOpen={extendOpen}
+        onClose={() => setExtendOpen(false)}
+        stay={selectedStay}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
+        guestName={selectedStay?.guest?.full_name}
         onSuccess={() => fetchDashboardData()}
       />
     </div>

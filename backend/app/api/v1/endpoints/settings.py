@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
-from app.core.dependencies import require_admin
+from app.core.dependencies import require_admin, require_authenticated_user
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
@@ -10,9 +10,10 @@ from app.schemas.settings import SettingsRead, SettingsUpdate
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 admin_user = Depends(require_admin)
+auth_user = Depends(require_authenticated_user)
 
 
-@router.get("", response_model=SettingsRead, dependencies=[admin_user])
+@router.get("", response_model=SettingsRead, dependencies=[auth_user])
 async def read_settings() -> SettingsRead:
 	settings = get_settings()
 	return SettingsRead(

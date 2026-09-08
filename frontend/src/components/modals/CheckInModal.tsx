@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { CircleDollarSign, KeyRound, ShieldAlert, UserCheck } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
@@ -6,14 +6,21 @@ import { Input } from '../common/Input'
 import type { Room } from '../../types/api'
 import { createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
-import { checkInReservation, getStays } from '../../api/stays'
+import { checkInReservation } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
+import { getApiError } from '../../api/client'
 
 interface CheckInModalProps {
   isOpen: boolean
   onClose: () => void
   availableRooms: Room[]
   selectedRoomId?: number
+  initialGuest?: {
+    fullName?: string
+    phone?: string
+    idNumber?: string
+    nationality?: string | null
+  }
   onSuccess: () => void
 }
 
@@ -22,6 +29,7 @@ export function CheckInModal({
   onClose,
   availableRooms,
   selectedRoomId,
+  initialGuest,
   onSuccess,
 }: CheckInModalProps) {
   const [roomId, setRoomId] = useState<number>(
@@ -42,6 +50,26 @@ export function CheckInModal({
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (selectedRoomId) {
+      setRoomId(selectedRoomId)
+    } else if (availableRooms.length > 0 && (!roomId || !availableRooms.some(r => r.id === roomId))) {
+      setRoomId(availableRooms[0].id)
+    }
+  }, [selectedRoomId, availableRooms, isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialGuest) {
+        setFullName(initialGuest.fullName || '')
+        setPhone(initialGuest.phone || '')
+        setIdNumber(initialGuest.idNumber || '')
+        setNationality(initialGuest.nationality || 'Ethiopian')
+      }
+      setError('')
+    }
+  }, [isOpen, initialGuest])
 
   const activeRoom = availableRooms.find((r) => r.id === roomId) || availableRooms[0]
   const roomPrice = Number(activeRoom?.price || 0)
@@ -78,29 +106,27 @@ export function CheckInModal({
       })
 
       // 3. Convert to active Stay
-      await checkInReservation(reservation.id)
+      const stay = await checkInReservation(reservation.id)
 
       // 4. Record Payment if provided
-      if (paid > 0 && paymentMethod !== 'CREDIT') {
-        const activeStays = await getStays('CHECKED_IN')
-        const currentStay = activeStays.find((s) => s.reservation_id === reservation.id)
-        const stayId = currentStay?.id || activeStays[0]?.id
-
-        if (stayId) {
-          await recordManualPayment({
-            stay_id: stayId,
-            amount: paid,
-            payment_method: paymentMethod,
-            reference: `Check-in deposit (${paymentMethod})`,
-          })
-        }
+      if (paid > 0 && paymentMethod !== 'CREDIT' && stay?.id) {
+        await recordManualPayment({
+          stay_id: stay.id,
+          amount: paid,
+          payment_method: paymentMethod,
+          reference: `Check-in deposit (${paymentMethod})`,
+        })
       }
 
+      setFullName('')
+      setPhone('')
+      setIdNumber('')
+      setAmountPaid('')
+      setNotes('')
       onSuccess()
       onClose()
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Unable to complete check-in.'
-      setError(msg)
+      setError(getApiError(err, 'Unable to complete check-in.'))
     } finally {
       setLoading(false)
     }
