@@ -99,9 +99,9 @@ async def test_admin_and_reception_strict_rbac(client: AsyncClient, users) -> No
 	assert (await client.get("/api/v1/users", headers=admin_auth)).status_code == 200
 	assert (await client.get("/api/v1/users", headers=rec_auth)).status_code == 403
 
-	# 2. Expense operations: Admin 200, Reception 403 (Reception cannot capture expenses)
+	# 2. Expense operations: Admin and Reception can record expenses
 	assert (await client.get("/api/v1/expenses", headers=admin_auth)).status_code == 200
-	assert (await client.get("/api/v1/expenses", headers=rec_auth)).status_code == 403
+	assert (await client.get("/api/v1/expenses", headers=rec_auth)).status_code == 200
 
 	# 3. Reports: Admin 200, Reception 403
 	assert (await client.get("/api/v1/reports/daily", headers=admin_auth)).status_code == 200

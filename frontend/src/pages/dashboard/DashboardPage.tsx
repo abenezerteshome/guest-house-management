@@ -118,16 +118,14 @@ export function DashboardPage() {
           >
             + New Reservation
           </Button>
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="md"
-              leftIcon={<Wallet size={16} />}
-              onClick={() => setExpenseOpen(true)}
-            >
-              + Record Expense
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="md"
+            leftIcon={<Wallet size={16} />}
+            onClick={() => setExpenseOpen(true)}
+          >
+            + Record Expense
+          </Button>
           <Button
             variant="outline"
             size="md"

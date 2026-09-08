@@ -40,6 +40,7 @@ const navSections: NavSection[] = [
       { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'RECEPTION'] },
       { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION'] },
+      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION'] },
     ],
   },
   {
@@ -47,7 +48,6 @@ const navSections: NavSection[] = [
     roles: ['ADMIN'],
     items: [
       { label: 'Stays Archive', to: '/stays', icon: ClipboardList, roles: ['ADMIN'] },
-      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN'] },
       { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN'] },
       { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN'] },
     ],
