@@ -10,10 +10,10 @@ from app.schemas.expense import ExpenseCreate, ExpenseRead
 from app.services.expense import create_expense, list_expenses
 
 router = APIRouter(prefix="/expenses", tags=["expenses"])
-operational_user = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))
+admin_user = Depends(require_role(UserRole.ADMIN))
 
 
-@router.post("", response_model=ExpenseRead, status_code=status.HTTP_201_CREATED, dependencies=[operational_user])
+@router.post("", response_model=ExpenseRead, status_code=status.HTTP_201_CREATED, dependencies=[admin_user])
 async def record_expense(
 	data: ExpenseCreate,
 	session: AsyncSession = Depends(get_db),
@@ -23,7 +23,7 @@ async def record_expense(
 	return ExpenseRead.model_validate(expense)
 
 
-@router.get("", response_model=list[ExpenseRead], dependencies=[operational_user])
+@router.get("", response_model=list[ExpenseRead], dependencies=[admin_user])
 async def get_expenses(
 	category: str | None = Query(default=None),
 	start_date: datetime | None = Query(default=None),
