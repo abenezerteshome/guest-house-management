@@ -24,7 +24,7 @@ def is_late_checkout(actual_checkout_at: datetime) -> bool:
 
 
 async def check_out(
-	session: AsyncSession, stay: Stay, *, user_id: int, now: datetime
+	session: AsyncSession, stay: Stay, *, user_id: int, now: datetime, penalty_amount: Decimal | None = None
 ) -> Stay:
 	if stay.status != StayStatus.CHECKED_IN.value:
 		raise InvalidTransitionError("Only CHECKED_IN stays can be checked out")
@@ -39,7 +39,19 @@ async def check_out(
 	reservation.status = ReservationStatus.CHECKED_OUT.value
 	room.status = RoomStatus.AVAILABLE.value
 	room.available_after = None
-	if is_late_checkout(now):
+	if penalty_amount is not None:
+		if penalty_amount > 0:
+			from app.services.payment import add_charge_record
+
+			await add_charge_record(
+				session,
+				stay_id=stay.id,
+				charge_type=ChargeType.LATE_CHECKOUT_PENALTY,
+				description="Late checkout penalty",
+				amount=penalty_amount,
+				created_by=user_id,
+			)
+	elif is_late_checkout(now):
 		from app.services.payment import add_charge_record
 
 		await add_charge_record(

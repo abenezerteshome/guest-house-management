@@ -37,6 +37,7 @@ export function CheckOutModal({
   const [deadlineHour, setDeadlineHour] = useState<number>(4)
   const [deadlineMinute, setDeadlineMinute] = useState<number>(0)
   const [penaltyRate, setPenaltyRate] = useState<number>(600)
+  const [penaltyAmountInput, setPenaltyAmountInput] = useState<string>('600')
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -68,6 +69,7 @@ export function CheckOutModal({
           setDeadlineHour(dHour)
           setDeadlineMinute(dMinute)
           setPenaltyRate(rate)
+          setPenaltyAmountInput(String(rate))
         }
 
         // Extension credit calculation:
@@ -139,7 +141,8 @@ export function CheckOutModal({
     setError('')
     setSubmitting(true)
     try {
-      await checkOutStay(stay.id)
+      const customPenalty = isLate ? Number(penaltyAmountInput || 0) : undefined
+      await checkOutStay(stay.id, customPenalty)
       onSuccess()
       onClose()
     } catch (err) {
@@ -238,9 +241,33 @@ export function CheckOutModal({
               isLate ? 'bg-rose-200 text-rose-900' : 'bg-neutral-200 text-neutral-700'
             }`}
           >
-            {isLate ? `+ETB ${penaltyRate.toLocaleString()} Penalty` : '0 Penalty'}
+            {isLate
+              ? `+ETB ${Number(penaltyAmountInput || 0).toLocaleString()} Penalty`
+              : '0 Penalty'}
           </span>
         </div>
+
+        {/* 3. PENALTY AMOUNT INPUT (WHEN LATE CHECKOUT PENALTY APPLIES) */}
+        {isLate && (
+          <div className="px-3 py-2.5 rounded-xl bg-rose-50/60 border border-rose-200 flex items-center justify-between gap-3 text-xs">
+            <label htmlFor="penalty-amount-input" className="font-semibold text-rose-950 shrink-0">
+              Penalty Amount to Charge:
+            </label>
+            <div className="flex items-center gap-1.5 max-w-[160px]">
+              <input
+                id="penalty-amount-input"
+                type="number"
+                min="0"
+                step="50"
+                value={penaltyAmountInput}
+                onChange={(e) => setPenaltyAmountInput(e.target.value)}
+                placeholder={String(penaltyRate)}
+                className="w-full h-8 px-2.5 rounded-lg border border-rose-300 bg-white text-xs font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-500 text-right"
+              />
+              <span className="text-[11px] font-bold text-rose-700 shrink-0">ETB</span>
+            </div>
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0F0]">
