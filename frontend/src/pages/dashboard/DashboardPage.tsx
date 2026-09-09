@@ -43,7 +43,6 @@ export function DashboardPage() {
 
   // Modals
   const [checkInOpen, setCheckInOpen] = useState(false)
-  const [quickCheckOutOpen, setQuickCheckOutOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
@@ -110,15 +109,6 @@ export function DashboardPage() {
             }}
           >
             + Check In Guest
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            leftIcon={<LogOut size={16} />}
-            className="text-neutral-700 hover:text-rose-600 hover:border-rose-200"
-            onClick={() => setQuickCheckOutOpen(true)}
-          >
-            Check Out Guest
           </Button>
         </div>
       </div>
@@ -247,73 +237,7 @@ export function DashboardPage() {
         onSuccess={() => fetchDashboardData()}
       />
 
-      {/* Quick Check Out Guest Selector */}
-      <Modal
-        isOpen={quickCheckOutOpen}
-        onClose={() => setQuickCheckOutOpen(false)}
-        title="Check Out Guest"
-        description="Select an occupied room to process final checkout and payment."
-        maxWidth="md"
-      >
-        {activeStays.length === 0 ? (
-          <div className="text-center py-8 text-neutral-500">
-            <p className="text-sm font-semibold text-neutral-700">No rooms are currently occupied</p>
-            <p className="text-xs text-neutral-400 mt-1">All rooms are currently vacant or ready for guest check-in.</p>
-            <div className="mt-4">
-              <Button variant="outline" size="sm" onClick={() => setQuickCheckOutOpen(false)}>
-                Close
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {activeStays.map((stay) => {
-                const room = rooms.find((r) => r.id === stay.room_id)
-                const guestName = stay.guest?.full_name || (stay as any).guest_name || `Guest #${stay.guest_id}`
 
-                return (
-                  <div
-                    key={stay.id}
-                    className="p-3 rounded-xl border border-neutral-200 hover:border-neutral-300 bg-neutral-50/60 flex items-center justify-between gap-3 transition"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center font-black text-sm">
-                        {room?.room_number || stay.room_id}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-neutral-900">{guestName}</p>
-                        <p className="text-xs text-neutral-500">
-                          {room?.room_type || 'Room'} · {Number(room?.price || 0).toLocaleString()} ETB/night
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      leftIcon={<LogOut size={13} />}
-                      className="text-rose-600 border-rose-200 hover:bg-rose-50"
-                      onClick={() => {
-                        setSelectedStay(stay)
-                        setSelectedRoomId(stay.room_id)
-                        setQuickCheckOutOpen(false)
-                        setCheckOutOpen(true)
-                      }}
-                    >
-                      Check Out
-                    </Button>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="flex justify-end pt-2 border-t border-neutral-100">
-              <Button variant="outline" size="sm" onClick={() => setQuickCheckOutOpen(false)}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       <CheckOutModal
         isOpen={checkOutOpen}
