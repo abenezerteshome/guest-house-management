@@ -5,8 +5,6 @@ import {
   CheckCircle2,
   CircleDollarSign,
   KeyRound,
-  Plus,
-  RefreshCw,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
@@ -108,32 +106,12 @@ export function DashboardPage() {
             + Check In Guest
           </Button>
           <Button
-            variant="secondary"
-            size="md"
-            leftIcon={<Plus size={16} />}
-            onClick={() => {
-              setSelectedRoomId(undefined)
-              setReservationOpen(true)
-            }}
-          >
-            + New Reservation
-          </Button>
-          <Button
             variant="outline"
             size="md"
             leftIcon={<Wallet size={16} />}
             onClick={() => setExpenseOpen(true)}
           >
             + Record Expense
-          </Button>
-          <Button
-            variant="outline"
-            size="md"
-            onClick={() => fetchDashboardData()}
-            className="gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
           </Button>
         </div>
       </div>
