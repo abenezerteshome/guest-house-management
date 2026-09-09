@@ -50,7 +50,6 @@ export function CheckInModal({
   })
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'>('CASH')
   const [amountPaid, setAmountPaid] = useState<string>('')
-  const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -94,7 +93,6 @@ export function CheckInModal({
   const durationDescription = `${stayNights} Night${stayNights > 1 ? 's' : ''} (${stayNights} × ETB ${roomPricePerNight.toLocaleString()})`
 
   const paid = paymentMethod === 'CREDIT' ? 0 : Number(amountPaid || 0)
-  const remainingCredit = Math.max(0, totalRoomCharge - paid)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,7 +123,6 @@ export function CheckInModal({
         id_number: idNumber.trim(),
         phone: phone.trim(),
         id_photo_url: idPhoto || undefined,
-        notes: notes.trim() || undefined,
       })
 
       // 2. Create Reservation
@@ -135,7 +132,6 @@ export function CheckInModal({
         expected_arrival: checkInTime.toISOString(),
         expected_checkout: checkOutTime.toISOString(),
         expected_amount: totalRoomCharge,
-        notes: notes.trim() || undefined,
       })
 
       // 3. Convert to active Stay
@@ -156,7 +152,6 @@ export function CheckInModal({
       setIdNumber('')
       setIdPhoto(null)
       setAmountPaid('')
-      setNotes('')
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -350,33 +345,7 @@ export function CheckInModal({
               helperText={paymentMethod === 'CREDIT' ? 'Full stay amount will be recorded as outstanding credit' : undefined}
             />
           </div>
-
-          {/* Automatic Credit / Balance Breakdown */}
-          <div className="p-3 bg-white rounded-xl border border-[#DDDDDD] flex items-center justify-between text-xs">
-            <div>
-              <span className="text-[#717171]">Total Room Charge: </span>
-              <strong className="text-[#222222]">ETB {totalRoomCharge.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span className="text-[#717171]">Paid: </span>
-              <strong className="text-[#008A05]">ETB {paid.toLocaleString()}</strong>
-            </div>
-            <div>
-              <span className="text-[#717171]">Remaining Credit: </span>
-              <strong className={remainingCredit > 0 ? 'text-[#C13515]' : 'text-[#008A05]'}>
-                ETB {remainingCredit.toLocaleString()}
-              </strong>
-            </div>
-          </div>
         </div>
-
-        {/* Notes */}
-        <Input
-          label="Internal Notes / Special Requests"
-          placeholder="e.g. Extra pillows requested, airport drop-off at 8 AM"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0F0]">
