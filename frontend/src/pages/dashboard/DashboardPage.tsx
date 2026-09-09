@@ -117,14 +117,6 @@ export function DashboardPage() {
           >
             Check Out Guest
           </Button>
-          <Button
-            variant="outline"
-            size="md"
-            leftIcon={<Wallet size={16} />}
-            onClick={() => setExpenseOpen(true)}
-          >
-            + Record Expense
-          </Button>
         </div>
       </div>
 

@@ -38,7 +38,6 @@ export function CheckInModal({
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [idNumber, setIdNumber] = useState('')
-  const [nationality, setNationality] = useState('Ethiopian')
   const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().slice(0, 16))
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
@@ -72,7 +71,6 @@ export function CheckInModal({
         setFullName(initialGuest.fullName || '')
         setPhone(initialGuest.phone || '')
         setIdNumber(initialGuest.idNumber || '')
-        setNationality(initialGuest.nationality || 'Ethiopian')
       }
       setError('')
     }
@@ -101,9 +99,10 @@ export function CheckInModal({
     const checkInTime = new Date(checkInDate)
     const checkOutTime = new Date(checkoutDate)
     const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    if (checkInTime < startOfToday) {
-      setError('Check-in date cannot be in the past. Please select today or a future date.')
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
+    if (checkInTime < startOfToday || checkInTime > endOfToday) {
+      setError('Check-in is only permitted for the current day.')
       return
     }
     if (checkOutTime <= checkInTime) {
@@ -119,7 +118,6 @@ export function CheckInModal({
         full_name: fullName.trim(),
         id_number: idNumber.trim(),
         phone: phone.trim(),
-        nationality: nationality.trim() || undefined,
         notes: notes.trim() || undefined,
       })
 
@@ -223,7 +221,8 @@ export function CheckInModal({
               <input
                 type="datetime-local"
                 value={checkInDate}
-                min={new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString().slice(0, 10) + 'T00:00'}
+                min={`${new Date().toISOString().slice(0, 10)}T00:00`}
+                max={`${new Date().toISOString().slice(0, 10)}T23:59`}
                 onChange={(e) => setCheckInDate(e.target.value)}
                 className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required
@@ -260,7 +259,7 @@ export function CheckInModal({
             2. Guest Information
           </span>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Input
               label="Guest Full Name *"
               required
@@ -275,21 +274,12 @@ export function CheckInModal({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="ID / Passport Number *"
               required
               placeholder="e.g. EP1234567"
               value={idNumber}
               onChange={(e) => setIdNumber(e.target.value)}
-            />
-            <Input
-              label="Nationality / Address"
-              placeholder="e.g. Ethiopian"
-              value={nationality}
-              onChange={(e) => setNationality(e.target.value)}
             />
           </div>
         </div>

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
-  RefreshCw,
   UserCheck,
   X,
   Ban,
@@ -27,7 +26,6 @@ export function ReservationsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [guests, setGuests] = useState<Guest[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState<string>('ALL')
   const [search, setSearch] = useState('')
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
 
@@ -107,15 +105,14 @@ export function ReservationsPage() {
   }
 
   const filteredReservations = reservations.filter((r) => {
-    const matchesFilter = filterStatus === 'ALL' || r.status === filterStatus
     const guest = guestMap.get(r.guest_id)
     const room = roomMap.get(r.room_id)
-    const matchesSearch =
+    return (
       (guest?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (guest?.phone || '').includes(search) ||
       (room?.room_number || '').includes(search) ||
       String(r.id).includes(search)
-    return matchesFilter && matchesSearch
+    )
   })
 
   const statusTone: Record<string, BadgeTone> = {
@@ -258,88 +255,26 @@ export function ReservationsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Reservations & Expected Guests"
-        subtitle="Manage upcoming bookings, arrive expected guests, and track reservation statuses."
         action={
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchData()}
-              className="gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setModalOpen(true)}
-              className="gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              New Reservation
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setModalOpen(true)}
+            className="gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New Reservation
+          </Button>
         }
       />
 
-      {/* Filter Tabs & Search */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-200">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'ALL', label: 'All Bookings', count: reservations.length },
-            {
-              id: 'RESERVED',
-              label: 'Expected Arrivals',
-              count: reservations.filter((r) => r.status === 'RESERVED').length,
-            },
-            {
-              id: 'CHECKED_IN',
-              label: 'Checked In',
-              count: reservations.filter((r) => r.status === 'CHECKED_IN').length,
-            },
-            {
-              id: 'CANCELLED',
-              label: 'Cancelled',
-              count: reservations.filter((r) => r.status === 'CANCELLED').length,
-            },
-            {
-              id: 'NO_SHOW',
-              label: 'No-Show',
-              count: reservations.filter((r) => r.status === 'NO_SHOW').length,
-            },
-          ].map((tab) => {
-            const active = filterStatus === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setFilterStatus(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
-                  active
-                    ? 'bg-neutral-900 text-white shadow-xs'
-                    : 'bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    active ? 'bg-neutral-700 text-white' : 'bg-neutral-100 text-neutral-600'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="w-full sm:w-64">
-          <Input
-            placeholder="Search by guest, room, or ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* Search */}
+      <div className="w-full sm:w-80">
+        <Input
+          placeholder="Search by guest, room, or ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Table */}

@@ -1,16 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  ReceiptText,
-  Plus,
-  RefreshCw,
-  Tag,
-  Wallet,
-} from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
 import { Table, type TableColumn } from '../../components/common/Table'
-import { KpiCard } from '../../components/common/KpiCard'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { getExpenses } from '../../api/expenses'
 import type { Expense } from '../../types/api'
@@ -19,7 +12,6 @@ export function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('ALL')
   const [modalOpen, setModalOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -38,29 +30,14 @@ export function ExpensesPage() {
     fetchData()
   }, [fetchData])
 
-  const totalExpenseAmount = expenses.reduce((sum, e) => sum + Number(e.amount), 0)
-
-  // Categories present in the data
-  const categories = Array.from(new Set(expenses.map((e) => e.category)))
-
-  // Category totals for top category
-  const categoryTotals = expenses.reduce<Record<string, number>>((acc, e) => {
-    acc[e.category] = (acc[e.category] || 0) + Number(e.amount)
-    return acc
-  }, {})
-
-  const topCategoryEntry = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1])[0]
-  const topCategoryName = topCategoryEntry ? topCategoryEntry[0] : 'None'
-
   const filteredExpenses = expenses.filter((e) => {
-    const matchesCat = selectedCategory === 'ALL' || e.category === selectedCategory
     const q = search.toLowerCase()
-    const matchesSearch =
+    return (
       e.description.toLowerCase().includes(q) ||
       e.category.toLowerCase().includes(q) ||
       e.payment_method.toLowerCase().includes(q) ||
       String(e.id).includes(q)
-    return matchesCat && matchesSearch
+    )
   })
 
   const columns: TableColumn<Expense>[] = [
@@ -124,90 +101,26 @@ export function ExpensesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Operational Expenses"
-        subtitle="Log operational costs, supplier bills, maintenance expenses, and utility settlements."
         action={
-          <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => fetchData()} className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setModalOpen(true)}
-              className="gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Record Expense
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setModalOpen(true)}
+            className="gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Record Expense
+          </Button>
         }
       />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard
-          title="Total Expenses"
-          value={`${totalExpenseAmount.toLocaleString()} ETB`}
-          subtitle="Lifetime operational outlay"
-          icon={<Wallet className="w-5 h-5" />}
-          tone="neutral"
+      {/* Search */}
+      <div className="w-full sm:w-80">
+        <Input
+          placeholder="Search description, category, or payment method..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-        <KpiCard
-          title="Highest Cost Center"
-          value={topCategoryName}
-          subtitle={
-            topCategoryEntry
-              ? `${topCategoryEntry[1].toLocaleString()} ETB total spent`
-              : 'No expenses yet'
-          }
-          icon={<Tag className="w-5 h-5" />}
-          tone="warning"
-        />
-        <KpiCard
-          title="Total Transactions"
-          value={expenses.length}
-          subtitle="Expense ledger entries"
-          icon={<ReceiptText className="w-5 h-5" />}
-          tone="neutral"
-        />
-      </div>
-
-      {/* Filter Tabs & Search */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-200">
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setSelectedCategory('ALL')}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-              selectedCategory === 'ALL'
-                ? 'bg-neutral-900 text-white'
-                : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-            }`}
-          >
-            All Categories ({expenses.length})
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                selectedCategory === cat
-                  ? 'bg-neutral-900 text-white'
-                  : 'bg-white border border-neutral-200 text-neutral-600 hover:bg-neutral-50'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        <div className="w-full sm:w-64">
-          <Input
-            placeholder="Search description or method..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
       </div>
 
       {/* Table */}

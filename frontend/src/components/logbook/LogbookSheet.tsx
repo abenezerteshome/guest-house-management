@@ -493,8 +493,8 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Case 5: Vacant / Available Room (Past days cannot be checked in retroactively)
-                      if (isPast) {
+                      // Case 5: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
+                      if (!isToday) {
                         return (
                           <td
                             key={dayIdx}
@@ -502,7 +502,7 @@ export function LogbookSheet({
                           >
                             <div
                               className="h-18 rounded-xl border border-neutral-200/60 bg-neutral-100/40 p-2 flex flex-col items-center justify-center text-center select-none"
-                              title={`Past date (${dateStr}) — cannot check in retroactively`}
+                              title={isPast ? `Past date (${dateStr}) — cannot check in retroactively` : `Future date (${dateStr}) — check-in is for current day only`}
                             >
                               <span className="text-xs font-semibold text-neutral-300">
                                 —
@@ -518,14 +518,12 @@ export function LogbookSheet({
                       return (
                         <td
                           key={dayIdx}
-                          className={`p-2 border-r border-neutral-200 align-top group ${
-                            isToday ? 'bg-[#FF385C]/5' : ''
-                          }`}
+                          className="p-2 border-r border-neutral-200 align-top group bg-[#FF385C]/5"
                         >
                           <div
                             onClick={() => onCheckInRoom(room.id)}
                             className="h-18 rounded-xl border border-dashed border-neutral-200 hover:border-[#FF385C] hover:bg-white hover:shadow-xs transition p-2 flex flex-col items-center justify-center cursor-pointer text-center"
-                            title={`Click to check in room ${room.room_number}`}
+                            title={`Click to check in room ${room.room_number} today`}
                           >
                             <span className="text-[11px] font-semibold text-neutral-400 group-hover:text-[#FF385C] flex items-center gap-1">
                               <Plus className="w-3.5 h-3.5" />

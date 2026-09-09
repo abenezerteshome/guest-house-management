@@ -4,7 +4,6 @@ import {
   CreditCard,
   DoorClosed,
   KeyRound,
-  RefreshCw,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -238,21 +237,15 @@ export function StaysPage() {
         title="Guest Stays & Folios"
         subtitle="Live resident guests, folio ledgers, stay extensions, and late checkout audits."
         action={
-          <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => fetchData()} className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setCheckInOpen(true)}
-              className="gap-1.5"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              Check In Guest
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCheckInOpen(true)}
+            className="gap-1.5"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            Check In Guest
+          </Button>
         }
       />
 

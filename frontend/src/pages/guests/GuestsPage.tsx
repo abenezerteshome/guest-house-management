@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Plus,
-  RefreshCw,
   KeyRound,
   Phone,
   Globe,
@@ -190,44 +189,26 @@ export function GuestsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Guest Directory"
-        subtitle="Comprehensive guest profiles, identification records, and visit histories."
         action={
-          <div className="flex items-center gap-2.5">
-            <Button variant="outline" size="sm" onClick={() => fetchData()} className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => setCreateGuestOpen(true)}
-              className="gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Register Guest
-            </Button>
-          </div>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setCreateGuestOpen(true)}
+            className="gap-1.5"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Register Guest
+          </Button>
         }
       />
 
-      {/* Search & Counter */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-200">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-            Total Profiles:
-          </span>
-          <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-neutral-900 text-white">
-            {guests.length}
-          </span>
-        </div>
-
-        <div className="w-full sm:w-72">
-          <Input
-            placeholder="Search by name, phone, ID, or nationality..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
+      {/* Search */}
+      <div className="w-full sm:w-80">
+        <Input
+          placeholder="Search by name, phone, or ID..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       {/* Guests Table */}

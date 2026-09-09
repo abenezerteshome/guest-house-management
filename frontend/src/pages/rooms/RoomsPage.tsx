@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, RefreshCw, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck, Wrench, Sparkles } from 'lucide-react'
+import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck, Wrench, Sparkles } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -21,7 +21,6 @@ export function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeStays, setActiveStays] = useState<Stay[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState<string>('ALL')
   const [searchTerm, setSearchTerm] = useState('')
 
   // Modals state
@@ -58,11 +57,10 @@ export function RoomsPage() {
   const maintenanceRooms = rooms.filter((r) => r.status === 'MAINTENANCE')
 
   const filteredRooms = rooms.filter((r) => {
-    const matchesFilter = filterStatus === 'ALL' || r.status === filterStatus
-    const matchesSearch =
+    return (
       r.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.room_type.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesFilter && matchesSearch
+    )
   })
 
   function handleRoomCheckIn(roomId: number) {
@@ -99,18 +97,8 @@ export function RoomsPage() {
       {/* Page Header */}
       <PageHeader
         title="Room Status Board"
-        subtitle="Live guest house room matrix, real-time availability, and quick guest allocation."
         action={
           <div className="flex items-center gap-2.5">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchData()}
-              className="gap-1.5"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
             {isAdmin && (
               <Button
                 variant="outline"
@@ -138,48 +126,13 @@ export function RoomsPage() {
         }
       />
 
-      {/* Quick Status Stats / Filter Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-200">
-        <div className="flex flex-wrap items-center gap-2">
-          {[
-            { id: 'ALL', label: 'All Rooms', count: rooms.length },
-            { id: 'AVAILABLE', label: 'Available', count: availableRooms.length, color: 'text-emerald-600' },
-            { id: 'OCCUPIED', label: 'Occupied', count: occupiedRooms.length, color: 'text-rose-600' },
-            { id: 'EXPECTED', label: 'Expected', count: expectedRooms.length, color: 'text-amber-600' },
-            { id: 'MAINTENANCE', label: 'Maintenance', count: maintenanceRooms.length, color: 'text-neutral-500' },
-          ].map((tab) => {
-            const active = filterStatus === tab.id
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setFilterStatus(tab.id)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition ${
-                  active
-                    ? 'bg-neutral-900 text-white shadow-xs'
-                    : 'bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
-                }`}
-              >
-                <span>{tab.label}</span>
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                    active ? 'bg-neutral-700 text-white' : 'bg-neutral-100 text-neutral-600'
-                  }`}
-                >
-                  {tab.count}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Search input */}
-        <div className="w-full sm:w-64">
-          <Input
-            placeholder="Search room # or type..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      {/* Search input */}
+      <div className="w-full sm:w-80">
+        <Input
+          placeholder="Search room # or type..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {/* Room Grid */}
@@ -198,8 +151,8 @@ export function RoomsPage() {
           title="No rooms match your criteria"
           message="Try changing your search keywords or switching filter categories."
           actionSlot={
-            <Button variant="outline" size="sm" onClick={() => { setFilterStatus('ALL'); setSearchTerm(''); }}>
-              Clear Filters
+            <Button variant="outline" size="sm" onClick={() => setSearchTerm('')}>
+              Clear Search
             </Button>
           }
         />
