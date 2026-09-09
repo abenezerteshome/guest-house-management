@@ -89,13 +89,15 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Clean Operations Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#DDDDDD]">
-        <div>
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        {isAdmin ? (
           <h1 className="text-2xl font-bold text-[#222222] tracking-tight">
-            {isAdmin ? 'Guest House Overview' : 'Daily Room Logbook'}
+            Guest House Overview
           </h1>
-        </div>
+        ) : (
+          <div />
+        )}
 
         <div className="flex items-center gap-2.5 flex-wrap">
           <Button
