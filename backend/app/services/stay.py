@@ -38,7 +38,7 @@ async def check_out(
 	stay.actual_checkout_at = now
 	reservation.status = ReservationStatus.CHECKED_OUT.value
 	room.status = RoomStatus.AVAILABLE.value
-	room.available_after = now + timedelta(minutes=30)
+	room.available_after = None
 	if is_late_checkout(now):
 		from app.services.payment import add_charge_record
 

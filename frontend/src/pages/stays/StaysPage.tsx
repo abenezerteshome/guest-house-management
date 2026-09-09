@@ -325,8 +325,14 @@ export function StaysPage() {
         isOpen={Boolean(checkoutStayItem)}
         onClose={() => setCheckoutStayItem(null)}
         stay={checkoutStayItem}
+        guestName={checkoutStayItem?.guest?.full_name}
         roomNumber={checkoutStayItem?.room?.room_number}
-        onSuccess={() => fetchData()}
+        onSuccess={() => {
+          if (checkoutStayItem) {
+            setStays((prev) => prev.filter((s) => s.id !== checkoutStayItem.id))
+          }
+          fetchData()
+        }}
       />
 
       <CheckInModal

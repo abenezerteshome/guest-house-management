@@ -29,11 +29,6 @@ export function RoomCard({
   actionSlot,
   className = '',
 }: RoomCardProps) {
-  const isTurnaround = !!room.availableAfter && new Date(room.availableAfter).getTime() > Date.now()
-  const remainingMin = isTurnaround
-    ? Math.max(1, Math.ceil((new Date(room.availableAfter!).getTime() - Date.now()) / 60000))
-    : 0
-
   const statusToneMap: Record<RoomCardData['status'], BadgeTone> = {
     AVAILABLE: 'available',
     OCCUPIED: 'occupied',
@@ -109,8 +104,8 @@ export function RoomCard({
 
         {/* Floating Status Badge */}
         <div className="absolute top-3 right-3">
-          <Badge tone={isTurnaround ? 'neutral' : statusToneMap[room.status]} size="sm">
-            {isTurnaround ? `Ready in ${remainingMin}m` : statusLabelMap[room.status]}
+          <Badge tone={statusToneMap[room.status]} size="sm">
+            {statusLabelMap[room.status]}
           </Badge>
         </div>
 
