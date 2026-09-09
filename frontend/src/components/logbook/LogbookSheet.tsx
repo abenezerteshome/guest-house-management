@@ -578,39 +578,6 @@ export function LogbookSheet({
         </div>
       )}
 
-      {/* Visual Legend matching the paper notebook */}
-      <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 flex items-center justify-between flex-wrap gap-3 text-xs text-neutral-600">
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="font-bold text-neutral-700">Ledger Key:</span>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-400 flex items-center justify-center text-[8px] text-emerald-800 font-black">
-              ✓
-            </span>
-            <span>Occupied Guest Room</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="px-1 py-0.2 rounded text-[9px] font-black bg-rose-100 text-rose-700 border border-rose-200">
-              Day 2
-            </span>
-            <span>Stay Night Counter</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded border border-dashed border-neutral-400 bg-white" />
-            <span>Available (Click to Check In)</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-amber-100 border border-amber-300" />
-            <span>Housekeeping</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded bg-rose-100 border border-rose-300" />
-            <span>Maintenance</span>
-          </div>
-        </div>
-        <div className="text-[11px] text-neutral-400 font-medium">
-          Matches Haven House front-desk daily room registry book.
-        </div>
-      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Badge, type BadgeTone } from './Badge'
-import { Users, Bed, Wifi, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 export interface RoomCardData {
   id?: string
@@ -128,24 +128,6 @@ export function RoomCard({
                 {room.bedType || 'Standard Queen Bed'}
               </p>
             </div>
-          </div>
-
-          {/* Amenities & Attributes */}
-          <div className="flex items-center gap-3 mt-3 pt-3 border-t border-[#F0F0F0] text-xs text-[#717171]">
-            {room.capacity && (
-              <span className="flex items-center gap-1">
-                <Users size={13} />
-                <span>{room.capacity} Guests</span>
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Bed size={13} />
-              <span>Ensuite</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <Wifi size={13} />
-              <span>High-speed</span>
-            </span>
           </div>
         </div>
 
