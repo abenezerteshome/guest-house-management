@@ -20,7 +20,7 @@ interface CheckOutModalProps {
   stay: Stay | null
   guestName?: string
   roomNumber?: string
-  onSuccess: () => void
+  onSuccess: (checkedOutStay?: Stay | null) => void
 }
 
 export function CheckOutModal({
@@ -143,7 +143,7 @@ export function CheckOutModal({
     try {
       const customPenalty = isLate ? Number(penaltyAmountInput || 0) : undefined
       await checkOutStay(stay.id, customPenalty)
-      onSuccess()
+      onSuccess(stay)
       onClose()
     } catch (err) {
       setError(getApiError(err, 'Unable to complete checkout.'))

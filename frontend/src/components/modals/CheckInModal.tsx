@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { CircleDollarSign, KeyRound, ShieldAlert, UserCheck } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
@@ -15,6 +15,7 @@ interface CheckInModalProps {
   isOpen: boolean
   onClose: () => void
   availableRooms: Room[]
+  allRooms?: Room[]
   selectedRoomId?: number
   initialGuest?: {
     fullName?: string
@@ -30,12 +31,26 @@ export function CheckInModal({
   isOpen,
   onClose,
   availableRooms,
+  allRooms,
   selectedRoomId,
   initialGuest,
   onSuccess,
 }: CheckInModalProps) {
+  const selectableRooms = useMemo(() => {
+    const list = [...availableRooms]
+    if (selectedRoomId && allRooms) {
+      const selected = allRooms.find((r) => r.id === selectedRoomId)
+      if (selected && !list.some((r) => r.id === selectedRoomId)) {
+        list.push(selected)
+      }
+    }
+    return list
+      .filter((r) => r.status !== 'MAINTENANCE' || r.id === selectedRoomId)
+      .sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }))
+  }, [availableRooms, allRooms, selectedRoomId])
+
   const [roomId, setRoomId] = useState<number>(
-    selectedRoomId || availableRooms[0]?.id || 0
+    selectedRoomId || selectableRooms[0]?.id || 0
   )
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -56,10 +71,10 @@ export function CheckInModal({
   useEffect(() => {
     if (selectedRoomId) {
       setRoomId(selectedRoomId)
-    } else if (availableRooms.length > 0 && (!roomId || !availableRooms.some(r => r.id === roomId))) {
-      setRoomId(availableRooms[0].id)
+    } else if (selectableRooms.length > 0 && (!roomId || !selectableRooms.some(r => r.id === roomId))) {
+      setRoomId(selectableRooms[0].id)
     }
-  }, [selectedRoomId, availableRooms, isOpen])
+  }, [selectedRoomId, selectableRooms, isOpen])
 
   useEffect(() => {
     if (isOpen) {
@@ -81,7 +96,7 @@ export function CheckInModal({
     }
   }, [isOpen, initialGuest])
 
-  const activeRoom = availableRooms.find((r) => r.id === roomId) || availableRooms[0]
+  const activeRoom = selectableRooms.find((r) => r.id === roomId) || selectableRooms[0]
   const roomPricePerNight = Number(activeRoom?.price || 0)
 
   // Calculate duration description & total room charge by night
@@ -208,7 +223,7 @@ export function CheckInModal({
               className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222] focus:ring-1 focus:ring-[#222222]"
               required
             >
-              {availableRooms.map((room) => (
+              {selectableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
                   Room {room.room_number} — {room.room_type} (ETB {Number(room.price).toLocaleString()} / night)
                 </option>
