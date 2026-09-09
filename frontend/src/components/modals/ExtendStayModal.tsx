@@ -273,16 +273,13 @@ export function ExtendStayModal({
             </div>
           )}
 
-          {/* If Credit, display notice */}
+          {/* If Credit, display notice (single-line) */}
           {paymentOption === 'CREDIT' && (
-            <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 flex items-start gap-2.5">
-              <CircleDollarSign className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <div className="text-xs text-amber-900">
-                <p className="font-semibold">Credit Balance Recorded</p>
-                <p className="text-amber-800 text-[11px] mt-0.5">
-                  The extension fee of <strong>{totalExtensionFee.toLocaleString()} ETB</strong> will remain on the guest's folio as credit. When checking out, the system will verify this credit and require settlement or confirmation.
-                </p>
-              </div>
+            <div className="px-3 py-2 rounded-xl bg-amber-50/70 border border-amber-200 flex items-center gap-2 text-xs text-amber-900">
+              <CircleDollarSign className="w-4 h-4 text-amber-600 shrink-0" />
+              <span className="truncate">
+                Credit: <strong>{totalExtensionFee.toLocaleString()} ETB</strong> added to guest folio (settled at checkout).
+              </span>
             </div>
           )}
         </div>
