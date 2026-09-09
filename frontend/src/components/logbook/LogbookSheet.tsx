@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   Plus,
   Clock,
@@ -30,12 +30,10 @@ export function LogbookSheet({
   onCheckOut,
   onExtendStay,
 }: LogbookSheetProps) {
-  // Center view on today
-  const [startDate] = useState(() => {
+  // Calendar Start Date
+  const [startDate] = useState<Date>(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
-    // Start 1 day before today so yesterday and today are immediately visible
-    d.setDate(d.getDate() - 1)
     return d
   })
   const [daysCount] = useState(7) // 7-day rolling window
@@ -46,6 +44,13 @@ export function LogbookSheet({
     totalNights: number
     nightNumber: number
   } | null>(null)
+
+  // Automatically dismiss popover if stay was checked out or removed
+  useEffect(() => {
+    if (activeStayPopover && !stays.some((s) => s.id === activeStayPopover.stay.id && s.status === 'CHECKED_IN')) {
+      setActiveStayPopover(null)
+    }
+  }, [stays, activeStayPopover])
 
   // Generate date array for columns
   const dateColumns = useMemo(() => {
@@ -82,6 +87,7 @@ export function LogbookSheet({
     for (const s of stays) {
       if (s.room_id !== roomId) continue
       if (s.status !== 'CHECKED_IN' && s.status !== 'ACTIVE') continue
+      if (s.actual_checkout_at) continue // Checked out stays immediately disappear
 
       const checkInRaw = s.check_in_at || (s as any).check_in_date || (s as any).check_in
       const checkOutRaw = s.expected_checkout || (s as any).checkout_date
@@ -383,29 +389,7 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Room checked out recently — automatically available in 30 minutes
-                      const isTurnaround = isToday && !!room.available_after && new Date(room.available_after).getTime() > Date.now()
-                      if (isTurnaround) {
-                        const remainingMin = Math.max(1, Math.ceil((new Date(room.available_after!).getTime() - Date.now()) / 60000))
-                        return (
-                          <td
-                            key={dayIdx}
-                            className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-neutral-50/50"
-                          >
-                            <div className="h-full w-full p-1.5 rounded border border-neutral-200 bg-neutral-100/70 flex flex-col items-center justify-center text-center">
-                              <div className="flex items-center gap-1 text-[10px] font-bold text-neutral-700">
-                                <Clock className="w-3 h-3 text-neutral-500" />
-                                <span>Ready in {remainingMin}m</span>
-                              </div>
-                              <span className="text-[9px] text-neutral-400 mt-0.5">
-                                Auto-available ({roomPrice} ETB)
-                              </span>
-                            </div>
-                          </td>
-                        )
-                      }
-
-                      // Case 5: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
+                      // Case 4: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
                       if (!isToday) {
                         return (
                           <td

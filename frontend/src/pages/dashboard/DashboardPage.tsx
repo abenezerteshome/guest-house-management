@@ -82,8 +82,7 @@ export function DashboardPage() {
     fetchDashboardData()
   }, [fetchDashboardData])
 
-  const isTurnaround = (r: Room) => !!r.available_after && new Date(r.available_after).getTime() > Date.now()
-  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE' && !isTurnaround(r))
+  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
 
   return (
@@ -241,11 +240,28 @@ export function DashboardPage() {
 
       <CheckOutModal
         isOpen={checkOutOpen}
-        onClose={() => setCheckOutOpen(false)}
+        onClose={() => {
+          setCheckOutOpen(false)
+          setSelectedStay(null)
+        }}
         stay={selectedStay}
         roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number || String(selectedStay?.room_id || '')}
         guestName={selectedStay?.guest?.full_name}
-        onSuccess={() => fetchDashboardData()}
+        onSuccess={() => {
+          if (selectedStay) {
+            // Optimistically remove checked out stay immediately so table clears without delay
+            setActiveStays((prev) => prev.filter((s) => s.id !== selectedStay.id))
+            // Set room available immediately
+            setRooms((prev) =>
+              prev.map((r) =>
+                r.id === selectedStay.room_id
+                  ? { ...r, status: 'AVAILABLE', available_after: null }
+                  : r
+              )
+            )
+          }
+          fetchDashboardData()
+        }}
       />
 
       <ExtendStayModal

@@ -51,8 +51,7 @@ export function RoomsPage() {
     fetchData()
   }, [fetchData])
 
-  const isTurnaround = (r: Room) => !!r.available_after && new Date(r.available_after).getTime() > Date.now()
-  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE' && !isTurnaround(r))
+  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
   const expectedRooms = rooms.filter((r) => r.status === 'EXPECTED')
   const maintenanceRooms = rooms.filter((r) => r.status === 'MAINTENANCE')
@@ -160,7 +159,7 @@ export function RoomsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filteredRooms.map((room) => {
-            const isAvailable = room.status === 'AVAILABLE' && !isTurnaround(room)
+            const isAvailable = room.status === 'AVAILABLE'
             const isOccupied = room.status === 'OCCUPIED'
             const isExpected = room.status === 'EXPECTED'
             const isMaintenance = room.status === 'MAINTENANCE'
@@ -237,12 +236,6 @@ export function RoomsPage() {
                       >
                         Arrive Guest
                       </Button>
-                    )}
-
-                    {isTurnaround(room) && (
-                      <span className="text-[11px] font-semibold text-neutral-600 py-1 px-2 rounded-lg bg-neutral-100 border border-neutral-200 text-center flex-1">
-                        Auto-ready in {Math.max(1, Math.ceil((new Date(room.available_after!).getTime() - Date.now()) / 60000))}m
-                      </span>
                     )}
 
                     {isAdmin && (
