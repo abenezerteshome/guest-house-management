@@ -357,6 +357,7 @@ export function LogbookSheet({
                     {dateColumns.map((colDate, dayIdx) => {
                       const dateStr = colDate.toISOString().slice(0, 10)
                       const isToday = dateStr === todayStr
+                      const isPast = dateStr < todayStr
                       const stayInfo = getStayForRoomAndDate(room.id, colDate)
                       const resInfo = !stayInfo ? getReservationForRoomAndDate(room.id, colDate) : null
 
@@ -439,13 +440,19 @@ export function LogbookSheet({
                                 {guestName}
                               </div>
                               <div className="mt-1">
-                                <button
-                                  type="button"
-                                  onClick={() => onCheckInRoom(room.id)}
-                                  className="w-full py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 transition"
-                                >
-                                  Check In Now
-                                </button>
+                                {isPast ? (
+                                  <span className="block text-center text-[10px] font-semibold text-neutral-400 py-0.5">
+                                    Past Booking
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => onCheckInRoom(room.id)}
+                                    className="w-full py-1 text-[10px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                                  >
+                                    Check In Now
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -486,7 +493,28 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Case 5: Vacant / Available Room (Clean cell with quick check-in)
+                      // Case 5: Vacant / Available Room (Past days cannot be checked in retroactively)
+                      if (isPast) {
+                        return (
+                          <td
+                            key={dayIdx}
+                            className="p-2 border-r border-neutral-200 align-top bg-neutral-50/50"
+                          >
+                            <div
+                              className="h-18 rounded-xl border border-neutral-200/60 bg-neutral-100/40 p-2 flex flex-col items-center justify-center text-center select-none"
+                              title={`Past date (${dateStr}) — cannot check in retroactively`}
+                            >
+                              <span className="text-xs font-semibold text-neutral-300">
+                                —
+                              </span>
+                              <span className="text-[10px] font-medium text-neutral-400 mt-0.5">
+                                Vacant
+                              </span>
+                            </div>
+                          </td>
+                        )
+                      }
+
                       return (
                         <td
                           key={dayIdx}
