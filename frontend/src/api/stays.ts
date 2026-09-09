@@ -1,5 +1,5 @@
 import { api } from './client'
-import type { Charge, FinancialSummary, Stay } from '../types/api'
+import type { Charge, FinancialSummary, Payment, Stay } from '../types/api'
 
 export async function getStays(status?: string): Promise<Stay[]> {
   const res = await api.get<Stay[]>('/stays', { params: status ? { status } : undefined })
@@ -33,5 +33,10 @@ export async function getStayFinancialSummary(stay_id: number): Promise<Financia
 
 export async function getStayCharges(stay_id: number): Promise<Charge[]> {
   const res = await api.get<Charge[]>(`/stays/${stay_id}/charges`)
+  return res.data
+}
+
+export async function getStayPayments(stay_id: number): Promise<Payment[]> {
+  const res = await api.get<Payment[]>(`/stays/${stay_id}/payments`)
   return res.data
 }
