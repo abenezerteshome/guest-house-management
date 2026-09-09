@@ -3,6 +3,7 @@ import { CircleDollarSign, KeyRound, ShieldAlert, UserCheck } from 'lucide-react
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
+import { IdPhotoCapture } from '../common/IdPhotoCapture'
 import type { Room } from '../../types/api'
 import { createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
@@ -20,6 +21,7 @@ interface CheckInModalProps {
     phone?: string
     idNumber?: string
     nationality?: string | null
+    idPhotoUrl?: string | null
   }
   onSuccess: () => void
 }
@@ -38,6 +40,7 @@ export function CheckInModal({
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [idNumber, setIdNumber] = useState('')
+  const [idPhoto, setIdPhoto] = useState<string | null>(null)
   const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().slice(0, 16))
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
@@ -71,6 +74,9 @@ export function CheckInModal({
         setFullName(initialGuest.fullName || '')
         setPhone(initialGuest.phone || '')
         setIdNumber(initialGuest.idNumber || '')
+        setIdPhoto(initialGuest.idPhotoUrl || null)
+      } else {
+        setIdPhoto(null)
       }
       setError('')
     }
@@ -113,11 +119,12 @@ export function CheckInModal({
     setLoading(true)
 
     try {
-      // 1. Create Guest
+      // 1. Create Guest (including captured/uploaded passport or ID photo)
       const guest = await createGuest({
         full_name: fullName.trim(),
         id_number: idNumber.trim(),
         phone: phone.trim(),
+        id_photo_url: idPhoto || undefined,
         notes: notes.trim() || undefined,
       })
 
@@ -147,6 +154,7 @@ export function CheckInModal({
       setFullName('')
       setPhone('')
       setIdNumber('')
+      setIdPhoto(null)
       setAmountPaid('')
       setNotes('')
       onSuccess()
@@ -252,11 +260,11 @@ export function CheckInModal({
           </div>
         </div>
 
-        {/* Step 2: Guest Details */}
+        {/* Step 2: Guest Details & Identification */}
         <div className="space-y-3">
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
             <UserCheck size={14} className="text-[#008A05]" />
-            2. Guest Information
+            2. Guest Information & Document Verification
           </span>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -280,6 +288,16 @@ export function CheckInModal({
               placeholder="e.g. EP1234567"
               value={idNumber}
               onChange={(e) => setIdNumber(e.target.value)}
+            />
+          </div>
+
+          {/* Passport / ID Document Photo Capture & Upload */}
+          <div className="pt-1">
+            <IdPhotoCapture
+              value={idPhoto}
+              onChange={setIdPhoto}
+              label="Passport / National ID Photo"
+              helperText="Capture directly using the camera or upload an image of the guest's passport or national ID."
             />
           </div>
         </div>

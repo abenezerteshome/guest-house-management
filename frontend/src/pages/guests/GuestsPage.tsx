@@ -13,6 +13,7 @@ import { Input } from '../../components/common/Input'
 import { Modal } from '../../components/common/Modal'
 import { Table, type TableColumn } from '../../components/common/Table'
 import { CheckInModal } from '../../components/modals/CheckInModal'
+import { IdPhotoCapture } from '../../components/common/IdPhotoCapture'
 import { getGuests, createGuest } from '../../api/guests'
 import { getRooms } from '../../api/rooms'
 import type { Guest, Room } from '../../types/api'
@@ -27,11 +28,13 @@ export function GuestsPage() {
   const [createGuestOpen, setCreateGuestOpen] = useState(false)
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null)
+  const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null)
 
   // New Guest Form
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [idNumber, setIdNumber] = useState('')
+  const [idPhoto, setIdPhoto] = useState<string | null>(null)
   const [nationality, setNationality] = useState('Ethiopian')
   const [notes, setNotes] = useState('')
   const [formLoading, setFormLoading] = useState(false)
@@ -81,6 +84,7 @@ export function GuestsPage() {
         full_name: fullName.trim(),
         phone: phone.trim(),
         id_number: idNumber.trim(),
+        id_photo_url: idPhoto || undefined,
         nationality: nationality.trim() || undefined,
         notes: notes.trim() || undefined,
       })
@@ -89,6 +93,7 @@ export function GuestsPage() {
       setFullName('')
       setPhone('')
       setIdNumber('')
+      setIdPhoto(null)
       setNotes('')
       fetchData()
     } catch (err: unknown) {
@@ -112,9 +117,22 @@ export function GuestsPage() {
       header: 'Guest Full Name',
       render: (g) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center font-bold text-xs text-neutral-700">
-            {g.full_name.slice(0, 2).toUpperCase()}
-          </div>
+          {g.id_photo_url ? (
+            <div
+              onClick={(e) => {
+                e.stopPropagation()
+                setViewPhotoUrl(g.id_photo_url || null)
+              }}
+              className="w-8 h-8 rounded-full overflow-hidden border border-emerald-400 bg-neutral-100 cursor-pointer shadow-2xs hover:scale-105 transition shrink-0"
+              title="Click to view ID / Passport photo"
+            >
+              <img src={g.id_photo_url} alt={g.full_name} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center font-bold text-xs text-neutral-700 shrink-0">
+              {g.full_name.slice(0, 2).toUpperCase()}
+            </div>
+          )}
           <div>
             <p className="font-bold text-sm text-neutral-900">{g.full_name}</p>
             <p className="text-xs text-neutral-500 flex items-center gap-1">
@@ -138,9 +156,21 @@ export function GuestsPage() {
       key: 'id_number',
       header: 'ID / Passport #',
       render: (g) => (
-        <span className="font-mono text-xs font-semibold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md">
-          {g.id_number}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs font-semibold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md">
+            {g.id_number}
+          </span>
+          {g.id_photo_url && (
+            <button
+              type="button"
+              onClick={() => setViewPhotoUrl(g.id_photo_url || null)}
+              className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"
+              title="View Passport / ID Document Photo"
+            >
+              Photo
+            </button>
+          )}
+        </div>
       ),
     },
     {
@@ -262,6 +292,13 @@ export function GuestsPage() {
             onChange={(e) => setNationality(e.target.value)}
           />
 
+          <IdPhotoCapture
+            value={idPhoto}
+            onChange={setIdPhoto}
+            label="Passport / National ID Photo"
+            helperText="Capture or upload photo of guest's passport or national ID."
+          />
+
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
               Guest Notes / Preferences
@@ -286,7 +323,10 @@ export function GuestsPage() {
             <Button
               variant="ghost"
               type="button"
-              onClick={() => setCreateGuestOpen(false)}
+              onClick={() => {
+                setCreateGuestOpen(false)
+                setIdPhoto(null)
+              }}
               disabled={formLoading}
             >
               Cancel
@@ -297,6 +337,36 @@ export function GuestsPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Guest Document Photo Inspect Modal */}
+      <Modal
+        isOpen={!!viewPhotoUrl}
+        onClose={() => setViewPhotoUrl(null)}
+        title="Guest Passport / National ID Document"
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          <div className="max-h-[70vh] overflow-auto rounded-xl border border-neutral-200 bg-neutral-950 flex items-center justify-center p-2">
+            {viewPhotoUrl && (
+              <img
+                src={viewPhotoUrl}
+                alt="Enlarged Document"
+                className="max-h-[65vh] w-auto max-w-full object-contain rounded-lg"
+              />
+            )}
+          </div>
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={() => setViewPhotoUrl(null)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
       </Modal>
 
       <CheckInModal
@@ -313,6 +383,7 @@ export function GuestsPage() {
                 phone: selectedGuest.phone,
                 idNumber: selectedGuest.id_number,
                 nationality: selectedGuest.nationality,
+                idPhotoUrl: selectedGuest.id_photo_url,
               }
             : undefined
         }

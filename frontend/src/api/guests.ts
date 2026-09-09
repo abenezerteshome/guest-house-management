@@ -17,6 +17,7 @@ export async function createGuest(data: {
   phone: string
   address?: string
   nationality?: string
+  id_photo_url?: string | null
   notes?: string
 }): Promise<Guest> {
   const res = await api.post<Guest>('/guests', data)
