@@ -163,15 +163,6 @@ export function LogbookSheet({
     return null
   }
 
-  // Count occupied rooms today
-  const todayOccupancyCount = useMemo(() => {
-    const today = new Date()
-    let count = 0
-    for (const r of rooms) {
-      if (getStayForRoomAndDate(r.id, today)) count++
-    }
-    return count
-  }, [rooms, stays])
 
   // Format date headers
   const formatDayHeader = (date: Date) => {
@@ -224,99 +215,65 @@ export function LogbookSheet({
   return (
     <div className="space-y-3">
       {/* Excel Ribbon / Spreadsheet Control Header */}
-      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs space-y-3">
-        {/* Top Control Bar: Title & Navigation */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Left: Ledger workbook tab title & Date Navigation */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200 text-neutral-800">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-black tracking-tight">ROOM LOGBOOK SHEET</span>
-            </div>
-
-            <div className="flex items-center bg-neutral-100 p-0.5 rounded-lg border border-neutral-300">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
-                title="Previous 5 days"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleToday}
-                className="px-2.5 py-1 text-xs font-bold rounded bg-white shadow-2xs text-[#FF385C] border border-neutral-200 hover:bg-neutral-50 transition"
-              >
-                Today
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
-                title="Next 5 days"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 bg-neutral-50 px-2.5 py-1 rounded-lg border border-neutral-300">
-              <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-              <span>
-                {dateColumns[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                {' — '}
-                {dateColumns[dateColumns.length - 1]?.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
-              </span>
-            </div>
+      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Left: Ledger workbook tab title & Date Navigation */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200 text-neutral-800">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span className="text-xs font-black tracking-tight">ROOM LOGBOOK SHEET</span>
           </div>
 
-          {/* Right: Quick Room Search */}
-          <div className="flex items-center gap-2">
-            <div className="relative w-48 sm:w-56">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                placeholder="Search room (e.g. 101)..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-neutral-300 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF385C] focus:border-[#FF385C]"
-              />
-            </div>
+          <div className="flex items-center bg-neutral-100 p-0.5 rounded-lg border border-neutral-300">
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
+              title="Previous 5 days"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleToday}
+              className="px-2.5 py-1 text-xs font-bold rounded bg-white shadow-2xs text-[#FF385C] border border-neutral-200 hover:bg-neutral-50 transition"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
+              title="Next 5 days"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 bg-neutral-50 px-2.5 py-1 rounded-lg border border-neutral-300">
+            <Calendar className="w-3.5 h-3.5 text-neutral-500" />
+            <span>
+              {dateColumns[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {' — '}
+              {dateColumns[dateColumns.length - 1]?.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </span>
           </div>
         </div>
 
-        {/* Bottom Legend Ribbon: Status Badges & Quick Stats */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-neutral-200 text-xs flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-wider mr-1">
-              Legend:
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              Occupied Stay
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-              <Clock className="w-2.5 h-2.5" />
-              Reservation
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-[#FF385C] border border-[#FF385C]/30">
-              <Plus className="w-2.5 h-2.5" />
-              Available Today
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-              Housekeeping
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
-              Maintenance
-            </span>
-          </div>
-
-          <div className="text-[11px] font-bold text-neutral-600">
-            Today: <span className="text-emerald-700 font-extrabold">{todayOccupancyCount}</span> / {rooms.length} Occupied
+        {/* Right: Quick Room Search */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-full sm:w-56">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              placeholder="Search room (e.g. 101)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-neutral-300 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF385C] focus:border-[#FF385C]"
+            />
           </div>
         </div>
       </div>
