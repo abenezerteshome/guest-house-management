@@ -5,16 +5,12 @@ import {
   Loader2,
   ShieldAlert,
   CreditCard,
-  Banknote,
   Clock,
-  Info,
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
-import { Input } from '../common/Input'
 import type { Stay } from '../../types/api'
 import { checkOutStay, getStayCharges, getStayPayments } from '../../api/stays'
-import { recordManualPayment } from '../../api/payments'
 import { getSettings } from '../../api/settings'
 import { getApiError } from '../../api/client'
 
@@ -45,11 +41,6 @@ export function CheckOutModal({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  // Settlement Choice: Pay right away at checkout vs leave on credit
-  const [settleChoice, setSettleChoice] = useState<'PAY_NOW' | 'CREDIT'>('PAY_NOW')
-  const [settleMethod, setSettleMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'>('CASH')
-  const [settleAmount, setSettleAmount] = useState<string>('')
-
   // Determine current time vs checkout deadline
   const now = new Date()
   const currentHour = now.getHours()
@@ -60,7 +51,6 @@ export function CheckOutModal({
     if (!stay || !isOpen) return
     setLoading(true)
     setError('')
-    setSettleChoice('PAY_NOW')
 
     Promise.all([
       getStayCharges(stay.id),
@@ -132,13 +122,9 @@ export function CheckOutModal({
         )
 
         setExtensionCredit(totalCreditedExtension)
-
-        const late = currentHour > dHour || (currentHour === dHour && currentMinute > dMinute)
-        const netBal = totalCreditedExtension + (late ? rate : 0)
-        setSettleAmount(String(netBal))
       })
       .catch((err) => {
-        setError(getApiError(err, 'Failed to load stay financial details.'))
+        setError(getApiError(err, 'Failed to load stay details.'))
       })
       .finally(() => {
         setLoading(false)
@@ -148,34 +134,12 @@ export function CheckOutModal({
   const formattedDeadline = `${String(deadlineHour).padStart(2, '0')}:${String(deadlineMinute).padStart(2, '0')} AM`
   const formattedCurrentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-  // Financial calculations
-  const totalBalanceDue = extensionCredit + (isLate ? penaltyRate : 0)
-
   async function handleConfirmCheckout() {
     if (!stay) return
     setError('')
     setSubmitting(true)
     try {
-      // 1. Perform checkout in backend (which adds late penalty charge if past deadline)
       await checkOutStay(stay.id)
-
-      // 2. If user chose to pay right away and amount > 0, record payment
-      if (settleChoice === 'PAY_NOW') {
-        const settleNum = Number(settleAmount)
-        if (settleNum > 0) {
-          try {
-            await recordManualPayment({
-              stay_id: stay.id,
-              amount: settleNum,
-              payment_method: settleMethod,
-              reference: `Checkout final settlement (${settleMethod})`,
-            })
-          } catch (payErr) {
-            console.error('Checkout succeeded but settlement payment error:', payErr)
-          }
-        }
-      }
-
       onSuccess()
       onClose()
     } catch (err) {
@@ -278,93 +242,6 @@ export function CheckOutModal({
           </span>
         </div>
 
-        {/* 3. SETTLEMENT OPTIONS IF BALANCE IS DUE (STATEMENT OF ACCOUNT HAS BEEN REMOVED FOR SIMPLICITY) */}
-        {totalBalanceDue > 0 ? (
-          <div className="space-y-3 pt-1">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
-              Settlement Method for Balance (ETB {totalBalanceDue.toLocaleString()})
-            </label>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setSettleChoice('PAY_NOW')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
-                  settleChoice === 'PAY_NOW'
-                    ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
-                    : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Banknote className={`w-4 h-4 ${settleChoice === 'PAY_NOW' ? 'text-emerald-600' : 'text-neutral-400'}`} />
-                  <span className="text-xs font-bold">Pay Right Away</span>
-                </div>
-                <p className="text-[11px] text-neutral-500 leading-tight">
-                  Guest pays balance now. Check out with 0 debt.
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSettleChoice('CREDIT')}
-                className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
-                  settleChoice === 'CREDIT'
-                    ? 'border-amber-500 bg-amber-50/50 text-amber-950 ring-2 ring-amber-500/20'
-                    : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <CreditCard className={`w-4 h-4 ${settleChoice === 'CREDIT' ? 'text-amber-600' : 'text-neutral-400'}`} />
-                  <span className="text-xs font-bold">Leave on Credit</span>
-                </div>
-                <p className="text-[11px] text-neutral-500 leading-tight">
-                  Authorize departure with balance on folio.
-                </p>
-              </button>
-            </div>
-
-            {settleChoice === 'PAY_NOW' ? (
-              <div className="p-3.5 rounded-xl bg-white border border-[#DDDDDD] grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-[#222222] mb-1">
-                    Payment Method
-                  </label>
-                  <select
-                    value={settleMethod}
-                    onChange={(e) => setSettleMethod(e.target.value as typeof settleMethod)}
-                    className="w-full h-10 px-3 rounded-xl border border-[#DDDDDD] bg-white text-xs text-[#222222] focus:outline-none focus:border-[#222222]"
-                  >
-                    <option value="CASH">Cash</option>
-                    <option value="TELEBIRR">Telebirr</option>
-                    <option value="CBE_BIRR">CBE Birr</option>
-                    <option value="BANK_TRANSFER">Bank Transfer</option>
-                  </select>
-                </div>
-
-                <Input
-                  label="Settlement Amount (ETB)"
-                  type="number"
-                  value={settleAmount}
-                  onChange={(e) => setSettleAmount(e.target.value)}
-                  placeholder={String(totalBalanceDue)}
-                />
-              </div>
-            ) : (
-              <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
-                <Info size={15} className="shrink-0 text-amber-600" />
-                <span className="truncate">
-                  Departing on credit: <strong>ETB {totalBalanceDue.toLocaleString()}</strong> will remain on guest folio.
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-            <span className="truncate">Account balanced: No unpaid extension or penalty due.</span>
-          </div>
-        )}
-
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0F0]">
           <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>
@@ -376,9 +253,7 @@ export function CheckOutModal({
             onClick={handleConfirmCheckout}
             loading={submitting}
           >
-            {settleChoice === 'PAY_NOW' && totalBalanceDue > 0
-              ? `Settle ETB ${Number(settleAmount || 0).toLocaleString()} & Check Out`
-              : 'Confirm Checkout & Free Room'}
+            Confirm Checkout & Free Room
           </Button>
         </div>
       </div>
