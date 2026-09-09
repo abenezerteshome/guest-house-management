@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle2,
-  CircleDollarSign,
   Loader2,
   ShieldAlert,
   CreditCard,
@@ -13,8 +12,8 @@ import {
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
-import type { FinancialSummary, Stay } from '../../types/api'
-import { checkOutStay, getStayFinancialSummary } from '../../api/stays'
+import type { Stay } from '../../types/api'
+import { checkOutStay, getStayCharges, getStayPayments } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
 import { getSettings } from '../../api/settings'
 import { getApiError } from '../../api/client'
@@ -36,7 +35,9 @@ export function CheckOutModal({
   roomNumber,
   onSuccess,
 }: CheckOutModalProps) {
-  const [summary, setSummary] = useState<FinancialSummary | null>(null)
+  const [extensionCredit, setExtensionCredit] = useState<number>(0)
+  const [hasExtension, setHasExtension] = useState<boolean>(false)
+  const [extensionDays, setExtensionDays] = useState<number>(0)
   const [deadlineHour, setDeadlineHour] = useState<number>(4)
   const [deadlineMinute, setDeadlineMinute] = useState<number>(0)
   const [penaltyRate, setPenaltyRate] = useState<number>(600)
@@ -62,11 +63,11 @@ export function CheckOutModal({
     setSettleChoice('PAY_NOW')
 
     Promise.all([
-      getStayFinancialSummary(stay.id),
+      getStayCharges(stay.id),
+      getStayPayments(stay.id),
       getSettings().catch(() => null),
     ])
-      .then(([fin, settings]) => {
-        setSummary(fin)
+      .then(([charges, payments, settings]) => {
         let rate = 600
         let dHour = 4
         let dMinute = 0
@@ -79,14 +80,65 @@ export function CheckOutModal({
           setPenaltyRate(rate)
         }
 
+        // Extension credit calculation:
+        // Initial check-in charges are paid at check-in.
+        // Only charges created for stay extensions are checked for credit.
+        const extCharges = charges.filter((c) =>
+          (c.description || '').toLowerCase().includes('extension')
+        )
+        const totalExtDue = extCharges.reduce(
+          (sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1),
+          0
+        )
+
+        let totalNights = 0
+        extCharges.forEach((c) => {
+          const match = (c.description || '').match(/(\d+)\s*night/)
+          if (match) {
+            totalNights += parseInt(match[1], 10)
+          } else {
+            totalNights += c.quantity || 1
+          }
+        })
+        setExtensionDays(totalNights)
+        setHasExtension(extCharges.length > 0)
+
+        // Payments recorded for extension
+        const extPayments = payments.filter(
+          (p) => p.status === 'SUCCESS' && (p.reference || '').toLowerCase().includes('extension')
+        )
+        const directExtPaid = extPayments.reduce(
+          (sum, p) => sum + Number(p.amount || 0),
+          0
+        )
+
+        // Also check if any excess overall payments covered the extension
+        const initialRoomCharges = charges
+          .filter(
+            (c) =>
+              !(c.description || '').toLowerCase().includes('extension') &&
+              c.charge_type !== 'LATE_CHECKOUT_PENALTY'
+          )
+          .reduce((sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1), 0)
+
+        const totalSuccessfulPayments = payments
+          .filter((p) => p.status === 'SUCCESS')
+          .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+        const excessPaid = Math.max(0, totalSuccessfulPayments - initialRoomCharges)
+        const totalCreditedExtension = Math.max(
+          0,
+          totalExtDue - Math.max(directExtPaid, excessPaid)
+        )
+
+        setExtensionCredit(totalCreditedExtension)
+
         const late = currentHour > dHour || (currentHour === dHour && currentMinute > dMinute)
-        const due = Number(fin.total_due || 0) + (late ? rate : 0)
-        const paid = Number(fin.total_paid || 0)
-        const netBal = Math.max(0, due - paid)
+        const netBal = totalCreditedExtension + (late ? rate : 0)
         setSettleAmount(String(netBal))
       })
       .catch((err) => {
-        setError(getApiError(err, 'Failed to load stay financial summary.'))
+        setError(getApiError(err, 'Failed to load stay financial details.'))
       })
       .finally(() => {
         setLoading(false)
@@ -97,11 +149,7 @@ export function CheckOutModal({
   const formattedCurrentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
   // Financial calculations
-  const totalRoomAndCharges = Number(summary?.total_due || 0)
-  const totalPaid = Number(summary?.total_paid || 0)
-  const baseCreditBalance = Math.max(0, totalRoomAndCharges - totalPaid)
-  const estimatedDue = totalRoomAndCharges + (isLate ? penaltyRate : 0)
-  const estimatedBalance = Math.max(0, estimatedDue - totalPaid)
+  const totalBalanceDue = extensionCredit + (isLate ? penaltyRate : 0)
 
   async function handleConfirmCheckout() {
     if (!stay) return
@@ -147,7 +195,7 @@ export function CheckOutModal({
     >
       <div className="space-y-4 text-sm text-[#222222]">
         {error && (
-          <div className="p-3.5 rounded-xl bg-[#FFF7F5] border border-[#F2D1CA] text-xs text-[#C13515] flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-[#FFF7F5] border border-[#F2D1CA] text-xs text-[#C13515] flex items-center gap-2">
             <ShieldAlert size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -156,42 +204,44 @@ export function CheckOutModal({
         {loading && (
           <div className="flex items-center justify-center p-4 text-sm text-[#717171] gap-2">
             <Loader2 size={18} className="animate-spin text-[#FF385C]" />
-            <span>Verifying guest credit & checkout status...</span>
+            <span>Verifying stay extension credit & checkout status...</span>
           </div>
         )}
 
-        {/* 1. CREDIT / PAID RIGHT AWAY VERIFICATION (SINGLE-LINE ON MOBILE & DESKTOP) */}
+        {/* 1. EXTENSION CREDIT / PAYMENT STATUS CHECK (SINGLE-LINE ON MOBILE & DESKTOP) */}
         <div
           className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
-            baseCreditBalance > 0
+            extensionCredit > 0
               ? 'bg-amber-50/90 border-amber-200 text-amber-950'
               : 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
           }`}
         >
           <div className="flex items-center gap-2 min-w-0">
-            {baseCreditBalance > 0 ? (
+            {extensionCredit > 0 ? (
               <CreditCard size={15} className="text-amber-700 shrink-0" />
             ) : (
               <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
             )}
             <span className="font-bold shrink-0">
-              {baseCreditBalance > 0 ? 'Credit Check:' : 'Payment:'}
+              {hasExtension ? 'Extension Credit:' : 'Payment Status:'}
             </span>
             <span className="truncate text-neutral-600 text-[11px] sm:text-xs">
-              {baseCreditBalance > 0
-                ? `Unpaid ETB ${baseCreditBalance.toLocaleString()} on credit`
-                : 'Paid in full upfront (0 debt)'}
+              {extensionCredit > 0
+                ? `Unpaid extension of ETB ${extensionCredit.toLocaleString()} (${extensionDays > 0 ? `${extensionDays} night${extensionDays > 1 ? 's' : ''}` : 'stay extension'})`
+                : hasExtension
+                ? 'Stay extension was paid right away (0 credit)'
+                : 'Initial stay paid in full at check-in (0 debt)'}
             </span>
           </div>
           <span
             className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase whitespace-nowrap ${
-              baseCreditBalance > 0
+              extensionCredit > 0
                 ? 'bg-amber-200 text-amber-900'
                 : 'bg-emerald-200 text-emerald-900'
             }`}
           >
-            {baseCreditBalance > 0
-              ? `In Credit (${baseCreditBalance.toLocaleString()} ETB)`
+            {extensionCredit > 0
+              ? `In Credit (${extensionCredit.toLocaleString()} ETB)`
               : '0 Credit'}
           </span>
         </div>
@@ -228,49 +278,11 @@ export function CheckOutModal({
           </span>
         </div>
 
-        {/* 3. STATEMENT OF ACCOUNT BREAKDOWN */}
-        <div className="p-4 rounded-2xl bg-[#F7F7F7] border border-[#DDDDDD] space-y-2.5">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#717171] flex items-center gap-1.5">
-            <CircleDollarSign size={14} className="text-[#FF385C]" />
-            Statement of Account
-          </span>
-
-          <div className="space-y-2 text-xs divide-y divide-[#EEEEEE]">
-            <div className="flex justify-between pt-1">
-              <span className="text-[#717171]">Room & Extension Charges:</span>
-              <strong className="text-[#222222]">
-                ETB {totalRoomAndCharges.toLocaleString()}
-              </strong>
-            </div>
-
-            {isLate && (
-              <div className="flex justify-between pt-2 text-rose-700">
-                <span className="font-semibold">Late Checkout Penalty (Past {formattedDeadline}):</span>
-                <strong>+ ETB {penaltyRate.toLocaleString()}</strong>
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <span className="text-[#717171]">Total Payments Received:</span>
-              <strong className="text-[#008A05]">
-                - ETB {totalPaid.toLocaleString()}
-              </strong>
-            </div>
-
-            <div className="flex justify-between pt-2 text-sm">
-              <span className="font-bold text-[#222222]">Total Balance Due:</span>
-              <strong className={estimatedBalance > 0 ? 'text-[#C13515]' : 'text-[#008A05]'}>
-                ETB {estimatedBalance.toLocaleString()}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. SETTLEMENT OPTIONS IF BALANCE IS DUE */}
-        {estimatedBalance > 0 ? (
-          <div className="space-y-3">
+        {/* 3. SETTLEMENT OPTIONS IF BALANCE IS DUE (STATEMENT OF ACCOUNT HAS BEEN REMOVED FOR SIMPLICITY) */}
+        {totalBalanceDue > 0 ? (
+          <div className="space-y-3 pt-1">
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
-              Settlement Method for Balance (ETB {estimatedBalance.toLocaleString()})
+              Settlement Method for Balance (ETB {totalBalanceDue.toLocaleString()})
             </label>
 
             <div className="grid grid-cols-2 gap-3">
@@ -288,7 +300,7 @@ export function CheckOutModal({
                   <span className="text-xs font-bold">Pay Right Away</span>
                 </div>
                 <p className="text-[11px] text-neutral-500 leading-tight">
-                  Guest pays full balance now. Check out with 0 debt.
+                  Guest pays balance now. Check out with 0 debt.
                 </p>
               </button>
 
@@ -306,7 +318,7 @@ export function CheckOutModal({
                   <span className="text-xs font-bold">Leave on Credit</span>
                 </div>
                 <p className="text-[11px] text-neutral-500 leading-tight">
-                  Authorize departure with balance remaining on folio.
+                  Authorize departure with balance on folio.
                 </p>
               </button>
             </div>
@@ -334,14 +346,14 @@ export function CheckOutModal({
                   type="number"
                   value={settleAmount}
                   onChange={(e) => setSettleAmount(e.target.value)}
-                  placeholder={String(estimatedBalance)}
+                  placeholder={String(totalBalanceDue)}
                 />
               </div>
             ) : (
               <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
                 <Info size={15} className="shrink-0 text-amber-600" />
                 <span className="truncate">
-                  Departing on credit: <strong>ETB {estimatedBalance.toLocaleString()}</strong> will remain on guest folio.
+                  Departing on credit: <strong>ETB {totalBalanceDue.toLocaleString()}</strong> will remain on guest folio.
                 </span>
               </div>
             )}
@@ -349,7 +361,7 @@ export function CheckOutModal({
         ) : (
           <div className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
             <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
-            <span className="truncate">Account balanced: No outstanding credit or penalty due.</span>
+            <span className="truncate">Account balanced: No unpaid extension or penalty due.</span>
           </div>
         )}
 
@@ -364,7 +376,7 @@ export function CheckOutModal({
             onClick={handleConfirmCheckout}
             loading={submitting}
           >
-            {settleChoice === 'PAY_NOW' && estimatedBalance > 0
+            {settleChoice === 'PAY_NOW' && totalBalanceDue > 0
               ? `Settle ETB ${Number(settleAmount || 0).toLocaleString()} & Check Out`
               : 'Confirm Checkout & Free Room'}
           </Button>
