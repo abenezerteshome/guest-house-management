@@ -160,108 +160,72 @@ export function CheckOutModal({
           </div>
         )}
 
-        {/* 1. CREDIT / PAID RIGHT AWAY VERIFICATION CARD */}
+        {/* 1. CREDIT / PAID RIGHT AWAY VERIFICATION (SINGLE-LINE ON MOBILE & DESKTOP) */}
         <div
-          className={`p-4 rounded-2xl border ${
+          className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
             baseCreditBalance > 0
-              ? 'bg-amber-50/70 border-amber-200 text-amber-950'
-              : 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+              ? 'bg-amber-50/90 border-amber-200 text-amber-950'
+              : 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
           }`}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             {baseCreditBalance > 0 ? (
-              <div className="p-2 rounded-xl bg-amber-100 text-amber-700 shrink-0">
-                <CreditCard size={20} />
-              </div>
+              <CreditCard size={15} className="text-amber-700 shrink-0" />
             ) : (
-              <div className="p-2 rounded-xl bg-emerald-100 text-emerald-700 shrink-0">
-                <CheckCircle2 size={20} />
-              </div>
+              <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
             )}
-            <div className="space-y-1 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Credit / Payment Status Check
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                    baseCreditBalance > 0
-                      ? 'bg-amber-200 text-amber-900'
-                      : 'bg-emerald-200 text-emerald-900'
-                  }`}
-                >
-                  {baseCreditBalance > 0
-                    ? `In Credit (ETB ${baseCreditBalance.toLocaleString()})`
-                    : 'Paid Right Away (0 Credit)'}
-                </span>
-              </div>
-
-              {baseCreditBalance > 0 ? (
-                <p className="text-xs leading-relaxed text-amber-900">
-                  <strong>Active Credit Detected:</strong> Guest has an unpaid balance of{' '}
-                  <span className="font-bold underline">ETB {baseCreditBalance.toLocaleString()}</span> from
-                  room days or stay extensions that were put on credit.
-                </p>
-              ) : (
-                <p className="text-xs leading-relaxed text-emerald-900">
-                  <strong>Paid in Full Right Away:</strong> All room charges and stay extensions were paid upfront.
-                  The guest has zero unpaid credit on file.
-                </p>
-              )}
-            </div>
+            <span className="font-bold shrink-0">
+              {baseCreditBalance > 0 ? 'Credit Check:' : 'Payment:'}
+            </span>
+            <span className="truncate text-neutral-600 text-[11px] sm:text-xs">
+              {baseCreditBalance > 0
+                ? `Unpaid ETB ${baseCreditBalance.toLocaleString()} on credit`
+                : 'Paid in full upfront (0 debt)'}
+            </span>
           </div>
+          <span
+            className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase whitespace-nowrap ${
+              baseCreditBalance > 0
+                ? 'bg-amber-200 text-amber-900'
+                : 'bg-emerald-200 text-emerald-900'
+            }`}
+          >
+            {baseCreditBalance > 0
+              ? `In Credit (${baseCreditBalance.toLocaleString()} ETB)`
+              : '0 Credit'}
+          </span>
         </div>
 
-        {/* 2. LATE CHECKOUT PENALTY VERIFICATION CARD */}
+        {/* 2. LATE CHECKOUT PENALTY VERIFICATION (SINGLE-LINE ON MOBILE & DESKTOP) */}
         <div
-          className={`p-4 rounded-2xl border ${
+          className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
             isLate
-              ? 'bg-rose-50/70 border-rose-200 text-rose-950'
+              ? 'bg-rose-50/90 border-rose-200 text-rose-950'
               : 'bg-neutral-50 border-neutral-200 text-neutral-800'
           }`}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-2 min-w-0">
             {isLate ? (
-              <div className="p-2 rounded-xl bg-rose-100 text-rose-700 shrink-0">
-                <AlertTriangle size={20} />
-              </div>
+              <AlertTriangle size={15} className="text-rose-700 shrink-0" />
             ) : (
-              <div className="p-2 rounded-xl bg-neutral-100 text-neutral-600 shrink-0">
-                <Clock size={20} />
-              </div>
+              <Clock size={15} className="text-neutral-500 shrink-0" />
             )}
-            <div className="space-y-1 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Checkout Deadline & Penalty Check
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                    isLate ? 'bg-rose-200 text-rose-900' : 'bg-neutral-200 text-neutral-700'
-                  }`}
-                >
-                  {isLate ? `Penalty: +ETB ${penaltyRate}` : 'No Penalty (0 ETB)'}
-                </span>
-              </div>
-
-              <div className="text-xs text-neutral-600 flex items-center gap-2">
-                <span>Daily Cutoff: <strong>{formattedDeadline}</strong></span>
-                <span>•</span>
-                <span>Current Time: <strong>{formattedCurrentTime}</strong></span>
-              </div>
-
-              {isLate ? (
-                <p className="text-xs leading-relaxed text-rose-900 font-semibold">
-                  ⚠ Penalty Charged: Checkout is after the {formattedDeadline} deadline. A mandatory late checkout penalty of{' '}
-                  <span className="underline">ETB {penaltyRate.toLocaleString()}</span> is added to the bill.
-                </p>
-              ) : (
-                <p className="text-xs leading-relaxed text-neutral-600">
-                  ✓ On-time checkout. No late checkout penalty applies.
-                </p>
-              )}
-            </div>
+            <span className="font-bold shrink-0">
+              {isLate ? 'Late Penalty:' : 'Time Check:'}
+            </span>
+            <span className="truncate text-neutral-600 text-[11px] sm:text-xs">
+              {isLate
+                ? `Past ${formattedDeadline} cutoff (${formattedCurrentTime})`
+                : `On-time before ${formattedDeadline}`}
+            </span>
           </div>
+          <span
+            className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase whitespace-nowrap ${
+              isLate ? 'bg-rose-200 text-rose-900' : 'bg-neutral-200 text-neutral-700'
+            }`}
+          >
+            {isLate ? `+ETB ${penaltyRate.toLocaleString()} Penalty` : '0 Penalty'}
+          </span>
         </div>
 
         {/* 3. STATEMENT OF ACCOUNT BREAKDOWN */}
@@ -374,19 +338,18 @@ export function CheckOutModal({
                 />
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                <Info size={16} className="shrink-0 mt-0.5 text-amber-600" />
-                <span>
-                  The guest will depart with <strong>ETB {estimatedBalance.toLocaleString()}</strong> remaining on credit.
-                  This unpaid balance is tracked in the system financial logs and guest ledger.
+              <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2">
+                <Info size={15} className="shrink-0 text-amber-600" />
+                <span className="truncate">
+                  Departing on credit: <strong>ETB {estimatedBalance.toLocaleString()}</strong> will remain on guest folio.
                 </span>
               </div>
             )}
           </div>
         ) : (
-          <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-            <span>Account is fully balanced. No outstanding credit or penalty due.</span>
+          <div className="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+            <span className="truncate">Account balanced: No outstanding credit or penalty due.</span>
           </div>
         )}
 
