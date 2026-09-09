@@ -218,6 +218,7 @@ export function DashboardPage() {
         isOpen={checkInOpen}
         onClose={() => setCheckInOpen(false)}
         availableRooms={availableRooms}
+        allRooms={rooms}
         selectedRoomId={selectedRoomId}
         onSuccess={() => fetchDashboardData()}
       />
@@ -247,14 +248,15 @@ export function DashboardPage() {
         stay={selectedStay}
         roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number || String(selectedStay?.room_id || '')}
         guestName={selectedStay?.guest?.full_name}
-        onSuccess={() => {
-          if (selectedStay) {
+        onSuccess={(checkedOutStay) => {
+          const targetStay = checkedOutStay || selectedStay
+          if (targetStay) {
             // Optimistically remove checked out stay immediately so table clears without delay
-            setActiveStays((prev) => prev.filter((s) => s.id !== selectedStay.id))
+            setActiveStays((prev) => prev.filter((s) => s.id !== targetStay.id))
             // Set room available immediately
             setRooms((prev) =>
               prev.map((r) =>
-                r.id === selectedStay.room_id
+                r.id === targetStay.room_id
                   ? { ...r, status: 'AVAILABLE', available_after: null }
                   : r
               )

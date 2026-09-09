@@ -78,7 +78,7 @@ async def create_reservation(
 	if expected_checkout <= expected_arrival:
 		raise InvalidTransitionError("Expected checkout must be after expected arrival")
 	_, room = await _get_guest_room(session, guest_id, room_id)
-	if not room.is_active or room.status != RoomStatus.AVAILABLE.value:
+	if not room.is_active or room.status not in (RoomStatus.AVAILABLE.value, RoomStatus.CLEANING.value):
 		raise ConflictError("Room is not available for reservation")
 	repository = ReservationRepository(session)
 	if await repository.has_conflict(
@@ -96,6 +96,7 @@ async def create_reservation(
 		status=ReservationStatus.RESERVED.value,
 	)
 	room.status = RoomStatus.EXPECTED.value
+	room.available_after = None
 	try:
 		await repository.add(reservation)
 		await session.flush()

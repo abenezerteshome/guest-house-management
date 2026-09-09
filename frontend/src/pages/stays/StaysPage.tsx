@@ -327,9 +327,17 @@ export function StaysPage() {
         stay={checkoutStayItem}
         guestName={checkoutStayItem?.guest?.full_name}
         roomNumber={checkoutStayItem?.room?.room_number}
-        onSuccess={() => {
-          if (checkoutStayItem) {
-            setStays((prev) => prev.filter((s) => s.id !== checkoutStayItem.id))
+        onSuccess={(checkedOutStay) => {
+          const s = checkedOutStay || checkoutStayItem
+          if (s) {
+            setStays((prev) => prev.filter((item) => item.id !== s.id))
+            setRooms((prev) =>
+              prev.map((r) =>
+                r.id === s.room_id
+                  ? { ...r, status: 'AVAILABLE', available_after: null }
+                  : r
+              )
+            )
           }
           fetchData()
         }}
@@ -339,6 +347,7 @@ export function StaysPage() {
         isOpen={checkInOpen}
         onClose={() => setCheckInOpen(false)}
         availableRooms={availableRooms}
+        allRooms={rooms}
         onSuccess={() => fetchData()}
       />
     </div>

@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_role
 from app.db.session import get_db
 from app.models.reservation import Reservation, ReservationStatus
+from app.models.stay import Stay
 from app.models.user import User, UserRole
 from app.repositories.reservation import ReservationRepository
 from app.schemas.reservation import ReservationCreate, ReservationRead, ReservationUpdate
+from app.schemas.stay import StayRead
 from app.services.reservation import (
 	ConflictError,
 	InvalidTransitionError,
@@ -90,19 +92,17 @@ async def patch_reservation(
 	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
 		raise service_error(exc) from exc
 
-
-@router.post("/{reservation_id}/check-in", response_model=ReservationRead, dependencies=[operational_user])
+@router.post("/{reservation_id}/check-in", response_model=StayRead, dependencies=[operational_user])
 async def check_in_reservation(
 	reservation_id: int,
 	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
 	session: AsyncSession = Depends(get_db),
-) -> Reservation:
+) -> Stay:
 	reservation = await get_reservation_or_404(reservation_id, session)
 	try:
-		await check_in(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
+		return await check_in(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
 	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
 		raise service_error(exc) from exc
-	return reservation
 
 
 @router.post("/{reservation_id}/cancel", response_model=ReservationRead, dependencies=[operational_user])
