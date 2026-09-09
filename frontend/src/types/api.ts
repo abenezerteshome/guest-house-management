@@ -49,6 +49,7 @@ export interface Guest {
   phone: string
   address: string | null
   nationality: string | null
+  id_photo_url?: string | null
   notes: string | null
   created_at: string
   updated_at: string

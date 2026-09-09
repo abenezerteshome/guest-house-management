@@ -15,6 +15,7 @@ class Guest(Base):
 	phone: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
 	address: Mapped[str | None] = mapped_column(String(300), nullable=True)
 	nationality: Mapped[str | None] = mapped_column(String(100), nullable=True)
+	id_photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
 	notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 	created_at: Mapped[datetime] = mapped_column(
 		DateTime(timezone=True), nullable=False, server_default=func.now()
