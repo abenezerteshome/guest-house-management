@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { CalendarPlus, Clock, AlertCircle, Sparkles } from 'lucide-react'
+import { CalendarPlus, Clock, AlertCircle, Sparkles, CircleDollarSign, CreditCard, Banknote } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { extendStay } from '../../api/stays'
+import { recordManualPayment } from '../../api/payments'
 import type { Stay } from '../../types/api'
 
 interface ExtendStayModalProps {
@@ -28,12 +29,19 @@ export function ExtendStayModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Payment Settlement Choice
+  const [paymentOption, setPaymentOption] = useState<'PAY_NOW' | 'CREDIT'>('PAY_NOW')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'>('CASH')
+  const [paymentRef, setPaymentRef] = useState('')
+
   useEffect(() => {
     if (stay) {
       const current = new Date(stay.expected_checkout)
       current.setDate(current.getDate() + 1)
       setNewCheckout(current.toISOString().slice(0, 16))
       setError('')
+      setPaymentOption('PAY_NOW')
+      setPaymentRef('')
     }
   }, [stay])
 
@@ -74,7 +82,23 @@ export function ExtendStayModal({
     setError('')
 
     try {
+      // 1. Extend the stay (appends room charge for the extra nights to stay ledger)
       await extendStay(stay.id, selected.toISOString())
+
+      // 2. If guest chooses to pay right away, immediately record the manual payment
+      if (paymentOption === 'PAY_NOW' && totalExtensionFee > 0) {
+        try {
+          await recordManualPayment({
+            stay_id: stay.id,
+            amount: totalExtensionFee,
+            payment_method: paymentMethod,
+            reference: paymentRef.trim() || `Stay extension (${extensionNights} nights) - ${paymentMethod}`,
+          })
+        } catch (payErr: unknown) {
+          console.error('Stay was extended but payment recording failed:', payErr)
+        }
+      }
+
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -157,19 +181,110 @@ export function ExtendStayModal({
           />
         </div>
 
-        {/* Extension fee notice */}
-        <div className="rounded-xl bg-amber-50/80 p-3.5 border border-amber-200/80 flex items-start gap-2.5">
-          <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="text-xs text-amber-900 leading-relaxed">
-            <p className="font-semibold mb-0.5">Stay Extension Fee Applied Automatically</p>
-            <p className="text-amber-800">
-              Extending by {extensionNights} day{extensionNights > 1 ? 's' : ''} automatically appends{' '}
-              <strong className="font-bold text-amber-950">
-                {totalExtensionFee.toLocaleString()} ETB ({extensionNights} × {unitPrice.toLocaleString()} ETB)
-              </strong>{' '}
-              to this stay's ledger as a room charge based on the admin room rate.
+        {/* Extension fee calculation */}
+        <div className="rounded-xl bg-neutral-100/80 p-3.5 border border-neutral-200 flex items-start gap-2.5">
+          <Sparkles className="w-5 h-5 text-neutral-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-neutral-800 leading-relaxed">
+            <p className="font-semibold mb-0.5">Extension Cost Calculation</p>
+            <p className="text-neutral-600">
+              Extending by {extensionNights} day{extensionNights > 1 ? 's' : ''}:{' '}
+              <strong className="font-bold text-neutral-900">
+                {totalExtensionFee.toLocaleString()} ETB ({extensionNights} × {unitPrice.toLocaleString()} ETB/night)
+              </strong>
             </p>
           </div>
+        </div>
+
+        {/* Payment / Credit Selection */}
+        <div className="space-y-3">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
+            Payment Method for Extension
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setPaymentOption('PAY_NOW')}
+              className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                paymentOption === 'PAY_NOW'
+                  ? 'border-emerald-500 bg-emerald-50/50 text-emerald-950 ring-2 ring-emerald-500/20'
+                  : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <Banknote className={`w-4 h-4 ${paymentOption === 'PAY_NOW' ? 'text-emerald-600' : 'text-neutral-400'}`} />
+                <span className="text-xs font-bold">Paid Right Away</span>
+              </div>
+              <p className="text-[11px] text-neutral-500 leading-tight">
+                Guest pays {totalExtensionFee.toLocaleString()} ETB now. Leaves zero credit.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPaymentOption('CREDIT')}
+              className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                paymentOption === 'CREDIT'
+                  ? 'border-amber-500 bg-amber-50/50 text-amber-950 ring-2 ring-amber-500/20'
+                  : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1.5">
+                <CreditCard className={`w-4 h-4 ${paymentOption === 'CREDIT' ? 'text-amber-600' : 'text-neutral-400'}`} />
+                <span className="text-xs font-bold">On Credit (Pay Later)</span>
+              </div>
+              <p className="text-[11px] text-neutral-500 leading-tight">
+                Add {totalExtensionFee.toLocaleString()} ETB to unpaid balance. Verified at checkout.
+              </p>
+            </button>
+          </div>
+
+          {/* If Pay Right Away, choose method */}
+          {paymentOption === 'PAY_NOW' && (
+            <div className="p-3.5 rounded-xl bg-emerald-50/40 border border-emerald-200 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-emerald-900 mb-1">
+                  Received Via
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as typeof paymentMethod)}
+                  className="w-full h-9 px-3 rounded-lg border border-emerald-300 bg-white text-xs font-medium text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="TELEBIRR">Telebirr</option>
+                  <option value="CBE_BIRR">CBE Birr</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-emerald-800 mb-1">
+                  Reference / Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={paymentRef}
+                  onChange={(e) => setPaymentRef(e.target.value)}
+                  placeholder="e.g. Telebirr Txn # / Receipt reference"
+                  className="w-full h-8 px-3 rounded-lg border border-emerald-200 bg-white text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* If Credit, display notice */}
+          {paymentOption === 'CREDIT' && (
+            <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200 flex items-start gap-2.5">
+              <CircleDollarSign className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-900">
+                <p className="font-semibold">Credit Balance Recorded</p>
+                <p className="text-amber-800 text-[11px] mt-0.5">
+                  The extension fee of <strong>{totalExtensionFee.toLocaleString()} ETB</strong> will remain on the guest's folio as credit. When checking out, the system will verify this credit and require settlement or confirmation.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
@@ -185,7 +300,7 @@ export function ExtendStayModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <CalendarPlus className="w-4 h-4" />
-            Confirm Extension
+            {paymentOption === 'PAY_NOW' ? 'Confirm Extension & Payment' : 'Confirm Extension on Credit'}
           </Button>
         </div>
       </form>
