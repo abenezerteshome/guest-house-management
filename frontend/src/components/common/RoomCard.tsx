@@ -9,6 +9,7 @@ export interface RoomCardData {
   pricePerNight: string | number
   hourlyPrice?: string | number | null
   status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE' | 'RESERVED' | 'EXPECTED'
+  availableAfter?: string | null
   capacity?: number
   bedType?: string
   amenities?: string[]
@@ -28,10 +29,15 @@ export function RoomCard({
   actionSlot,
   className = '',
 }: RoomCardProps) {
+  const isTurnaround = !!room.availableAfter && new Date(room.availableAfter).getTime() > Date.now()
+  const remainingMin = isTurnaround
+    ? Math.max(1, Math.ceil((new Date(room.availableAfter!).getTime() - Date.now()) / 60000))
+    : 0
+
   const statusToneMap: Record<RoomCardData['status'], BadgeTone> = {
     AVAILABLE: 'available',
     OCCUPIED: 'occupied',
-    CLEANING: 'cleaning',
+    CLEANING: 'neutral',
     MAINTENANCE: 'maintenance',
     RESERVED: 'expected',
     EXPECTED: 'expected',
@@ -40,7 +46,7 @@ export function RoomCard({
   const statusLabelMap: Record<RoomCardData['status'], string> = {
     AVAILABLE: 'Available',
     OCCUPIED: 'Occupied',
-    CLEANING: 'Cleaning',
+    CLEANING: 'Turnaround',
     MAINTENANCE: 'Maintenance',
     RESERVED: 'Reserved',
     EXPECTED: 'Expected',
@@ -103,8 +109,8 @@ export function RoomCard({
 
         {/* Floating Status Badge */}
         <div className="absolute top-3 right-3">
-          <Badge tone={statusToneMap[room.status]} size="sm">
-            {statusLabelMap[room.status]}
+          <Badge tone={isTurnaround ? 'neutral' : statusToneMap[room.status]} size="sm">
+            {isTurnaround ? `Ready in ${remainingMin}m` : statusLabelMap[room.status]}
           </Badge>
         </div>
 

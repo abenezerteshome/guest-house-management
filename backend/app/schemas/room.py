@@ -47,6 +47,7 @@ class RoomRead(BaseModel):
 	price: Decimal
 	hourly_price: Decimal | None = None
 	status: RoomStatus
+	available_after: datetime | None = None
 	is_active: bool
 	created_at: datetime
 	updated_at: datetime

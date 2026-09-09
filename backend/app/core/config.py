@@ -37,11 +37,17 @@ class Settings(BaseSettings):
 
 	@property
 	def async_database_url(self) -> str:
-		if self.database_url.startswith("postgresql+asyncpg://"):
-			return self.database_url
-		if self.database_url.startswith("postgresql://"):
-			return self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-		raise ValueError("DATABASE_URL must use PostgreSQL")
+		url = self.database_url
+		if url.startswith("postgresql://"):
+			url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+		elif not url.startswith("postgresql+asyncpg://"):
+			raise ValueError("DATABASE_URL must use PostgreSQL")
+		if "?" in url:
+			base, query = url.split("?", 1)
+			params = [p for p in query.split("&") if not p.startswith("channel_binding=")]
+			params = [p if not p.startswith("sslmode=") else p.replace("sslmode=", "ssl=") for p in params]
+			url = f"{base}?{'&'.join(params)}" if params else base
+		return url
 
 
 @lru_cache

@@ -6,7 +6,6 @@ import {
   Plus,
   Clock,
   Wrench,
-  Sparkles,
   CreditCard,
   Banknote,
   Smartphone,
@@ -481,17 +480,22 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Case 4: Cleaning Room
-                      if (room.status === 'CLEANING') {
+                      // Room checked out recently — automatically available in 30 minutes
+                      const isTurnaround = isToday && !!room.available_after && new Date(room.available_after).getTime() > Date.now()
+                      if (isTurnaround) {
+                        const remainingMin = Math.max(1, Math.ceil((new Date(room.available_after!).getTime() - Date.now()) / 60000))
                         return (
                           <td
                             key={dayIdx}
-                            className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-amber-50/30"
+                            className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-neutral-50/50"
                           >
-                            <div className="h-full w-full p-1.5 rounded border border-amber-200 bg-amber-50/80 flex flex-col items-center justify-center text-center border-l-4 border-l-amber-500">
-                              <Sparkles className="w-3 h-3 text-amber-500 mb-0.5" />
-                              <span className="text-[10px] font-bold text-amber-700 uppercase">
-                                Cleaning
+                            <div className="h-full w-full p-1.5 rounded border border-neutral-200 bg-neutral-100/70 flex flex-col items-center justify-center text-center">
+                              <div className="flex items-center gap-1 text-[10px] font-bold text-neutral-700">
+                                <Clock className="w-3 h-3 text-neutral-500" />
+                                <span>Ready in {remainingMin}m</span>
+                              </div>
+                              <span className="text-[9px] text-neutral-400 mt-0.5">
+                                Auto-available ({roomPrice} ETB)
                               </span>
                             </div>
                           </td>

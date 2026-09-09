@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +37,8 @@ async def check_out(
 	stay.status = StayStatus.CHECKED_OUT.value
 	stay.actual_checkout_at = now
 	reservation.status = ReservationStatus.CHECKED_OUT.value
-	room.status = RoomStatus.CLEANING.value
+	room.status = RoomStatus.AVAILABLE.value
+	room.available_after = now + timedelta(minutes=30)
 	if is_late_checkout(now):
 		from app.services.payment import add_charge_record
 

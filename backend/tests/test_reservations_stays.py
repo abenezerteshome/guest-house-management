@@ -80,7 +80,9 @@ async def test_check_in_and_check_out_lifecycle(client: AsyncClient, users) -> N
 	checked_out = await client.post(f"/api/v1/stays/{stay['id']}/check-out", headers=auth(token))
 	assert checked_out.status_code == 200
 	assert checked_out.json()["status"] == "CHECKED_OUT"
-	assert (await client.get(f"/api/v1/rooms/{room_id}", headers=auth(token))).json()["status"] == "CLEANING"
+	room_data = (await client.get(f"/api/v1/rooms/{room_id}", headers=auth(token))).json()
+	assert room_data["status"] == "AVAILABLE"
+	assert room_data["available_after"] is not None
 	assert (await client.post(f"/api/v1/stays/{stay['id']}/check-out", headers=auth(token))).status_code == 400
 
 
