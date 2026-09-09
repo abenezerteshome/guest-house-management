@@ -1,8 +1,5 @@
 import { useState, useMemo } from 'react'
 import {
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
   Plus,
   Clock,
   Wrench,
@@ -10,10 +7,8 @@ import {
   Banknote,
   Smartphone,
   Building2,
-  Search,
   LogOut,
   CalendarDays,
-  FileSpreadsheet,
 } from 'lucide-react'
 import type { Room, Stay, Reservation } from '../../types/api'
 
@@ -36,7 +31,7 @@ export function LogbookSheet({
   onExtendStay,
 }: LogbookSheetProps) {
   // Center view on today
-  const [startDate, setStartDate] = useState(() => {
+  const [startDate] = useState(() => {
     const d = new Date()
     d.setHours(0, 0, 0, 0)
     // Start 1 day before today so yesterday and today are immediately visible
@@ -44,7 +39,6 @@ export function LogbookSheet({
     return d
   })
   const [daysCount] = useState(7) // 7-day rolling window
-  const [searchQuery, setSearchQuery] = useState('')
   const [activeStayPopover, setActiveStayPopover] = useState<{
     stay: Stay
     room: Room
@@ -69,41 +63,14 @@ export function LogbookSheet({
     return today.toISOString().slice(0, 10)
   }, [])
 
-  // Navigation handlers
-  const handlePrev = () => {
-    const d = new Date(startDate)
-    d.setDate(d.getDate() - 5)
-    setStartDate(d)
-  }
-
-  const handleNext = () => {
-    const d = new Date(startDate)
-    d.setDate(d.getDate() + 5)
-    setStartDate(d)
-  }
-
-  const handleToday = () => {
-    const d = new Date()
-    d.setHours(0, 0, 0, 0)
-    d.setDate(d.getDate() - 1)
-    setStartDate(d)
-  }
-
-  // Filter rooms by search query
+  // Sort rooms numerically
   const filteredRooms = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase()
-    const sorted = [...rooms].sort((a, b) => {
+    return [...rooms].sort((a, b) => {
       const numA = parseInt(a.room_number) || 0
       const numB = parseInt(b.room_number) || 0
       return numA - numB
     })
-    if (!query) return sorted
-    return sorted.filter(
-      (r) =>
-        r.room_number.toLowerCase().includes(query) ||
-        (r.room_type || '').toLowerCase().includes(query)
-    )
-  }, [rooms, searchQuery])
+  }, [rooms])
 
   // Helper to test if date falls within stay interval
   const getStayForRoomAndDate = (roomId: number, date: Date): {
@@ -213,70 +180,6 @@ export function LogbookSheet({
 
   return (
     <div className="space-y-3">
-      {/* Excel Ribbon / Spreadsheet Control Header */}
-      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Left: Ledger workbook tab title & Date Navigation */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 border border-neutral-200 text-neutral-800">
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-black tracking-tight">ROOM LOGBOOK SHEET</span>
-          </div>
-
-          <div className="flex items-center bg-neutral-100 p-0.5 rounded-lg border border-neutral-300">
-            <button
-              type="button"
-              onClick={handlePrev}
-              className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
-              title="Previous 5 days"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={handleToday}
-              className="px-2.5 py-1 text-xs font-bold rounded bg-white shadow-2xs text-[#FF385C] border border-neutral-200 hover:bg-neutral-50 transition"
-            >
-              Today
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              className="p-1 rounded hover:bg-white text-neutral-700 hover:text-neutral-900 transition"
-              title="Next 5 days"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700 bg-neutral-50 px-2.5 py-1 rounded-lg border border-neutral-300">
-            <Calendar className="w-3.5 h-3.5 text-neutral-500" />
-            <span>
-              {dateColumns[0]?.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-              {' — '}
-              {dateColumns[dateColumns.length - 1]?.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Quick Room Search */}
-        <div className="flex items-center gap-2">
-          <div className="relative w-full sm:w-56">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-            <input
-              type="text"
-              placeholder="Search room (e.g. 101)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-neutral-300 bg-neutral-50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#FF385C] focus:border-[#FF385C]"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Main Excel-Style Spreadsheet Table */}
       <div className="bg-white rounded-xl border border-neutral-300 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
