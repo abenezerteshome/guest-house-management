@@ -58,21 +58,14 @@ async def patch_room(
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
-@router.patch("/{room_id}/status", response_model=RoomRead)
+@router.patch("/{room_id}/status", response_model=RoomRead, dependencies=[Depends(require_admin)])
 async def patch_room_status(
 	room_id: int,
 	payload: RoomStatusUpdate,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_admin),
 	session: AsyncSession = Depends(get_db),
 ) -> Room:
 	room = await get_room_or_404(room_id, session)
-	if current_user.role == UserRole.RECEPTION.value and (
-		room.status != RoomStatus.CLEANING.value or payload.status != RoomStatus.AVAILABLE
-	):
-		raise HTTPException(
-			status_code=status.HTTP_403_FORBIDDEN,
-			detail="Reception can only mark cleaned rooms as available",
-		)
 	return await update_room(session, room, user_id=current_user.id, status=payload.status.value)
 
 

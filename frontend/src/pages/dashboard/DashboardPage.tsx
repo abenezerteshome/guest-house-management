@@ -83,7 +83,8 @@ export function DashboardPage() {
     fetchDashboardData()
   }, [fetchDashboardData])
 
-  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
+  const isTurnaround = (r: Room) => !!r.available_after && new Date(r.available_after).getTime() > Date.now()
+  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE' && !isTurnaround(r))
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
 
   return (

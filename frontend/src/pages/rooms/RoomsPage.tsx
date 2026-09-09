@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck, Wrench, Sparkles } from 'lucide-react'
+import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck, Wrench } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -51,7 +51,8 @@ export function RoomsPage() {
     fetchData()
   }, [fetchData])
 
-  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
+  const isTurnaround = (r: Room) => !!r.available_after && new Date(r.available_after).getTime() > Date.now()
+  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE' && !isTurnaround(r))
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
   const expectedRooms = rooms.filter((r) => r.status === 'EXPECTED')
   const maintenanceRooms = rooms.filter((r) => r.status === 'MAINTENANCE')
@@ -159,7 +160,7 @@ export function RoomsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filteredRooms.map((room) => {
-            const isAvailable = room.status === 'AVAILABLE'
+            const isAvailable = room.status === 'AVAILABLE' && !isTurnaround(room)
             const isOccupied = room.status === 'OCCUPIED'
             const isExpected = room.status === 'EXPECTED'
             const isMaintenance = room.status === 'MAINTENANCE'
@@ -174,6 +175,7 @@ export function RoomsPage() {
                   pricePerNight: Number(room.price),
                   hourlyPrice: room.hourly_price ? Number(room.hourly_price) : undefined,
                   status: room.status,
+                  availableAfter: room.available_after,
                   bedType: 'Comfort Bed',
                 }}
                 actionSlot={
@@ -237,19 +239,10 @@ export function RoomsPage() {
                       </Button>
                     )}
 
-                    {room.status === 'CLEANING' && (
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        leftIcon={<Sparkles size={13} />}
-                        className="flex-1 whitespace-nowrap text-amber-700 border-amber-300 hover:bg-amber-50"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleMaintenance(room.id, 'CLEANING')
-                        }}
-                      >
-                        Clear Cleaning
-                      </Button>
+                    {isTurnaround(room) && (
+                      <span className="text-[11px] font-semibold text-neutral-600 py-1 px-2 rounded-lg bg-neutral-100 border border-neutral-200 text-center flex-1">
+                        Auto-ready in {Math.max(1, Math.ceil((new Date(room.available_after!).getTime() - Date.now()) / 60000))}m
+                      </span>
                     )}
 
                     {isAdmin && (
