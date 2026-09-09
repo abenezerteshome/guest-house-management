@@ -4,7 +4,6 @@ import {
   Calendar,
   CircleDollarSign,
   FileSpreadsheet,
-  RefreshCw,
   TrendingDown,
   TrendingUp,
   Wallet,
@@ -85,20 +84,14 @@ export function ReportsPage() {
         title="Financial & Operations Intelligence"
         subtitle="Daily performance, revenue breakdown by payment channel, operational expense audits, and occupancy reports."
         action={
-          <div className="flex items-center gap-2.5">
-            {activeTab === 'daily' && (
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="rounded-xl border border-neutral-200 px-3 py-1.5 text-xs text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
-              />
-            )}
-            <Button variant="outline" size="sm" onClick={() => fetchReports()} className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
-            </Button>
-          </div>
+          activeTab === 'daily' ? (
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="rounded-xl border border-neutral-200 px-3 py-1.5 text-xs text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
+            />
+          ) : undefined
         }
       />
 
