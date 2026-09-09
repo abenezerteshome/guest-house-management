@@ -100,6 +100,12 @@ export function CheckInModal({
     }
     const checkInTime = new Date(checkInDate)
     const checkOutTime = new Date(checkoutDate)
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    if (checkInTime < startOfToday) {
+      setError('Check-in date cannot be in the past. Please select today or a future date.')
+      return
+    }
     if (checkOutTime <= checkInTime) {
       setError('Expected checkout must be after check-in date and time.')
       return
@@ -217,6 +223,7 @@ export function CheckInModal({
               <input
                 type="datetime-local"
                 value={checkInDate}
+                min={new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString().slice(0, 10) + 'T00:00'}
                 onChange={(e) => setCheckInDate(e.target.value)}
                 className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required
@@ -230,6 +237,7 @@ export function CheckInModal({
               <input
                 type="datetime-local"
                 value={checkoutDate}
+                min={checkInDate}
                 onChange={(e) => setCheckoutDate(e.target.value)}
                 className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm text-[#222222] focus:outline-none focus:border-[#222222]"
                 required

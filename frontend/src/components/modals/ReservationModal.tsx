@@ -94,6 +94,12 @@ export function ReservationModal({
 
     const arr = new Date(arrivalDate)
     const dep = new Date(checkoutDate)
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    if (arr < startOfToday) {
+      setError('Reservation arrival date cannot be in the past. Please select today or a future date.')
+      return
+    }
     if (dep <= arr) {
       setError('Expected checkout must be after expected arrival date and time.')
       return
@@ -204,6 +210,7 @@ export function ReservationModal({
               type="datetime-local"
               required
               value={arrivalDate}
+              min={new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString().slice(0, 10) + 'T00:00'}
               onChange={(e) => setArrivalDate(e.target.value)}
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
@@ -217,6 +224,7 @@ export function ReservationModal({
               type="datetime-local"
               required
               value={checkoutDate}
+              min={arrivalDate}
               onChange={(e) => setCheckoutDate(e.target.value)}
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
