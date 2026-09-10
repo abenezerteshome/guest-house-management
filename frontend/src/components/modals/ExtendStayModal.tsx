@@ -33,7 +33,6 @@ export function ExtendStayModal({
   // Payment Settlement Choice
   const [paymentOption, setPaymentOption] = useState<'PAY_NOW' | 'CREDIT'>('PAY_NOW')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'>('CASH')
-  const [paymentRef, setPaymentRef] = useState('')
 
   useEffect(() => {
     if (stay) {
@@ -43,7 +42,6 @@ export function ExtendStayModal({
       setSelectedQuickDays(1)
       setError('')
       setPaymentOption('PAY_NOW')
-      setPaymentRef('')
     }
   }, [stay])
 
@@ -95,7 +93,7 @@ export function ExtendStayModal({
             stay_id: stay.id,
             amount: totalExtensionFee,
             payment_method: paymentMethod,
-            reference: paymentRef.trim() || `Stay extension (${extensionNights} nights) - ${paymentMethod}`,
+            reference: `Stay extension (${extensionNights} night${extensionNights > 1 ? 's' : ''}) - ${paymentMethod}`,
           })
         } catch (payErr: unknown) {
           console.error('Stay was extended but payment recording failed:', payErr)
@@ -288,19 +286,6 @@ export function ExtendStayModal({
                   <option value="CBE_BIRR">CBE Birr</option>
                   <option value="BANK_TRANSFER">Bank Transfer</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-medium text-emerald-800 mb-1">
-                  Reference / Note (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={paymentRef}
-                  onChange={(e) => setPaymentRef(e.target.value)}
-                  placeholder="e.g. Telebirr Txn # / Receipt reference"
-                  className="w-full h-8 px-3 rounded-lg border border-emerald-200 bg-white text-xs text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                />
               </div>
             </div>
           )}
