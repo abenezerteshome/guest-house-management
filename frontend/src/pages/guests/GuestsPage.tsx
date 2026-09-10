@@ -296,7 +296,7 @@ export function GuestsPage() {
             value={idPhoto}
             onChange={setIdPhoto}
             label="Passport / National ID Photo"
-            helperText="Capture or upload photo of guest's passport or national ID."
+            helperText="Upload photo of guest's passport or national ID."
           />
 
           <div>

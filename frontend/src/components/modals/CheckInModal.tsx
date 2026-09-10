@@ -307,7 +307,7 @@ export function CheckInModal({
               value={idPhoto}
               onChange={setIdPhoto}
               label="Passport / National ID Photo"
-              helperText="Capture directly using the camera or upload an image of the guest's passport or national ID."
+              helperText="Upload an image of the guest's passport or national ID."
             />
           </div>
         </div>
