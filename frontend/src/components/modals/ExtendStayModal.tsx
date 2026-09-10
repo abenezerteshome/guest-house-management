@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarPlus, Clock, AlertCircle, Sparkles, CircleDollarSign, CreditCard, Banknote } from 'lucide-react'
+import { CalendarPlus, Clock, AlertCircle, Sparkles, CircleDollarSign, CreditCard, Banknote, Check } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { extendStay } from '../../api/stays'
@@ -26,6 +26,7 @@ export function ExtendStayModal({
   onSuccess,
 }: ExtendStayModalProps) {
   const [newCheckout, setNewCheckout] = useState<string>('')
+  const [selectedQuickDays, setSelectedQuickDays] = useState<number | null>(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -39,6 +40,7 @@ export function ExtendStayModal({
       const current = new Date(stay.expected_checkout)
       current.setDate(current.getDate() + 1)
       setNewCheckout(current.toISOString().slice(0, 16))
+      setSelectedQuickDays(1)
       setError('')
       setPaymentOption('PAY_NOW')
       setPaymentRef('')
@@ -63,6 +65,7 @@ export function ExtendStayModal({
   const totalExtensionFee = extensionNights * unitPrice
 
   function handleQuickAddDays(days: number) {
+    setSelectedQuickDays(days)
     const d = new Date(stay!.expected_checkout)
     d.setDate(d.getDate() + days)
     setNewCheckout(d.toISOString().slice(0, 16))
@@ -111,6 +114,10 @@ export function ExtendStayModal({
     }
   }
 
+  const displayRoom = (roomNumber || '').trim().toLowerCase().startsWith('room')
+    ? roomNumber
+    : `Room ${roomNumber || stay.room_id}`
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Extend Guest Stay" size="md">
       <form onSubmit={handleExtend} className="space-y-5">
@@ -124,7 +131,7 @@ export function ExtendStayModal({
             <div className="text-right">
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Room</p>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FF385C]/10 text-[#FF385C]">
-                {roomNumber ? `Room ${roomNumber}` : `Room #${stay.room_id}`}
+                {displayRoom}
               </span>
             </div>
           </div>
@@ -146,23 +153,38 @@ export function ExtendStayModal({
             <button
               type="button"
               onClick={() => handleQuickAddDays(1)}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-800 transition"
+              className={`px-3 py-2.5 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                selectedQuickDays === 1
+                  ? 'border-[#FF385C] bg-[#FF385C] text-white shadow-sm ring-2 ring-[#FF385C]/25'
+                  : 'border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium'
+              }`}
             >
-              +1 Day (24 hrs)
+              {selectedQuickDays === 1 && <Check size={14} className="shrink-0 stroke-[2.5]" />}
+              <span>+1 Day (24 hrs)</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickAddDays(2)}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-800 transition"
+              className={`px-3 py-2.5 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                selectedQuickDays === 2
+                  ? 'border-[#FF385C] bg-[#FF385C] text-white shadow-sm ring-2 ring-[#FF385C]/25'
+                  : 'border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium'
+              }`}
             >
-              +2 Days
+              {selectedQuickDays === 2 && <Check size={14} className="shrink-0 stroke-[2.5]" />}
+              <span>+2 Days</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickAddDays(3)}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-800 transition"
+              className={`px-3 py-2.5 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                selectedQuickDays === 3
+                  ? 'border-[#FF385C] bg-[#FF385C] text-white shadow-sm ring-2 ring-[#FF385C]/25'
+                  : 'border-neutral-200 bg-white hover:bg-neutral-50 hover:border-neutral-300 text-neutral-700 font-medium'
+              }`}
             >
-              +3 Days
+              {selectedQuickDays === 3 && <Check size={14} className="shrink-0 stroke-[2.5]" />}
+              <span>+3 Days</span>
             </button>
           </div>
         </div>
@@ -176,7 +198,17 @@ export function ExtendStayModal({
             type="datetime-local"
             required
             value={newCheckout}
-            onChange={(e) => setNewCheckout(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value
+              setNewCheckout(val)
+              if (val) {
+                const manualDate = new Date(val)
+                const diff = Math.round((manualDate.getTime() - currentCheckoutDate.getTime()) / (1000 * 60 * 60 * 24))
+                setSelectedQuickDays(diff === 1 || diff === 2 || diff === 3 ? diff : null)
+              } else {
+                setSelectedQuickDays(null)
+              }
+            }}
             className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] focus:border-transparent transition"
           />
         </div>
