@@ -18,6 +18,7 @@ from app.services.reservation import (
 	cancel_reservation,
 	check_in,
 	create_reservation,
+	delete_reservation,
 	mark_no_show,
 	update_reservation,
 )
@@ -129,3 +130,30 @@ async def no_show_reservation(
 		return await mark_no_show(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
 	except InvalidTransitionError as exc:
 		raise service_error(exc) from exc
+
+
+async def _do_delete(reservation_id: int, current_user: User, session: AsyncSession) -> None:
+	reservation = await get_reservation_or_404(reservation_id, session)
+	try:
+		await delete_reservation(session, reservation, user_id=current_user.id)
+	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
+		raise service_error(exc) from exc
+
+
+@router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_reservation_endpoint(
+	reservation_id: int,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	session: AsyncSession = Depends(get_db),
+) -> None:
+	await _do_delete(reservation_id, current_user, session)
+
+
+@router.post("/{reservation_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_reservation_post_endpoint(
+	reservation_id: int,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	session: AsyncSession = Depends(get_db),
+) -> None:
+	"""POST fallback for DELETE — works through any proxy that blocks DELETE method."""
+	await _do_delete(reservation_id, current_user, session)

@@ -22,6 +22,30 @@ export async function createReservation(data: {
   return res.data
 }
 
+export async function updateReservation(
+  id: number,
+  data: Partial<{
+    guest_id: number
+    room_id: number
+    expected_arrival: string
+    expected_checkout: string
+    expected_amount: number | string
+    reason: string
+    notes: string
+  }>
+): Promise<Reservation> {
+  const res = await api.patch<Reservation>(`/reservations/${id}`, {
+    ...data,
+    expected_amount: data.expected_amount !== undefined ? String(data.expected_amount) : undefined,
+  })
+  return res.data
+}
+
+export async function deleteReservation(id: number): Promise<void> {
+  // Use POST /delete — works on current live server (no DELETE method needed)
+  await api.post(`/reservations/${id}/delete`)
+}
+
 export async function cancelReservation(id: number): Promise<Reservation> {
   const res = await api.post<Reservation>(`/reservations/${id}/cancel`)
   return res.data

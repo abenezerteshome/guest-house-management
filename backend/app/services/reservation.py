@@ -236,3 +236,49 @@ async def check_in(
 	await session.refresh(stay)
 	await session.refresh(reservation)
 	return stay
+
+
+async def delete_reservation(
+	session: AsyncSession,
+	reservation: Reservation,
+	*,
+	user_id: int,
+) -> None:
+	"""Permanently delete a reservation and clean up all related data."""
+	from sqlalchemy import select, delete as sql_delete
+	from app.models.stay import Stay
+	from app.models.charge import Charge
+	from app.models.payment import Payment
+
+	# 1. Free the room if it was being held for this reservation
+	room = await session.get(Room, reservation.room_id)
+	if room is not None and room.status in (RoomStatus.EXPECTED.value, RoomStatus.OCCUPIED.value):
+		# Only revert if this reservation is the one that set the status
+		if reservation.status in (ReservationStatus.RESERVED.value, ReservationStatus.CHECKED_IN.value):
+			room.status = RoomStatus.AVAILABLE.value
+
+	# 2. Delete payments linked to stays of this reservation
+	stays_result = await session.execute(
+		select(Stay).where(Stay.reservation_id == reservation.id)
+	)
+	stays = stays_result.scalars().all()
+
+	for stay in stays:
+		# Delete payments for each stay
+		await session.execute(
+			sql_delete(Payment).where(Payment.stay_id == stay.id)
+		)
+		# Delete charges for each stay
+		await session.execute(
+			sql_delete(Charge).where(Charge.stay_id == stay.id)
+		)
+
+	# 3. Delete stays
+	await session.execute(
+		sql_delete(Stay).where(Stay.reservation_id == reservation.id)
+	)
+
+	# 4. Delete the reservation itself
+	_audit(session, user_id=user_id, action="RESERVATION_DELETED", entity_type="Reservation", entity_id=reservation.id)
+	await session.delete(reservation)
+	await session.commit()
