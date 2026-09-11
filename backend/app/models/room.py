@@ -13,7 +13,6 @@ class RoomStatus(StrEnum):
 	OCCUPIED = "OCCUPIED"
 	EXPECTED = "EXPECTED"
 	CLEANING = "CLEANING"
-	MAINTENANCE = "MAINTENANCE"
 
 
 class Room(Base):
@@ -23,7 +22,7 @@ class Room(Base):
 		CheckConstraint("length(trim(room_type)) > 0", name="ck_rooms_room_type_not_empty"),
 		CheckConstraint("price >= 0", name="ck_rooms_price_nonnegative"),
 		CheckConstraint(
-			"status IN ('AVAILABLE', 'OCCUPIED', 'EXPECTED', 'CLEANING', 'MAINTENANCE')",
+			"status IN ('AVAILABLE', 'OCCUPIED', 'EXPECTED', 'CLEANING')",
 			name="ck_rooms_status",
 		),
 	)

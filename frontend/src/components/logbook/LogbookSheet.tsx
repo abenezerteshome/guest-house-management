@@ -372,24 +372,8 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Case 3: Maintenance Room
-                      if (room.status === 'MAINTENANCE') {
-                        return (
-                          <td
-                            key={dayIdx}
-                            className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-rose-50/30"
-                          >
-                            <div className="h-full w-full p-1.5 rounded border border-rose-200 bg-rose-50/80 flex flex-col items-center justify-center text-center border-l-4 border-l-rose-500">
-                              <Wrench className="w-3 h-3 text-rose-500 mb-0.5" />
-                              <span className="text-[10px] font-bold text-rose-700 uppercase">
-                                Repairs
-                              </span>
-                            </div>
-                          </td>
-                        )
-                      }
 
-                      // Case 4: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
+                      // Case 3: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
                       if (!isToday) {
                         return (
                           <td

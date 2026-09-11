@@ -5,7 +5,6 @@ export type BadgeTone =
   | 'occupied'
   | 'expected'
   | 'cleaning'
-  | 'maintenance'
   | 'info'
   | 'neutral'
   | 'inactive'
@@ -29,7 +28,7 @@ export function Badge({
   className = '',
 }: BadgeProps) {
   // Normalize tones to support both semantic hotel statuses and basic colors
-  const resolvedTone: 'available' | 'occupied' | 'expected' | 'cleaning' | 'maintenance' | 'info' | 'neutral' =
+  const resolvedTone: 'available' | 'occupied' | 'expected' | 'cleaning' | 'info' | 'neutral' =
     tone === 'green'
       ? 'available'
       : tone === 'red'
@@ -45,7 +44,6 @@ export function Badge({
     occupied: 'bg-[#FFF0F2] text-[#FF385C] border-[#FFD2D9]',
     expected: 'bg-[#FFF6EB] text-[#C76A00] border-[#FAD9B5]',
     cleaning: 'bg-[#FEF8E7] text-[#B86B00] border-[#F6E3B4]',
-    maintenance: 'bg-[#F2F2F2] text-[#616161] border-[#DDDDDD]',
     info: 'bg-[#F0F7FF] text-[#0073E6] border-[#C7E0FF]',
     neutral: 'bg-[#F7F7F7] text-[#717171] border-[#DDDDDD]',
   }[resolvedTone]
@@ -55,7 +53,6 @@ export function Badge({
     occupied: 'bg-[#FF385C]',
     expected: 'bg-[#C76A00]',
     cleaning: 'bg-[#B86B00]',
-    maintenance: 'bg-[#616161]',
     info: 'bg-[#0073E6]',
     neutral: 'bg-[#717171]',
   }[resolvedTone]

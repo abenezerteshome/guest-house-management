@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck, Wrench } from 'lucide-react'
+import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -9,10 +9,10 @@ import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
 import { AddRoomModal } from '../../components/modals/AddRoomModal'
-import { getRooms, updateRoomStatus } from '../../api/rooms'
+import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { useAuth } from '../../hooks/useAuth'
-import type { Room, RoomStatusType, Stay } from '../../types/api'
+import type { Room, Stay } from '../../types/api'
 
 export function RoomsPage() {
   const { user } = useAuth()
@@ -54,7 +54,6 @@ export function RoomsPage() {
   const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
   const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
   const expectedRooms = rooms.filter((r) => r.status === 'EXPECTED')
-  const maintenanceRooms = rooms.filter((r) => r.status === 'MAINTENANCE')
 
   const filteredRooms = rooms.filter((r) => {
     return (
@@ -82,15 +81,6 @@ export function RoomsPage() {
     }
   }
 
-  async function handleToggleMaintenance(roomId: number, currentStatus: RoomStatusType) {
-    const nextStatus: RoomStatusType = currentStatus === 'MAINTENANCE' ? 'AVAILABLE' : 'MAINTENANCE'
-    try {
-      await updateRoomStatus(roomId, nextStatus)
-      fetchData()
-    } catch (err) {
-      console.error('Failed to update room status:', err)
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -162,7 +152,6 @@ export function RoomsPage() {
             const isAvailable = room.status === 'AVAILABLE'
             const isOccupied = room.status === 'OCCUPIED'
             const isExpected = room.status === 'EXPECTED'
-            const isMaintenance = room.status === 'MAINTENANCE'
 
             return (
               <RoomCard
@@ -238,24 +227,6 @@ export function RoomsPage() {
                       </Button>
                     )}
 
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        title={isMaintenance ? 'Mark as Available' : 'Mark as Maintenance'}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleToggleMaintenance(room.id, room.status)
-                        }}
-                        className={`h-7 px-2 rounded-full border transition-all flex items-center justify-center gap-1 text-[11px] font-medium shrink-0 ${
-                          isMaintenance
-                            ? 'bg-[#EBF9EB] border-[#BFE4C1] text-[#008A05] hover:bg-[#DDF4DF]'
-                            : 'border-[#DDDDDD] hover:border-[#222222] text-[#717171] hover:text-[#222222] bg-white'
-                        }`}
-                      >
-                        <Wrench size={12} />
-                        <span>{isMaintenance ? 'Activate' : 'Maint.'}</span>
-                      </button>
-                    )}
                   </div>
                 }
               />

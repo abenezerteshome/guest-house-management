@@ -45,7 +45,6 @@ export function CheckInModal({
       }
     }
     return list
-      .filter((r) => r.status !== 'MAINTENANCE' || r.id === selectedRoomId)
       .sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }))
   }, [availableRooms, allRooms, selectedRoomId])
 

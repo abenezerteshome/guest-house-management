@@ -31,6 +31,9 @@ async def lifespan(app: FastAPI):
 					password="reception-password-123",
 					role=UserRole.RECEPTION,
 				)
+			from sqlalchemy import text
+			await session.execute(text("UPDATE rooms SET status = 'AVAILABLE' WHERE status = 'MAINTENANCE'"))
+			await session.commit()
 	except Exception:
 		pass
 	yield

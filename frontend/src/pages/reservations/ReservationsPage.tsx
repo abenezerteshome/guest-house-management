@@ -119,7 +119,7 @@ export function ReservationsPage() {
     RESERVED: 'expected',
     CHECKED_IN: 'occupied',
     CANCELLED: 'inactive',
-    NO_SHOW: 'maintenance',
+    NO_SHOW: 'inactive',
   }
 
   const columns: TableColumn<Reservation>[] = [

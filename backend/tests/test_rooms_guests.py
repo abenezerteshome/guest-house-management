@@ -85,16 +85,16 @@ async def test_room_status_filter_and_status_rbac(client: AsyncClient, users) ->
 	changed = await client.patch(
 		f"/api/v1/rooms/{room_id}/status",
 		headers=auth(admin_token),
-		json={"status": "MAINTENANCE"},
+		json={"status": "CLEANING"},
 	)
 	assert changed.status_code == 200
-	assert changed.json()["status"] == "MAINTENANCE"
+	assert changed.json()["status"] == "CLEANING"
 	assert (await client.patch(
 		f"/api/v1/rooms/{room_id}/status",
 		headers=auth(reception_token),
 		json={"status": "AVAILABLE"},
 	)).status_code == 403
-	filtered = await client.get("/api/v1/rooms?status=MAINTENANCE", headers=auth(reception_token))
+	filtered = await client.get("/api/v1/rooms?status=CLEANING", headers=auth(reception_token))
 	assert [room["id"] for room in filtered.json()] == [room_id]
 
 

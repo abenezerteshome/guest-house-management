@@ -8,7 +8,7 @@ export interface RoomCardData {
   roomType: string
   pricePerNight: string | number
   hourlyPrice?: string | number | null
-  status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE' | 'RESERVED' | 'EXPECTED'
+  status: 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'RESERVED' | 'EXPECTED'
   availableAfter?: string | null
   capacity?: number
   bedType?: string
@@ -33,7 +33,6 @@ export function RoomCard({
     AVAILABLE: 'available',
     OCCUPIED: 'occupied',
     CLEANING: 'neutral',
-    MAINTENANCE: 'maintenance',
     RESERVED: 'expected',
     EXPECTED: 'expected',
   }
@@ -42,7 +41,6 @@ export function RoomCard({
     AVAILABLE: 'Available',
     OCCUPIED: 'Occupied',
     CLEANING: 'Turnaround',
-    MAINTENANCE: 'Maintenance',
     RESERVED: 'Reserved',
     EXPECTED: 'Expected',
   }

@@ -13,7 +13,7 @@ class DailyReport(BaseModel):
 	available_rooms: int
 	expected_rooms: int
 	cleaning_rooms: int
-	maintenance_rooms: int
+	maintenance_rooms: int = 0
 	check_ins_count: int
 	check_outs_count: int
 	penalties_total: Decimal

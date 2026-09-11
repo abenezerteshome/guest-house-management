@@ -31,7 +31,7 @@ export interface PlaceholderPageProps {
 export function PlaceholderPage({ id, title, description, icon: Icon }: PlaceholderPageProps) {
   const { user } = useAuth()
   const [modalOpen, setModalOpen] = useState(false)
-  const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'CLEANING' | 'MAINTENANCE'>('ALL')
+  const [roomFilter, setRoomFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'CLEANING'>('ALL')
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [auditLoading, setAuditLoading] = useState(false)
 
@@ -90,7 +90,7 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
       roomNumber: 'Room 202',
       roomType: 'Standard Double',
       pricePerNight: 1200,
-      status: 'MAINTENANCE',
+      status: 'AVAILABLE',
       capacity: 2,
       bedType: '1 Double Bed',
     },
@@ -118,7 +118,7 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
           {/* Room Filter Tabs */}
           <div className="flex flex-wrap items-center justify-between gap-3 p-2 bg-[#F7F7F7] rounded-2xl border border-[#DDDDDD]">
             <div className="flex items-center gap-1.5 overflow-x-auto">
-              {(['ALL', 'AVAILABLE', 'OCCUPIED', 'CLEANING', 'MAINTENANCE'] as const).map((filter) => (
+              {(['ALL', 'AVAILABLE', 'OCCUPIED', 'CLEANING'] as const).map((filter) => (
                 <button
                   key={filter}
                   type="button"

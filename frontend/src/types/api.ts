@@ -27,7 +27,7 @@ export interface LoginResponse {
   user: User
 }
 
-export type RoomStatusType = 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'CLEANING' | 'MAINTENANCE'
+export type RoomStatusType = 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'CLEANING'
 
 export interface Room {
   id: number
