@@ -31,7 +31,6 @@ export function ReservationModal({
   // New guest fields
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
-  const [idNumber, setIdNumber] = useState('')
   const [nationality, setNationality] = useState('Ethiopian')
 
   const [roomId, setRoomId] = useState<number>(selectedRoomId || availableRooms[0]?.id || 0)
@@ -46,7 +45,6 @@ export function ReservationModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
-  const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -124,7 +122,7 @@ export function ReservationModal({
         const newGuest = await createGuest({
           full_name: fullName.trim(),
           phone: phone.trim(),
-          id_number: idNumber.trim() || 'PENDING_ON_ARRIVAL',
+          id_number: 'PENDING_ON_ARRIVAL',
           nationality: nationality.trim() || 'Ethiopian',
         })
         guestId = newGuest.id
@@ -137,14 +135,11 @@ export function ReservationModal({
         expected_checkout: dep.toISOString(),
         expected_amount: calculatedExpectedAmount,
         reason: 'Reservation',
-        notes: notes.trim() || undefined,
       })
 
       // Reset form
       setFullName('')
       setPhone('')
-      setIdNumber('')
-      setNotes('')
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -302,30 +297,8 @@ export function ReservationModal({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-              <div className="md:col-span-2">
-                <Input
-                  label="ID / Passport Number (Optional for phone booking)"
-                  placeholder="Optional — verified on arrival at check-in"
-                  value={idNumber}
-                  onChange={(e) => setIdNumber(e.target.value)}
-                />
-              </div>
             </div>
           )}
-        </div>
-
-        {/* Notes */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Special Requests / Notes
-          </label>
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Late check-in expected, airport pickup request, VIP..."
-            className="w-full rounded-xl border border-neutral-200 px-3.5 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
-          />
         </div>
 
         {error && (
