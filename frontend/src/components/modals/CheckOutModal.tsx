@@ -156,8 +156,8 @@ export function CheckOutModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Guest Checkout & Bill Verification"
-      description={`Review stay credit, evaluate late penalty, and finalize checkout for ${guestName || 'Guest'} (Room ${roomNumber || ''}).`}
+      title={roomNumber ? `Check Out — Room ${roomNumber}` : 'Guest Check Out'}
+      description={guestName ? `Guest: ${guestName}` : 'Finalize checkout and free room immediately.'}
       maxWidth="md"
     >
       <div className="space-y-4 text-sm text-[#222222]">
@@ -171,85 +171,58 @@ export function CheckOutModal({
         {loading && (
           <div className="flex items-center justify-center p-4 text-sm text-[#717171] gap-2">
             <Loader2 size={18} className="animate-spin text-[#FF385C]" />
-            <span>Verifying stay extension credit & checkout status...</span>
+            <span>Checking stay balance & checkout status...</span>
           </div>
         )}
 
-        {/* 1. EXTENSION CREDIT / PAYMENT STATUS CHECK (SINGLE-LINE ON MOBILE & DESKTOP) */}
-        <div
-          className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
-            extensionCredit > 0
-              ? 'bg-amber-50/90 border-amber-200 text-amber-950'
-              : 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
-          }`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            {extensionCredit > 0 ? (
-              <CreditCard size={15} className="text-amber-700 shrink-0" />
-            ) : (
-              <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
-            )}
-            <span className="font-bold shrink-0">
-              {hasExtension ? 'Extension Credit:' : 'Payment Status:'}
-            </span>
-            <span className="truncate text-neutral-600 text-[11px] sm:text-xs">
-              {extensionCredit > 0
-                ? `Unpaid extension of ETB ${extensionCredit.toLocaleString()} (${extensionDays > 0 ? `${extensionDays} night${extensionDays > 1 ? 's' : ''}` : 'stay extension'})`
-                : hasExtension
-                ? 'Stay extension was paid right away (0 credit)'
-                : 'Initial stay paid in full at check-in (0 debt)'}
+        {/* 1. All Clear Status Banner (when on-time & 0 debt) */}
+        {!loading && extensionCredit === 0 && !isLate && (
+          <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-center gap-3 text-xs text-emerald-950">
+            <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <CheckCircle2 size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-sm text-emerald-900">Ready for Checkout</p>
+              <p className="text-emerald-700 text-xs">Stay paid in full & on time (0 ETB credit). Room will be freed immediately.</p>
+            </div>
+          </div>
+        )}
+
+        {/* 2. Extension Credit Alert (if guest owes money for extension) */}
+        {!loading && extensionCredit > 0 && (
+          <div className="px-3.5 py-2.5 rounded-xl border bg-amber-50/90 border-amber-200 text-amber-950 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <CreditCard size={16} className="text-amber-700 shrink-0" />
+              <span className="font-bold shrink-0">Extension Credit:</span>
+              <span className="truncate text-amber-900 text-xs">
+                Unpaid stay extension of <strong>ETB {extensionCredit.toLocaleString()}</strong> ({extensionDays > 0 ? `${extensionDays} night${extensionDays > 1 ? 's' : ''}` : 'extension'}).
+              </span>
+            </div>
+            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-200 text-amber-900 whitespace-nowrap">
+              In Credit ({extensionCredit.toLocaleString()} ETB)
             </span>
           </div>
-          <span
-            className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase whitespace-nowrap ${
-              extensionCredit > 0
-                ? 'bg-amber-200 text-amber-900'
-                : 'bg-emerald-200 text-emerald-900'
-            }`}
-          >
-            {extensionCredit > 0
-              ? `In Credit (${extensionCredit.toLocaleString()} ETB)`
-              : '0 Credit'}
-          </span>
-        </div>
+        )}
 
-        {/* 2. LATE CHECKOUT PENALTY VERIFICATION (SINGLE-LINE ON MOBILE & DESKTOP) */}
-        <div
-          className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
-            isLate
-              ? 'bg-rose-50/90 border-rose-200 text-rose-950'
-              : 'bg-neutral-50 border-neutral-200 text-neutral-800'
-          }`}
-        >
-          <div className="flex items-center gap-2 min-w-0">
-            {isLate ? (
-              <AlertTriangle size={15} className="text-rose-700 shrink-0" />
-            ) : (
-              <Clock size={15} className="text-neutral-500 shrink-0" />
-            )}
-            <span className="font-bold shrink-0">
-              {isLate ? 'Late Penalty:' : 'Time Check:'}
-            </span>
-            <span className="truncate text-neutral-600 text-[11px] sm:text-xs">
-              {isLate
-                ? `Past ${formattedDeadline} cutoff (${formattedCurrentTime})`
-                : `On-time before ${formattedDeadline}`}
+        {/* 3. Late Checkout Penalty Alert (if late) */}
+        {!loading && isLate && (
+          <div className="px-3.5 py-2.5 rounded-xl border bg-rose-50/90 border-rose-200 text-rose-950 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle size={16} className="text-rose-700 shrink-0" />
+              <span className="font-bold shrink-0">Late Checkout:</span>
+              <span className="truncate text-rose-900 text-xs">
+                Past {formattedDeadline} cutoff ({formattedCurrentTime}).
+              </span>
+            </div>
+            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-200 text-rose-900 whitespace-nowrap">
+              +ETB {Number(penaltyAmountInput || 0).toLocaleString()} Penalty
             </span>
           </div>
-          <span
-            className={`shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase whitespace-nowrap ${
-              isLate ? 'bg-rose-200 text-rose-900' : 'bg-neutral-200 text-neutral-700'
-            }`}
-          >
-            {isLate
-              ? `+ETB ${Number(penaltyAmountInput || 0).toLocaleString()} Penalty`
-              : '0 Penalty'}
-          </span>
-        </div>
+        )}
 
-        {/* 3. PENALTY AMOUNT INPUT (WHEN LATE CHECKOUT PENALTY APPLIES) */}
-        {isLate && (
-          <div className="px-3 py-2.5 rounded-xl bg-rose-50/60 border border-rose-200 flex items-center justify-between gap-3 text-xs">
+        {/* 4. Penalty Amount Input (when late) */}
+        {!loading && isLate && (
+          <div className="px-3.5 py-2.5 rounded-xl bg-rose-50/60 border border-rose-200 flex items-center justify-between gap-3 text-xs">
             <label htmlFor="penalty-amount-input" className="font-semibold text-rose-950 shrink-0">
               Penalty Amount to Charge:
             </label>
