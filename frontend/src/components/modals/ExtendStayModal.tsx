@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CalendarPlus, Clock, AlertCircle, Sparkles, CircleDollarSign, CreditCard, Banknote, Check } from 'lucide-react'
+import { CalendarPlus, Clock, AlertCircle, CircleDollarSign, CreditCard, Banknote, Check } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { extendStay } from '../../api/stays'
@@ -209,20 +209,6 @@ export function ExtendStayModal({
             }}
             className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] focus:border-transparent transition"
           />
-        </div>
-
-        {/* Extension fee calculation */}
-        <div className="rounded-xl bg-neutral-100/80 p-3.5 border border-neutral-200 flex items-start gap-2.5">
-          <Sparkles className="w-5 h-5 text-neutral-600 shrink-0 mt-0.5" />
-          <div className="text-xs text-neutral-800 leading-relaxed">
-            <p className="font-semibold mb-0.5">Extension Cost Calculation</p>
-            <p className="text-neutral-600">
-              Extending by {extensionNights} day{extensionNights > 1 ? 's' : ''}:{' '}
-              <strong className="font-bold text-neutral-900">
-                {totalExtensionFee.toLocaleString()} ETB ({extensionNights} × {unitPrice.toLocaleString()} ETB/night)
-              </strong>
-            </p>
-          </div>
         </div>
 
         {/* Payment / Credit Selection */}

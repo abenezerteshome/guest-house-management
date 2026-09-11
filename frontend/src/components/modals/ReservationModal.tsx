@@ -34,7 +34,6 @@ export function ReservationModal({
   const [idNumber, setIdNumber] = useState('')
   const [nationality, setNationality] = useState('Ethiopian')
 
-  // Booking fields
   const [roomId, setRoomId] = useState<number>(selectedRoomId || availableRooms[0]?.id || 0)
   const [arrivalDate, setArrivalDate] = useState(() => {
     const now = new Date()
@@ -47,8 +46,6 @@ export function ReservationModal({
     tomorrow.setHours(11, 0, 0, 0)
     return tomorrow.toISOString().slice(0, 16)
   })
-  const [expectedAmount, setExpectedAmount] = useState('')
-  const [reason, setReason] = useState('Reservation')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -119,16 +116,16 @@ export function ReservationModal({
         }
         guestId = Number(selectedGuestId)
       } else {
-        if (!fullName.trim() || !phone.trim() || !idNumber.trim()) {
-          setError('Please fill in all required guest fields (Name, Phone, ID).')
+        if (!fullName.trim() || !phone.trim()) {
+          setError('Please fill in Guest Full Name and Phone Number.')
           setLoading(false)
           return
         }
         const newGuest = await createGuest({
           full_name: fullName.trim(),
           phone: phone.trim(),
-          id_number: idNumber.trim(),
-          nationality: nationality.trim() || undefined,
+          id_number: idNumber.trim() || 'PENDING_ON_ARRIVAL',
+          nationality: nationality.trim() || 'Ethiopian',
         })
         guestId = newGuest.id
       }
@@ -138,8 +135,8 @@ export function ReservationModal({
         room_id: roomId,
         expected_arrival: arr.toISOString(),
         expected_checkout: dep.toISOString(),
-        expected_amount: expectedAmount ? Number(expectedAmount) : calculatedExpectedAmount,
-        reason: reason.trim() || undefined,
+        expected_amount: calculatedExpectedAmount,
+        reason: 'Reservation',
         notes: notes.trim() || undefined,
       })
 
@@ -147,7 +144,6 @@ export function ReservationModal({
       setFullName('')
       setPhone('')
       setIdNumber('')
-      setExpectedAmount('')
       setNotes('')
       onSuccess()
       onClose()
@@ -159,13 +155,13 @@ export function ReservationModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Reservation (Expected Guest)" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-5">
+    <Modal isOpen={isOpen} onClose={onClose} title="New Reservation" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Room selection glance */}
-        <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200 flex items-center justify-between">
+        <div className="rounded-2xl bg-neutral-50 p-3.5 border border-neutral-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#FF385C]/10 text-[#FF385C] flex items-center justify-center font-bold text-sm">
-              <Building2 className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-[#FF385C]/10 text-[#FF385C] flex items-center justify-center font-bold text-sm">
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Selected Room</p>
@@ -183,7 +179,7 @@ export function ReservationModal({
         </div>
 
         {/* Room & Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
               Available Room *
@@ -196,7 +192,7 @@ export function ReservationModal({
             >
               {availableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
-                  Room {room.room_number} ({room.room_type} - {Number(room.price).toLocaleString()} ETB{room.hourly_price ? ` • ETB ${Number(room.hourly_price).toLocaleString()}/hr` : ''})
+                  Room {room.room_number} ({room.room_type} - {Number(room.price).toLocaleString()} ETB)
                 </option>
               ))}
             </select>
@@ -232,36 +228,16 @@ export function ReservationModal({
         </div>
 
         {/* Calculation badge */}
-        <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-neutral-100/70 border border-neutral-200 text-xs">
-          <span className="text-neutral-600">Duration & Pricing:</span>
-          <span className="font-bold text-neutral-900">
+        <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
+          <span className="text-blue-900 font-medium">Stay Duration & Calculated Total:</span>
+          <span className="font-bold text-blue-950 bg-white px-2.5 py-1 rounded-lg border border-blue-200">
             {durationDescription} = ETB {calculatedExpectedAmount.toLocaleString()}
           </span>
         </div>
 
-        {/* Reservation Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input
-            label="Expected Amount (ETB)"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder={String(calculatedExpectedAmount)}
-            helperText={`Defaults to calculated total (ETB ${calculatedExpectedAmount.toLocaleString()}) if left blank`}
-            value={expectedAmount}
-            onChange={(e) => setExpectedAmount(e.target.value)}
-          />
-          <Input
-            label="Booking Reference / Reason"
-            placeholder="Reservation"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
-        </div>
-
         {/* Guest selector toggle */}
-        <div className="border-t border-neutral-100 pt-4">
-          <div className="flex items-center justify-between mb-3">
+        <div className="border-t border-neutral-100 pt-3">
+          <div className="flex items-center justify-between mb-2.5">
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">Guest Information</h4>
             <div className="flex items-center gap-2 text-xs">
               <button
@@ -290,7 +266,7 @@ export function ReservationModal({
           </div>
 
           {useExistingGuest ? (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <Input
                 placeholder="Search existing guests by name, phone or ID..."
                 value={guestSearch}
@@ -314,31 +290,26 @@ export function ReservationModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Input
                 label="Guest Full Name *"
-                placeholder="Abebe Bikila"
+                placeholder="e.g. Hanna Girma"
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
               />
               <Input
                 label="Phone Number *"
-                placeholder="+251 911 234567"
+                placeholder="e.g. 0912 345678"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
               />
-              <Input
-                label="ID / Passport Number *"
-                placeholder="ID-987654"
-                required
-                value={idNumber}
-                onChange={(e) => setIdNumber(e.target.value)}
-              />
-              <Input
-                label="Nationality"
-                placeholder="Ethiopian"
-                value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-              />
+              <div className="md:col-span-2">
+                <Input
+                  label="ID / Passport Number (Optional for phone booking)"
+                  placeholder="Optional — verified on arrival at check-in"
+                  value={idNumber}
+                  onChange={(e) => setIdNumber(e.target.value)}
+                />
+              </div>
             </div>
           )}
         </div>
