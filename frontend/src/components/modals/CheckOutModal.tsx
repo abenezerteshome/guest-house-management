@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
-  AlertTriangle,
   CheckCircle2,
   Loader2,
   ShieldAlert,
   CreditCard,
   Clock,
+  Check,
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
@@ -32,15 +32,17 @@ export function CheckOutModal({
   onSuccess,
 }: CheckOutModalProps) {
   const [extensionCredit, setExtensionCredit] = useState<number>(0)
-  const [hasExtension, setHasExtension] = useState<boolean>(false)
   const [extensionDays, setExtensionDays] = useState<number>(0)
   const [deadlineHour, setDeadlineHour] = useState<number>(4)
   const [deadlineMinute, setDeadlineMinute] = useState<number>(0)
   const [penaltyRate, setPenaltyRate] = useState<number>(600)
-  const [penaltyAmountInput, setPenaltyAmountInput] = useState<string>('600')
+  const [applyPenalty, setApplyPenalty] = useState<boolean>(false)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  // Clean room number to prevent duplicate "Room Room 101"
+  const cleanRoom = (roomNumber || '').replace(/^Room\s+/i, '').trim()
 
   // Determine current time vs checkout deadline
   const now = new Date()
@@ -52,6 +54,7 @@ export function CheckOutModal({
     if (!stay || !isOpen) return
     setLoading(true)
     setError('')
+    setApplyPenalty(false)
 
     Promise.all([
       getStayCharges(stay.id),
@@ -69,12 +72,9 @@ export function CheckOutModal({
           setDeadlineHour(dHour)
           setDeadlineMinute(dMinute)
           setPenaltyRate(rate)
-          setPenaltyAmountInput(String(rate))
         }
 
-        // Extension credit calculation:
-        // Initial check-in charges are paid at check-in.
-        // Only charges created for stay extensions are checked for credit.
+        // Extension credit calculation
         const extCharges = charges.filter((c) =>
           (c.description || '').toLowerCase().includes('extension')
         )
@@ -93,7 +93,6 @@ export function CheckOutModal({
           }
         })
         setExtensionDays(totalNights)
-        setHasExtension(extCharges.length > 0)
 
         // Payments recorded for extension
         const extPayments = payments.filter(
@@ -104,7 +103,6 @@ export function CheckOutModal({
           0
         )
 
-        // Also check if any excess overall payments covered the extension
         const initialRoomCharges = charges
           .filter(
             (c) =>
@@ -133,15 +131,15 @@ export function CheckOutModal({
       })
   }, [stay, isOpen, currentHour, currentMinute])
 
-  const formattedDeadline = `${String(deadlineHour).padStart(2, '0')}:${String(deadlineMinute).padStart(2, '0')} AM`
-  const formattedCurrentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const activePenalty = (isLate && applyPenalty) ? penaltyRate : 0
+  const totalToCollect = extensionCredit + activePenalty
 
   async function handleConfirmCheckout() {
     if (!stay) return
     setError('')
     setSubmitting(true)
     try {
-      const customPenalty = isLate ? Number(penaltyAmountInput || 0) : undefined
+      const customPenalty = isLate ? (applyPenalty ? Number(penaltyRate) : 0) : 0
       await checkOutStay(stay.id, customPenalty)
       onSuccess(stay)
       onClose()
@@ -156,13 +154,13 @@ export function CheckOutModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={roomNumber ? `Check Out — Room ${roomNumber}` : 'Guest Check Out'}
+      title={cleanRoom ? `Check Out — Room ${cleanRoom}` : 'Guest Check Out'}
       description={guestName ? `Guest: ${guestName}` : 'Finalize checkout and free room immediately.'}
       maxWidth="md"
     >
       <div className="space-y-4 text-sm text-[#222222]">
         {error && (
-          <div className="p-3 rounded-xl bg-[#FFF7F5] border border-[#F2D1CA] text-xs text-[#C13515] flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-[#FFF7F5] border border-[#F2D1CA] text-xs text-[#C13515] flex items-center gap-2">
             <ShieldAlert size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
@@ -175,69 +173,99 @@ export function CheckOutModal({
           </div>
         )}
 
-        {/* 1. All Clear Status Banner (when on-time & 0 debt) */}
-        {!loading && extensionCredit === 0 && !isLate && (
+        {/* 1. Unpaid Stay Extension (if any) */}
+        {!loading && extensionCredit > 0 && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1.5 text-amber-900">
+                <CreditCard size={15} className="text-amber-700" />
+                Unpaid Extension:
+              </span>
+              <span className="font-extrabold text-sm text-amber-950">
+                ETB {extensionCredit.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-amber-800">
+              Guest stayed {extensionDays > 0 ? `${extensionDays} extra night${extensionDays > 1 ? 's' : ''}` : 'an extended stay'} on credit.
+            </p>
+          </div>
+        )}
+
+        {/* 2. Optional Late Checkout Penalty Question (Receptionist decides) */}
+        {!loading && isLate && (
+          <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-neutral-800 flex items-center gap-1.5">
+                <Clock size={15} className="text-neutral-500" />
+                Apply Late Checkout Penalty?
+              </span>
+              <span className="text-[11px] font-semibold text-neutral-500">
+                Rate: ETB {penaltyRate.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setApplyPenalty(false)}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  !applyPenalty
+                    ? 'bg-neutral-900 text-white border-neutral-900 shadow-xs'
+                    : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'
+                }`}
+              >
+                {!applyPenalty && <Check size={14} className="stroke-[3]" />}
+                <span>No Penalty (0 ETB)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setApplyPenalty(true)}
+                className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  applyPenalty
+                    ? 'bg-[#DC2626] text-white border-[#DC2626] shadow-xs'
+                    : 'bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-100'
+                }`}
+              >
+                {applyPenalty && <Check size={14} className="stroke-[3]" />}
+                <span>Yes (+ETB {penaltyRate.toLocaleString()})</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 3. Total to Collect Box (Eliminates mental math) */}
+        {!loading && totalToCollect > 0 && (
+          <div className="p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-rose-800">
+              Total to Collect from Guest:
+            </span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-2xl font-black text-rose-600">
+                ETB {totalToCollect.toLocaleString()}
+              </span>
+              <span className="text-xs text-rose-700 font-medium">
+                {extensionCredit > 0 && activePenalty > 0
+                  ? `(${extensionCredit.toLocaleString()} ext + ${activePenalty.toLocaleString()} penalty)`
+                  : extensionCredit > 0
+                  ? '(unpaid extension)'
+                  : '(late penalty)'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 4. All Clear Status Banner (when 0 to collect) */}
+        {!loading && totalToCollect === 0 && (
           <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-center gap-3 text-xs text-emerald-950">
             <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <CheckCircle2 size={20} />
             </div>
             <div className="min-w-0">
               <p className="font-bold text-sm text-emerald-900">Ready for Checkout</p>
-              <p className="text-emerald-700 text-xs">Stay paid in full & on time (0 ETB credit). Room will be freed immediately.</p>
-            </div>
-          </div>
-        )}
-
-        {/* 2. Extension Credit Alert (if guest owes money for extension) */}
-        {!loading && extensionCredit > 0 && (
-          <div className="px-3.5 py-2.5 rounded-xl border bg-amber-50/90 border-amber-200 text-amber-950 flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <CreditCard size={16} className="text-amber-700 shrink-0" />
-              <span className="font-bold shrink-0">Extension Credit:</span>
-              <span className="truncate text-amber-900 text-xs">
-                Unpaid stay extension of <strong>ETB {extensionCredit.toLocaleString()}</strong> ({extensionDays > 0 ? `${extensionDays} night${extensionDays > 1 ? 's' : ''}` : 'extension'}).
-              </span>
-            </div>
-            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-200 text-amber-900 whitespace-nowrap">
-              In Credit ({extensionCredit.toLocaleString()} ETB)
-            </span>
-          </div>
-        )}
-
-        {/* 3. Late Checkout Penalty Alert (if late) */}
-        {!loading && isLate && (
-          <div className="px-3.5 py-2.5 rounded-xl border bg-rose-50/90 border-rose-200 text-rose-950 flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-2 min-w-0">
-              <AlertTriangle size={16} className="text-rose-700 shrink-0" />
-              <span className="font-bold shrink-0">Late Checkout:</span>
-              <span className="truncate text-rose-900 text-xs">
-                Past {formattedDeadline} cutoff ({formattedCurrentTime}).
-              </span>
-            </div>
-            <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-200 text-rose-900 whitespace-nowrap">
-              +ETB {Number(penaltyAmountInput || 0).toLocaleString()} Penalty
-            </span>
-          </div>
-        )}
-
-        {/* 4. Penalty Amount Input (when late) */}
-        {!loading && isLate && (
-          <div className="px-3.5 py-2.5 rounded-xl bg-rose-50/60 border border-rose-200 flex items-center justify-between gap-3 text-xs">
-            <label htmlFor="penalty-amount-input" className="font-semibold text-rose-950 shrink-0">
-              Penalty Amount to Charge:
-            </label>
-            <div className="flex items-center gap-1.5 max-w-[160px]">
-              <input
-                id="penalty-amount-input"
-                type="number"
-                min="0"
-                step="50"
-                value={penaltyAmountInput}
-                onChange={(e) => setPenaltyAmountInput(e.target.value)}
-                placeholder={String(penaltyRate)}
-                className="w-full h-8 px-2.5 rounded-lg border border-rose-300 bg-white text-xs font-bold text-rose-900 focus:outline-none focus:ring-2 focus:ring-rose-500 text-right"
-              />
-              <span className="text-[11px] font-bold text-rose-700 shrink-0">ETB</span>
+              <p className="text-emerald-700 text-xs">
+                All charges settled (0 ETB to collect). Room will be freed immediately.
+              </p>
             </div>
           </div>
         )}
@@ -248,12 +276,14 @@ export function CheckOutModal({
             Cancel
           </Button>
           <Button
-            variant="danger"
+            variant={totalToCollect > 0 ? 'danger' : 'primary'}
             size="md"
             onClick={handleConfirmCheckout}
             loading={submitting}
           >
-            Confirm Checkout & Free Room
+            {totalToCollect > 0
+              ? `Collect ETB ${totalToCollect.toLocaleString()} & Check Out`
+              : 'Check Out & Free Room'}
           </Button>
         </div>
       </div>
