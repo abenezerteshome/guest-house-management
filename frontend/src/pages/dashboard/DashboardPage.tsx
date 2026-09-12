@@ -21,17 +21,22 @@ import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
-import { getStays, getStayFinancialSummary, getStayPayments } from '../../api/stays'
+import { getStays, getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { getGuests } from '../../api/guests'
-import type { DailyReport, Room, Stay, Reservation, Guest, FinancialSummary, Payment } from '../../types/api'
+import { getCleaningRooms, setRoomCleaning } from '../../utils/roomCleaning'
+import type { DailyReport, Room, Stay, Reservation, Guest, FinancialSummary, Payment, Charge } from '../../types/api'
 
 interface StayWithGuest extends Stay {
   guest?: Guest
   summary?: FinancialSummary
   payments?: Payment[]
+  charges?: Charge[]
   has_credit?: boolean
   payment_method?: string
+  initial_payment_method?: string
+  extension_credit?: number
+  extension_nights?: number
 }
 
 export function DashboardPage() {
@@ -66,7 +71,24 @@ export function DashboardPage() {
         getGuests().catch(() => []),
       ])
       if (reportData) setDailyReport(reportData)
-      setRooms(roomsData)
+
+      // Merge persistent 1-hour turnaround cleaning state
+      const activeCleaning = getCleaningRooms()
+      const mergedRooms = roomsData.map((r) => {
+        const cleanExpiry = activeCleaning[r.id]
+        if (cleanExpiry && cleanExpiry > Date.now()) {
+          return {
+            ...r,
+            status: 'CLEANING' as const,
+            available_after: new Date(cleanExpiry).toISOString(),
+          }
+        }
+        if (r.status === 'CLEANING' && r.available_after) {
+          setRoomCleaning(r.id, Math.max(0, new Date(r.available_after).getTime() - Date.now()))
+        }
+        return r
+      })
+      setRooms(mergedRooms)
 
       // Map guest and financial information onto active stays
       const guestMap = new Map(guestsData.map((g) => [g.id, g]))
@@ -74,18 +96,68 @@ export function DashboardPage() {
         staysData.map(async (s) => {
           let summary: FinancialSummary | undefined
           let payments: Payment[] = []
+          let charges: Charge[] = []
           try {
-            const [sum, pays] = await Promise.all([
+            const [sum, pays, chgs] = await Promise.all([
               getStayFinancialSummary(s.id).catch(() => undefined),
               getStayPayments(s.id).catch(() => []),
+              getStayCharges(s.id).catch(() => []),
             ])
             summary = sum
             payments = pays
+            charges = chgs
           } catch {
             // ignore
           }
 
-          const hasCredit = summary ? Number(summary.balance) > 0 : false
+          // Extension credit calculation (aligns with CheckOutModal and Logbook business rules)
+          const extCharges = charges.filter((c) =>
+            (c.description || '').toLowerCase().includes('extension')
+          )
+          const totalExtDue = extCharges.reduce(
+            (sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1),
+            0
+          )
+          let totalExtNights = 0
+          extCharges.forEach((c) => {
+            const match = (c.description || '').match(/(\d+)\s*night/)
+            if (match) {
+              totalExtNights += parseInt(match[1], 10)
+            } else {
+              totalExtNights += c.quantity || 1
+            }
+          })
+
+          const extPayments = payments.filter(
+            (p) => p.status === 'SUCCESS' && (p.reference || '').toLowerCase().includes('extension')
+          )
+          const directExtPaid = extPayments.reduce(
+            (sum, p) => sum + Number(p.amount || 0),
+            0
+          )
+          const initialRoomCharges = charges
+            .filter(
+              (c) =>
+                !(c.description || '').toLowerCase().includes('extension') &&
+                c.charge_type !== 'LATE_CHECKOUT_PENALTY'
+            )
+            .reduce((sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1), 0)
+
+          const totalSuccessfulPayments = payments
+            .filter((p) => p.status === 'SUCCESS')
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+          const excessPaid = Math.max(0, totalSuccessfulPayments - initialRoomCharges)
+          const unpaidExtensionCredit = Math.max(
+            0,
+            totalExtDue - Math.max(directExtPaid, excessPaid)
+          )
+
+          const hasCredit = unpaidExtensionCredit > 0.5
+          const initialPayment = payments.find(
+            (p) => !(p.reference || '').toLowerCase().includes('extension') && p.status === 'SUCCESS'
+          ) || payments[0]
+          const initialMethod = initialPayment?.payment_method || 'CASH'
           const primaryMethod = payments.length > 0 ? payments[0].payment_method : undefined
 
           return {
@@ -93,8 +165,12 @@ export function DashboardPage() {
             guest: guestMap.get(s.guest_id),
             summary,
             payments,
+            charges,
             has_credit: hasCredit,
             payment_method: hasCredit ? 'CREDIT' : (primaryMethod || 'CASH'),
+            initial_payment_method: initialMethod,
+            extension_credit: unpaidExtensionCredit,
+            extension_nights: totalExtNights,
           }
         })
       )
@@ -292,13 +368,13 @@ export function DashboardPage() {
         onSuccess={(checkedOutStay) => {
           const targetStay = checkedOutStay || selectedStay
           if (targetStay) {
-            // Optimistically remove checked out stay immediately so table clears without delay
+            // Persist 1-hour cleaning in storage and memory
+            const availableAfter = setRoomCleaning(targetStay.room_id, 60 * 60 * 1000)
             setActiveStays((prev) => prev.filter((s) => s.id !== targetStay.id))
-            // Set room available immediately
             setRooms((prev) =>
               prev.map((r) =>
                 r.id === targetStay.room_id
-                  ? { ...r, status: 'AVAILABLE', available_after: null }
+                  ? { ...r, status: 'CLEANING' as const, available_after: availableAfter }
                   : r
               )
             )

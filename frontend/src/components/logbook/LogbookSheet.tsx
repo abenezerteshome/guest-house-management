@@ -8,9 +8,11 @@ import {
   LogOut,
   CalendarDays,
   CalendarCheck,
+  SprayCan,
 } from 'lucide-react'
-import { getStayFinancialSummary, getStayPayments } from '../../api/stays'
-import type { Room, Stay, Reservation } from '../../types/api'
+import { getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
+import { clearRoomCleaning } from '../../utils/roomCleaning'
+import type { Room, Stay, Reservation, Charge } from '../../types/api'
 
 interface LogbookSheetProps {
   rooms: Room[]
@@ -29,6 +31,22 @@ function toLocalDateStr(d: Date): string {
   return `${year}-${month}-${day}`
 }
 
+function getDayDiff(startDateStr: string, endDateStr: string): number {
+  const [y1, m1, d1] = startDateStr.split('-').map(Number)
+  const [y2, m2, d2] = endDateStr.split('-').map(Number)
+  const utc1 = Date.UTC(y1, m1 - 1, d1)
+  const utc2 = Date.UTC(y2, m2 - 1, d2)
+  return Math.round((utc2 - utc1) / (1000 * 60 * 60 * 24))
+}
+
+function formatCountdown(ms: number): string {
+  if (ms <= 0) return 'Ready soon…'
+  const totalSec = Math.floor(ms / 1000)
+  const min = Math.floor(totalSec / 60)
+  const sec = totalSec % 60
+  return `${min}m ${String(sec).padStart(2, '0')}s`
+}
+
 export function LogbookSheet({
   rooms,
   stays,
@@ -36,6 +54,7 @@ export function LogbookSheet({
   onCheckInRoom,
   onCheckOut,
   onExtendStay,
+  onRefresh,
 }: LogbookSheetProps) {
   // Calendar Start Date
   const [startDate] = useState<Date>(() => {
@@ -52,7 +71,33 @@ export function LogbookSheet({
     nightNumber: number
   } | null>(null)
 
-  // Cache of financial summaries for stays to accurately display Credit vs Payment method per night
+  // Tick counter to force countdown re-renders every second
+  const [_tick, setTick] = useState(0)
+  const hasCleaningRooms = rooms.some((r) => r.status === 'CLEANING' && r.available_after)
+  useEffect(() => {
+    if (!hasCleaningRooms) return
+    const interval = setInterval(() => {
+      setTick((t) => t + 1)
+      // When 1-hour cleaning expires, clear persistent state and auto-trigger refresh to release room
+      let anyExpired = false
+      for (const r of rooms) {
+        if (
+          r.status === 'CLEANING' &&
+          r.available_after &&
+          new Date(r.available_after).getTime() <= Date.now()
+        ) {
+          clearRoomCleaning(r.id)
+          anyExpired = true
+        }
+      }
+      if (anyExpired && onRefresh) {
+        onRefresh()
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [hasCleaningRooms, rooms, onRefresh])
+
+  // Cache of financial summaries and charges for stays to accurately display Credit vs Payment method per night
   const [stayFinancials, setStayFinancials] = useState<
     Record<
       number,
@@ -61,7 +106,12 @@ export function LogbookSheet({
         totalDue: number
         totalPaid: number
         method: string
-        payments: Array<{ amount: number; method: string }>
+        payments: Array<{ amount: number; method: string; reference?: string | null; status?: string }>
+        charges: Charge[]
+        extensionNights: number
+        unpaidExtensionCredit: number
+        unpaidExtensionNights: number
+        paidExtensionNights: number
       }
     >
   >({})
@@ -74,9 +124,10 @@ export function LogbookSheet({
     Promise.all(
       checkedInStays.map(async (s) => {
         try {
-          const [summary, payments] = await Promise.all([
+          const [summary, payments, charges] = await Promise.all([
             getStayFinancialSummary(s.id).catch(() => null),
             getStayPayments(s.id).catch(() => []),
+            getStayCharges(s.id).catch(() => []),
           ])
           const balance = summary ? Number(summary.balance) : 0
           const totalDue = summary ? Number(summary.total_due) : 0
@@ -85,7 +136,59 @@ export function LogbookSheet({
           const parsedPayments = payments.map((p) => ({
             amount: Number(p.amount) || 0,
             method: p.payment_method || 'CASH',
+            reference: p.reference,
+            status: p.status,
           }))
+
+          // Extension credit calculation (same business logic as CheckOutModal)
+          const extCharges = charges.filter((c) =>
+            (c.description || '').toLowerCase().includes('extension')
+          )
+          const totalExtDue = extCharges.reduce(
+            (sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1),
+            0
+          )
+          let totalExtNights = 0
+          extCharges.forEach((c) => {
+            const match = (c.description || '').match(/(\d+)\s*night/)
+            if (match) {
+              totalExtNights += parseInt(match[1], 10)
+            } else {
+              totalExtNights += c.quantity || 1
+            }
+          })
+
+          const extPayments = payments.filter(
+            (p) => p.status === 'SUCCESS' && (p.reference || '').toLowerCase().includes('extension')
+          )
+          const directExtPaid = extPayments.reduce(
+            (sum, p) => sum + Number(p.amount || 0),
+            0
+          )
+          const initialRoomChargesTotal = charges
+            .filter(
+              (c) =>
+                !(c.description || '').toLowerCase().includes('extension') &&
+                c.charge_type !== 'LATE_CHECKOUT_PENALTY'
+            )
+            .reduce((sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1), 0)
+
+          const totalSuccessfulPayments = payments
+            .filter((p) => p.status === 'SUCCESS')
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+          const excessPaid = Math.max(0, totalSuccessfulPayments - initialRoomChargesTotal)
+          const unpaidExtensionCredit = Math.max(
+            0,
+            totalExtDue - Math.max(directExtPaid, excessPaid)
+          )
+
+          // Rate per extension night
+          const extRate = totalExtNights > 0 ? totalExtDue / totalExtNights : 0
+          const unpaidExtNights =
+            extRate > 0 ? Math.min(totalExtNights, Math.round(unpaidExtensionCredit / extRate)) : 0
+          const paidExtNights = Math.max(0, totalExtNights - unpaidExtNights)
+
           return {
             stayId: s.id,
             balance,
@@ -93,6 +196,11 @@ export function LogbookSheet({
             totalPaid,
             method: initialMethod,
             payments: parsedPayments,
+            charges,
+            extensionNights: totalExtNights,
+            unpaidExtensionCredit,
+            unpaidExtensionNights: unpaidExtNights,
+            paidExtensionNights: paidExtNights,
           }
         } catch {
           return null
@@ -107,7 +215,12 @@ export function LogbookSheet({
           totalDue: number
           totalPaid: number
           method: string
-          payments: Array<{ amount: number; method: string }>
+          payments: Array<{ amount: number; method: string; reference?: string | null; status?: string }>
+          charges: Charge[]
+          extensionNights: number
+          unpaidExtensionCredit: number
+          unpaidExtensionNights: number
+          paidExtensionNights: number
         }
       > = {}
       for (const r of results) {
@@ -118,6 +231,11 @@ export function LogbookSheet({
             totalPaid: r.totalPaid,
             method: r.method,
             payments: r.payments,
+            charges: r.charges,
+            extensionNights: r.extensionNights,
+            unpaidExtensionCredit: r.unpaidExtensionCredit,
+            unpaidExtensionNights: r.unpaidExtensionNights,
+            paidExtensionNights: r.paidExtensionNights,
           }
         }
       }
@@ -184,9 +302,9 @@ export function LogbookSheet({
 
       if (checkInStr && checkOutStr) {
         if (targetStr >= checkInStr && (targetStr < checkOutStr || (targetStr === checkOutStr && targetStr === todayStr))) {
-          // Calculate night number
-          const diffDays = Math.floor((date.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)) + 1
-          const totalDays = Math.max(1, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 3600 * 24)))
+          // Calculate night number based on pure calendar days
+          const diffDays = getDayDiff(checkInStr, targetStr) + 1
+          const totalDays = Math.max(1, getDayDiff(checkInStr, checkOutStr))
           return {
             stay: s,
             nightNumber: Math.min(Math.max(1, diffDays), totalDays),
@@ -349,6 +467,11 @@ export function LogbookSheet({
                               Reserved
                             </span>
                           )}
+                          {room.status === 'CLEANING' && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 border border-sky-300 uppercase">
+                              Cleaning
+                            </span>
+                          )}
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase">
                             {room.room_type || (room as any).type || 'Room'}
                           </span>
@@ -374,47 +497,67 @@ export function LogbookSheet({
                         const isPayPopoverActive = activeStayPopover?.stay.id === stay.id
 
                         const fin = stayFinancials[stay.id]
-                        const hasOverallCredit = fin
-                          ? fin.balance > 0
-                          : Boolean(
-                              (stay as any).has_credit ||
-                              Number((stay as any).summary?.balance || 0) > 0 ||
-                              (stay as any).payment_method === 'CREDIT'
-                            )
 
                         // Rate per night and cumulative charge through this night
                         const ratePerNight =
                           fin && fin.totalDue > 0 && totalNights > 0
                             ? fin.totalDue / totalNights
                             : Number(room.price || 0)
-                        const cumulativeDueForThisNight = nightNumber * ratePerNight
+                        // Business rule: The initial check-in is paid immediately upon arrival (Cash).
+                        // ONLY extension charges that are explicitly left unpaid should show as "Credit".
+                        const extNights = fin
+                          ? fin.extensionNights
+                          : Number((stay as any).extension_nights || 0)
 
-                        // Determine whether this specific night has been covered by payments
-                        const isThisNightPaid = fin
-                          ? fin.totalPaid >= cumulativeDueForThisNight - 0.5
-                          : !hasOverallCredit
+                        let matchedResOriginalNights = 0
+                        if (stay.reservation_id) {
+                          const r = reservations.find((res) => res.id === stay.reservation_id)
+                          if (r?.expected_arrival && r?.expected_checkout) {
+                            const arrStr = toLocalDateStr(new Date(r.expected_arrival))
+                            const depStr = toLocalDateStr(new Date(r.expected_checkout))
+                            const diff = getDayDiff(arrStr, depStr)
+                            if (diff > 0) matchedResOriginalNights = diff
+                          }
+                        }
 
-                        const isThisNightCredit = !isThisNightPaid && hasOverallCredit
+                        const originalNights =
+                          extNights > 0
+                            ? Math.max(1, totalNights - extNights)
+                            : matchedResOriginalNights > 0
+                            ? matchedResOriginalNights
+                            : 1
+
+                        const paidExtNights = fin ? fin.paidExtensionNights : 0
+
+                        // Is this specific night on credit?
+                        // Only nights beyond the original check-in AND beyond any paid extension nights are credit!
+                        const isThisNightCredit = fin
+                          ? nightNumber > originalNights + paidExtNights
+                          : Boolean((stay as any).has_credit && nightNumber > originalNights)
 
                         // Determine the payment method for this specific night
                         let cellPaymentMethod = 'CASH'
                         if (isThisNightCredit) {
                           cellPaymentMethod = 'CREDIT'
-                        } else if (fin && fin.payments && fin.payments.length > 0) {
-                          let runningPaid = 0
-                          let foundMethod = fin.method || 'CASH'
-                          for (const p of fin.payments) {
-                            runningPaid += p.amount
-                            if (runningPaid >= cumulativeDueForThisNight - 0.5) {
-                              foundMethod = p.method
-                              break
-                            }
-                          }
-                          cellPaymentMethod = foundMethod
-                        } else if (fin) {
-                          cellPaymentMethod = fin.method || 'CASH'
+                        } else if (nightNumber > originalNights) {
+                          // Paid extension night: use extension payment method
+                          const extPayment = fin?.payments.find((p) =>
+                            (p.reference || '').toLowerCase().includes('extension')
+                          )
+                          cellPaymentMethod = extPayment?.method || fin?.method || 'CASH'
                         } else {
-                          cellPaymentMethod = (stay as any).payment_method || 'CASH'
+                          // Initial check-in night: always considered paid using original check-in method
+                          const initialMethod =
+                            (stay as any).initial_payment_method ||
+                            fin?.payments?.find(
+                              (p) => !(p.reference || '').toLowerCase().includes('extension') && p.status === 'SUCCESS'
+                            )?.method ||
+                            ((stay as any).payment_method && (stay as any).payment_method !== 'CREDIT'
+                              ? (stay as any).payment_method
+                              : undefined) ||
+                            (fin?.method && fin.method !== 'CREDIT' ? fin.method : undefined) ||
+                            'CASH'
+                          cellPaymentMethod = initialMethod
                         }
 
                         return (
@@ -512,8 +655,56 @@ export function LogbookSheet({
                         )
                       }
 
+                      // Case 3: Room is being cleaned (CLEANING status with countdown)
+                      if (room.status === 'CLEANING' && isToday) {
+                        const availableAfter = room.available_after ? new Date(room.available_after) : null
+                        const remainingMs = availableAfter ? availableAfter.getTime() - Date.now() : 0
+                        const isExpired = remainingMs <= 0
+                        const progressPct = availableAfter
+                          ? Math.min(100, Math.max(0, (1 - remainingMs / (60 * 60 * 1000)) * 100))
+                          : 100
 
-                      // Case 3: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
+                        return (
+                          <td
+                            key={dayIdx}
+                            className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-sky-50/30"
+                          >
+                            <div className="h-full w-full p-1.5 rounded border border-sky-300 bg-sky-50/90 text-sky-950 flex flex-col justify-between border-l-4 border-l-sky-500 shadow-2xs">
+                              {/* Top: Cleaning badge */}
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-sky-800 uppercase tracking-tight">
+                                  <SprayCan className="w-2.5 h-2.5 text-sky-600" />
+                                  Cleaning
+                                </span>
+                                <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
+                                  {isExpired ? 'Done' : formatCountdown(remainingMs)}
+                                </span>
+                              </div>
+
+                              {/* Progress bar */}
+                              <div className="w-full h-1.5 bg-sky-200 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full rounded-full transition-all duration-1000 ease-linear"
+                                  style={{
+                                    width: `${progressPct}%`,
+                                    backgroundColor: isExpired ? '#22c55e' : '#0ea5e9',
+                                  }}
+                                />
+                              </div>
+
+                              {/* Bottom: status text */}
+                              <div className="text-center">
+                                <span className="text-[9px] font-semibold text-sky-700">
+                                  {isExpired ? 'Ready on next refresh' : 'Turnaround in progress'}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                        )
+                      }
+
+
+                      // Case 4: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
                       if (!isToday) {
                         return (
                           <td
@@ -579,15 +770,19 @@ export function LogbookSheet({
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   Day {activeStayPopover.nightNumber} of {activeStayPopover.totalNights}
                 </span>
-                {Boolean(
-                  (activeStayPopover.stay as any).has_credit ||
-                  (stayFinancials[activeStayPopover.stay.id]?.balance ?? 0) > 0 ||
-                  Number((activeStayPopover.stay as any).summary?.balance ?? 0) > 0
-                ) && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                    Credit: {Number(stayFinancials[activeStayPopover.stay.id]?.balance ?? (activeStayPopover.stay as any).summary?.balance ?? 0).toLocaleString()} ETB
-                  </span>
-                )}
+                {(() => {
+                  const fin = stayFinancials[activeStayPopover.stay.id]
+                  // Only show credit for unpaid EXTENSION charges.
+                  // Initial check-in is assumed paid (Cash).
+                  const extensionCredit = fin
+                    ? fin.unpaidExtensionCredit
+                    : Number((activeStayPopover.stay as any).extension_credit || 0)
+                  return extensionCredit > 0.5 ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Credit: {Math.round(extensionCredit).toLocaleString()} ETB
+                    </span>
+                  ) : null
+                })()}
               </div>
               <span className="text-xs text-neutral-400 block mt-0.5">
                 Phone: {(activeStayPopover.stay as any).guest?.phone || 'Front desk registered'} · Rate: {activeStayPopover.room.price} ETB/night

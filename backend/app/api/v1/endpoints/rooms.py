@@ -26,7 +26,9 @@ async def list_rooms(
 	is_active: bool | None = None,
 	session: AsyncSession = Depends(get_db),
 ) -> list[Room]:
-	return await RoomRepository(session).list(
+	repo = RoomRepository(session)
+	await repo.release_expired_cleaning()
+	return await repo.list(
 		status=room_status.value if room_status is not None else None,
 		is_active=is_active,
 	)

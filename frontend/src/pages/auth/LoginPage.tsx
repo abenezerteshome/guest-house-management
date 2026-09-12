@@ -214,7 +214,7 @@ export function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#F0F0F0] text-center">
               <span className="text-xs text-[#717171] flex items-center justify-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-                Staff access only · Haven House Guest House
+                Staff access only · Haven Guest House Management System
               </span>
             </div>
           </div>

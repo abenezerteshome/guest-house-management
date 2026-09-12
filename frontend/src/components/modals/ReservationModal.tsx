@@ -57,7 +57,7 @@ export function ReservationModal({
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (selectedRoomId) {
+    if (selectedRoomId && availableRooms.some((r) => r.id === selectedRoomId)) {
       setRoomId(selectedRoomId)
     } else if (availableRooms.length > 0 && (!roomId || !availableRooms.some((r) => r.id === roomId))) {
       setRoomId(availableRooms[0].id)

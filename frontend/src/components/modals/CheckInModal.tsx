@@ -44,7 +44,7 @@ export function CheckInModal({
     const targetRoomId = existingReservation?.room_id || selectedRoomId
     if (targetRoomId && allRooms) {
       const selected = allRooms.find((r) => r.id === targetRoomId)
-      if (selected && !list.some((r) => r.id === targetRoomId)) {
+      if (selected && selected.status !== 'CLEANING' && !list.some((r) => r.id === targetRoomId)) {
         list.push(selected)
       }
     }

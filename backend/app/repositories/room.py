@@ -1,7 +1,9 @@
-from sqlalchemy import select
+from datetime import datetime, timezone
+
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.room import Room
+from app.models.room import Room, RoomStatus
 
 
 class RoomRepository:
@@ -31,3 +33,16 @@ class RoomRepository:
 
 	async def delete(self, room: Room) -> None:
 		await self.session.delete(room)
+
+	async def release_expired_cleaning(self) -> int:
+		"""Transition rooms from CLEANING → AVAILABLE when available_after has passed."""
+		now = datetime.now(timezone.utc)
+		stmt = (
+			update(Room)
+			.where(Room.status == RoomStatus.CLEANING.value)
+			.where(Room.available_after <= now)
+			.values(status=RoomStatus.AVAILABLE.value, available_after=None)
+		)
+		result = await self.session.execute(stmt)
+		await self.session.commit()
+		return result.rowcount

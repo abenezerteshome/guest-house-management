@@ -13,6 +13,7 @@ import type { Stay } from '../../types/api'
 import { checkOutStay, getStayCharges, getStayPayments } from '../../api/stays'
 import { getSettings } from '../../api/settings'
 import { getApiError } from '../../api/client'
+import { setRoomCleaning } from '../../utils/roomCleaning'
 
 interface CheckOutModalProps {
   isOpen: boolean
@@ -141,6 +142,7 @@ export function CheckOutModal({
     try {
       const customPenalty = isLate ? (applyPenalty ? Number(penaltyRate) : 0) : 0
       await checkOutStay(stay.id, customPenalty)
+      setRoomCleaning(stay.room_id)
       onSuccess(stay)
       onClose()
     } catch (err) {

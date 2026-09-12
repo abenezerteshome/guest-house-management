@@ -37,8 +37,8 @@ async def check_out(
 	stay.status = StayStatus.CHECKED_OUT.value
 	stay.actual_checkout_at = now
 	reservation.status = ReservationStatus.CHECKED_OUT.value
-	room.status = RoomStatus.AVAILABLE.value
-	room.available_after = None
+	room.status = RoomStatus.CLEANING.value
+	room.available_after = now + timedelta(hours=1)
 	if penalty_amount is not None:
 		if penalty_amount > 0:
 			from app.services.payment import add_charge_record
