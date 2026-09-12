@@ -223,7 +223,7 @@ export function RoomsPage() {
                           handleRoomCheckIn(room.id)
                         }}
                       >
-                        Arrive Guest
+                        Check In (Reserved)
                       </Button>
                     )}
 

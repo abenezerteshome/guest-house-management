@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect } from 'react'
 import {
   Plus,
-  Clock,
-  Wrench,
   CreditCard,
   Banknote,
   Smartphone,
   Building2,
   LogOut,
   CalendarDays,
+  CalendarCheck,
 } from 'lucide-react'
+import { getStayFinancialSummary, getStayPayments } from '../../api/stays'
 import type { Room, Stay, Reservation } from '../../types/api'
 
 interface LogbookSheetProps {
@@ -20,6 +20,13 @@ interface LogbookSheetProps {
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
   onRefresh?: () => void
+}
+
+function toLocalDateStr(d: Date): string {
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export function LogbookSheet({
@@ -45,6 +52,42 @@ export function LogbookSheet({
     nightNumber: number
   } | null>(null)
 
+  // Cache of financial summaries for stays to accurately display Credit vs Payment method
+  const [stayFinancials, setStayFinancials] = useState<Record<number, { balance: number; method: string }>>({})
+
+  useEffect(() => {
+    let isMounted = true
+    const checkedInStays = stays.filter((s) => s.status === 'CHECKED_IN' || s.status === 'ACTIVE')
+    if (checkedInStays.length === 0) return
+
+    Promise.all(
+      checkedInStays.map(async (s) => {
+        try {
+          const [summary, payments] = await Promise.all([
+            getStayFinancialSummary(s.id).catch(() => null),
+            getStayPayments(s.id).catch(() => []),
+          ])
+          const balance = summary ? Number(summary.balance) : 0
+          const method = balance > 0 ? 'CREDIT' : (payments[0]?.payment_method || 'CASH')
+          return { stayId: s.id, balance, method }
+        } catch {
+          return null
+        }
+      })
+    ).then((results) => {
+      if (!isMounted) return
+      const map: Record<number, { balance: number; method: string }> = {}
+      for (const r of results) {
+        if (r) map[r.stayId] = { balance: r.balance, method: r.method }
+      }
+      setStayFinancials(map)
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [stays])
+
   // Automatically dismiss popover if stay was checked out or removed
   useEffect(() => {
     if (activeStayPopover && !stays.some((s) => s.id === activeStayPopover.stay.id && s.status === 'CHECKED_IN')) {
@@ -64,8 +107,7 @@ export function LogbookSheet({
   }, [startDate, daysCount])
 
   const todayStr = useMemo(() => {
-    const today = new Date()
-    return today.toISOString().slice(0, 10)
+    return toLocalDateStr(new Date())
   }, [])
 
   // Sort rooms numerically
@@ -83,7 +125,7 @@ export function LogbookSheet({
     nightNumber: number
     totalNights: number
   } | null => {
-    const targetStr = date.toISOString().slice(0, 10)
+    const targetStr = toLocalDateStr(date)
     for (const s of stays) {
       if (s.room_id !== roomId) continue
       if (s.status !== 'CHECKED_IN' && s.status !== 'ACTIVE') continue
@@ -96,8 +138,8 @@ export function LogbookSheet({
       const checkInDate = new Date(checkInRaw)
       const checkOutDate = new Date(checkOutRaw)
       
-      const checkInStr = !isNaN(checkInDate.getTime()) ? checkInDate.toISOString().slice(0, 10) : ''
-      const checkOutStr = !isNaN(checkOutDate.getTime()) ? checkOutDate.toISOString().slice(0, 10) : ''
+      const checkInStr = !isNaN(checkInDate.getTime()) ? toLocalDateStr(checkInDate) : ''
+      const checkOutStr = !isNaN(checkOutDate.getTime()) ? toLocalDateStr(checkOutDate) : ''
 
       if (checkInStr && checkOutStr) {
         if (targetStr >= checkInStr && (targetStr < checkOutStr || (targetStr === checkOutStr && targetStr === todayStr))) {
@@ -117,7 +159,7 @@ export function LogbookSheet({
 
   // Helper to test if date has reservation
   const getReservationForRoomAndDate = (roomId: number, date: Date): Reservation | null => {
-    const targetStr = date.toISOString().slice(0, 10)
+    const targetStr = toLocalDateStr(date)
     for (const r of reservations) {
       if (r.room_id !== roomId) continue
       if (r.status !== 'RESERVED' && r.status !== 'PENDING') continue
@@ -126,8 +168,8 @@ export function LogbookSheet({
       if (!arrRaw || !outRaw) continue
       const checkInDate = new Date(arrRaw)
       const checkOutDate = new Date(outRaw)
-      const inStr = !isNaN(checkInDate.getTime()) ? checkInDate.toISOString().slice(0, 10) : ''
-      const outStr = !isNaN(checkOutDate.getTime()) ? checkOutDate.toISOString().slice(0, 10) : ''
+      const inStr = !isNaN(checkInDate.getTime()) ? toLocalDateStr(checkInDate) : ''
+      const outStr = !isNaN(checkOutDate.getTime()) ? toLocalDateStr(checkOutDate) : ''
       if (inStr && outStr && targetStr >= inStr && targetStr < outStr) {
         return r
       }
@@ -138,14 +180,23 @@ export function LogbookSheet({
 
   // Format date headers
   const formatDayHeader = (date: Date) => {
-    const isToday = date.toISOString().slice(0, 10) === todayStr
+    const isToday = toLocalDateStr(date) === todayStr
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
     const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     return { dayName, monthDay, isToday }
   }
 
   // Format payment badge (exact color scheme preserved)
-  const renderPaymentBadge = (method?: string) => {
+  const renderPaymentBadge = (method?: string, hasCredit?: boolean) => {
+    if (hasCredit || method === 'CREDIT') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300 shadow-2xs">
+          <CreditCard className="w-2.5 h-2.5 text-amber-700" />
+          Credit
+        </span>
+      )
+    }
+
     switch (method) {
       case 'TELEBIRR':
         return (
@@ -166,12 +217,6 @@ export function LogbookSheet({
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">
             <CreditCard className="w-2.5 h-2.5" />
             Bank
-          </span>
-        )
-      case 'CREDIT':
-        return (
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
-            Credit
           </span>
         )
       default:
@@ -257,9 +302,16 @@ export function LogbookSheet({
                         <span className="text-sm font-black tracking-tight text-neutral-900">
                           {room.room_number}
                         </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase">
-                          {room.room_type || (room as any).type || 'Room'}
-                        </span>
+                        <div className="flex items-center gap-1">
+                          {room.status === 'EXPECTED' && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 uppercase">
+                              Reserved
+                            </span>
+                          )}
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase">
+                            {room.room_type || (room as any).type || 'Room'}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-[11px] font-semibold text-neutral-500 mt-0.5">
                         {roomPrice} <span className="text-[10px] font-normal">ETB / night</span>
@@ -268,7 +320,7 @@ export function LogbookSheet({
 
                     {/* Day Cells for this Room */}
                     {dateColumns.map((colDate, dayIdx) => {
-                      const dateStr = colDate.toISOString().slice(0, 10)
+                      const dateStr = toLocalDateStr(colDate)
                       const isToday = dateStr === todayStr
                       const isPast = dateStr < todayStr
                       const stayInfo = getStayForRoomAndDate(room.id, colDate)
@@ -279,6 +331,14 @@ export function LogbookSheet({
                         const { stay, nightNumber, totalNights } = stayInfo
                         const guestName = (stay as any).guest?.full_name || (stay as any).guest_name || `Guest #${stay.guest_id}`
                         const isPayPopoverActive = activeStayPopover?.stay.id === stay.id
+
+                        const fin = stayFinancials[stay.id]
+                        const hasCredit = fin ? fin.balance > 0 : Boolean(
+                          (stay as any).has_credit ||
+                          Number((stay as any).summary?.balance || 0) > 0 ||
+                          (stay as any).payment_method === 'CREDIT'
+                        )
+                        const paymentMethod = fin ? fin.method : (hasCredit ? 'CREDIT' : ((stay as any).payment_method || 'CASH'))
 
                         return (
                           <td
@@ -319,7 +379,7 @@ export function LogbookSheet({
 
                               {/* Bottom row: Payment badge & Price */}
                               <div className="flex items-center justify-between gap-1 pt-1 border-t border-emerald-200/60">
-                                {renderPaymentBadge((stay as any).payment_method)}
+                                {renderPaymentBadge(paymentMethod, hasCredit)}
                                 <span className="text-[10px] font-bold text-neutral-700">
                                   {roomPrice} <span className="text-[8px]">ETB</span>
                                 </span>
@@ -329,39 +389,42 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Case 2: Advance Reservation on this Date
-                      if (resInfo) {
-                        const guestName = (resInfo as any).guest?.full_name || (resInfo as any).guest_name || `Booking #${resInfo.id}`
+                      // Case 2: Advance Reservation on this Date or Room is Reserved
+                      const isRoomReserved = room.status === 'EXPECTED'
+                      const activeRes = resInfo || (isRoomReserved && isToday ? reservations.find(r => r.room_id === room.id && (r.status === 'RESERVED' || r.status === 'PENDING')) : null)
+
+                      if (activeRes) {
+                        const guestName = (activeRes as any).guest?.full_name || (activeRes as any).guest_name || `Booking #${activeRes.id}`
                         return (
                           <td
                             key={dayIdx}
                             className={`border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch ${
-                              isToday ? 'bg-rose-50/15' : ''
+                              isToday ? 'bg-amber-50/20' : ''
                             }`}
                           >
-                            <div className="h-full w-full p-1.5 rounded border border-blue-300 bg-blue-50/90 text-blue-950 flex flex-col justify-between border-l-4 border-l-blue-500">
+                            <div className="h-full w-full p-1.5 rounded border border-amber-300 bg-amber-50/90 text-amber-950 flex flex-col justify-between border-l-4 border-l-amber-500 shadow-2xs">
                               <div className="flex items-center justify-between gap-1">
-                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-blue-800 uppercase">
-                                  <Clock className="w-2.5 h-2.5 text-blue-600" />
-                                  Booked
+                                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-amber-800 uppercase tracking-tight">
+                                  <CalendarCheck className="w-2.5 h-2.5 text-amber-600" />
+                                  Reserved
                                 </span>
-                                <span className="text-[9px] font-bold text-blue-600">
-                                  {(resInfo as any).code || `#${resInfo.id}`}
+                                <span className="text-[9px] font-bold text-amber-700">
+                                  {(activeRes as any).code || `#${activeRes.id}`}
                                 </span>
                               </div>
-                              <div className="text-xs font-bold text-blue-900 truncate" title={guestName}>
+                              <div className="text-xs font-bold text-amber-950 truncate" title={guestName}>
                                 {guestName}
                               </div>
                               <div className="pt-0.5">
                                 {isPast ? (
                                   <span className="block text-center text-[9px] font-semibold text-neutral-400">
-                                    Past Booking
+                                    Past Reservation
                                   </span>
                                 ) : (
                                   <button
                                     type="button"
                                     onClick={() => onCheckInRoom(room.id)}
-                                    className="w-full py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                                    className="w-full py-0.5 text-[9px] font-bold rounded bg-amber-600 text-white hover:bg-amber-700 transition cursor-pointer shadow-2xs"
                                   >
                                     Check In
                                   </button>
@@ -439,6 +502,15 @@ export function LogbookSheet({
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   Day {activeStayPopover.nightNumber} of {activeStayPopover.totalNights}
                 </span>
+                {Boolean(
+                  (activeStayPopover.stay as any).has_credit ||
+                  (stayFinancials[activeStayPopover.stay.id]?.balance ?? 0) > 0 ||
+                  Number((activeStayPopover.stay as any).summary?.balance ?? 0) > 0
+                ) && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                    Credit: {Number(stayFinancials[activeStayPopover.stay.id]?.balance ?? (activeStayPopover.stay as any).summary?.balance ?? 0).toLocaleString()} ETB
+                  </span>
+                )}
               </div>
               <span className="text-xs text-neutral-400 block mt-0.5">
                 Phone: {(activeStayPopover.stay as any).guest?.phone || 'Front desk registered'} · Rate: {activeStayPopover.room.price} ETB/night

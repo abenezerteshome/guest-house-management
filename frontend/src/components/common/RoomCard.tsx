@@ -42,7 +42,7 @@ export function RoomCard({
     OCCUPIED: 'Occupied',
     CLEANING: 'Turnaround',
     RESERVED: 'Reserved',
-    EXPECTED: 'Expected',
+    EXPECTED: 'Reserved',
   }
 
   const formattedPrice =

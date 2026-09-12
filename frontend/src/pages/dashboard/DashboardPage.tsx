@@ -21,13 +21,17 @@ import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
-import { getStays } from '../../api/stays'
+import { getStays, getStayFinancialSummary, getStayPayments } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { getGuests } from '../../api/guests'
-import type { DailyReport, Room, Stay, Reservation, Guest } from '../../types/api'
+import type { DailyReport, Room, Stay, Reservation, Guest, FinancialSummary, Payment } from '../../types/api'
 
 interface StayWithGuest extends Stay {
   guest?: Guest
+  summary?: FinancialSummary
+  payments?: Payment[]
+  has_credit?: boolean
+  payment_method?: string
 }
 
 export function DashboardPage() {
@@ -63,12 +67,36 @@ export function DashboardPage() {
       if (reportData) setDailyReport(reportData)
       setRooms(roomsData)
 
-      // Map guest information onto active stays so guest names display clearly
+      // Map guest and financial information onto active stays
       const guestMap = new Map(guestsData.map((g) => [g.id, g]))
-      const enrichedStays = staysData.map((s) => ({
-        ...s,
-        guest: guestMap.get(s.guest_id),
-      }))
+      const enrichedStays: StayWithGuest[] = await Promise.all(
+        staysData.map(async (s) => {
+          let summary: FinancialSummary | undefined
+          let payments: Payment[] = []
+          try {
+            const [sum, pays] = await Promise.all([
+              getStayFinancialSummary(s.id).catch(() => undefined),
+              getStayPayments(s.id).catch(() => []),
+            ])
+            summary = sum
+            payments = pays
+          } catch {
+            // ignore
+          }
+
+          const hasCredit = summary ? Number(summary.balance) > 0 : false
+          const primaryMethod = payments.length > 0 ? payments[0].payment_method : undefined
+
+          return {
+            ...s,
+            guest: guestMap.get(s.guest_id),
+            summary,
+            payments,
+            has_credit: hasCredit,
+            payment_method: hasCredit ? 'CREDIT' : (primaryMethod || 'CASH'),
+          }
+        })
+      )
       setActiveStays(enrichedStays)
       setReservations(resData)
     } catch (err) {
