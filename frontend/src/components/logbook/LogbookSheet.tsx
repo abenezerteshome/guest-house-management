@@ -52,8 +52,19 @@ export function LogbookSheet({
     nightNumber: number
   } | null>(null)
 
-  // Cache of financial summaries for stays to accurately display Credit vs Payment method
-  const [stayFinancials, setStayFinancials] = useState<Record<number, { balance: number; method: string }>>({})
+  // Cache of financial summaries for stays to accurately display Credit vs Payment method per night
+  const [stayFinancials, setStayFinancials] = useState<
+    Record<
+      number,
+      {
+        balance: number
+        totalDue: number
+        totalPaid: number
+        method: string
+        payments: Array<{ amount: number; method: string }>
+      }
+    >
+  >({})
 
   useEffect(() => {
     let isMounted = true
@@ -68,17 +79,47 @@ export function LogbookSheet({
             getStayPayments(s.id).catch(() => []),
           ])
           const balance = summary ? Number(summary.balance) : 0
-          const method = balance > 0 ? 'CREDIT' : (payments[0]?.payment_method || 'CASH')
-          return { stayId: s.id, balance, method }
+          const totalDue = summary ? Number(summary.total_due) : 0
+          const totalPaid = summary ? Number(summary.total_paid) : 0
+          const initialMethod = payments[0]?.payment_method || 'CASH'
+          const parsedPayments = payments.map((p) => ({
+            amount: Number(p.amount) || 0,
+            method: p.payment_method || 'CASH',
+          }))
+          return {
+            stayId: s.id,
+            balance,
+            totalDue,
+            totalPaid,
+            method: initialMethod,
+            payments: parsedPayments,
+          }
         } catch {
           return null
         }
       })
     ).then((results) => {
       if (!isMounted) return
-      const map: Record<number, { balance: number; method: string }> = {}
+      const map: Record<
+        number,
+        {
+          balance: number
+          totalDue: number
+          totalPaid: number
+          method: string
+          payments: Array<{ amount: number; method: string }>
+        }
+      > = {}
       for (const r of results) {
-        if (r) map[r.stayId] = { balance: r.balance, method: r.method }
+        if (r) {
+          map[r.stayId] = {
+            balance: r.balance,
+            totalDue: r.totalDue,
+            totalPaid: r.totalPaid,
+            method: r.method,
+            payments: r.payments,
+          }
+        }
       }
       setStayFinancials(map)
     })
@@ -333,12 +374,48 @@ export function LogbookSheet({
                         const isPayPopoverActive = activeStayPopover?.stay.id === stay.id
 
                         const fin = stayFinancials[stay.id]
-                        const hasCredit = fin ? fin.balance > 0 : Boolean(
-                          (stay as any).has_credit ||
-                          Number((stay as any).summary?.balance || 0) > 0 ||
-                          (stay as any).payment_method === 'CREDIT'
-                        )
-                        const paymentMethod = fin ? fin.method : (hasCredit ? 'CREDIT' : ((stay as any).payment_method || 'CASH'))
+                        const hasOverallCredit = fin
+                          ? fin.balance > 0
+                          : Boolean(
+                              (stay as any).has_credit ||
+                              Number((stay as any).summary?.balance || 0) > 0 ||
+                              (stay as any).payment_method === 'CREDIT'
+                            )
+
+                        // Rate per night and cumulative charge through this night
+                        const ratePerNight =
+                          fin && fin.totalDue > 0 && totalNights > 0
+                            ? fin.totalDue / totalNights
+                            : Number(room.price || 0)
+                        const cumulativeDueForThisNight = nightNumber * ratePerNight
+
+                        // Determine whether this specific night has been covered by payments
+                        const isThisNightPaid = fin
+                          ? fin.totalPaid >= cumulativeDueForThisNight - 0.5
+                          : !hasOverallCredit
+
+                        const isThisNightCredit = !isThisNightPaid && hasOverallCredit
+
+                        // Determine the payment method for this specific night
+                        let cellPaymentMethod = 'CASH'
+                        if (isThisNightCredit) {
+                          cellPaymentMethod = 'CREDIT'
+                        } else if (fin && fin.payments && fin.payments.length > 0) {
+                          let runningPaid = 0
+                          let foundMethod = fin.method || 'CASH'
+                          for (const p of fin.payments) {
+                            runningPaid += p.amount
+                            if (runningPaid >= cumulativeDueForThisNight - 0.5) {
+                              foundMethod = p.method
+                              break
+                            }
+                          }
+                          cellPaymentMethod = foundMethod
+                        } else if (fin) {
+                          cellPaymentMethod = fin.method || 'CASH'
+                        } else {
+                          cellPaymentMethod = (stay as any).payment_method || 'CASH'
+                        }
 
                         return (
                           <td
@@ -379,7 +456,7 @@ export function LogbookSheet({
 
                               {/* Bottom row: Payment badge & Price */}
                               <div className="flex items-center justify-between gap-1 pt-1 border-t border-emerald-200/60">
-                                {renderPaymentBadge(paymentMethod, hasCredit)}
+                                {renderPaymentBadge(cellPaymentMethod, isThisNightCredit)}
                                 <span className="text-[10px] font-bold text-neutral-700">
                                   {roomPrice} <span className="text-[8px]">ETB</span>
                                 </span>

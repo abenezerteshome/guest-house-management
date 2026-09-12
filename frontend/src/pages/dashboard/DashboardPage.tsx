@@ -312,6 +312,7 @@ export function DashboardPage() {
         onClose={() => setExtendOpen(false)}
         stay={selectedStay}
         roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
+        roomPrice={Number(rooms.find((r) => r.id === selectedStay?.room_id)?.price || 0)}
         guestName={selectedStay?.guest?.full_name}
         onSuccess={() => fetchDashboardData()}
       />
