@@ -13,6 +13,13 @@ interface ReservationModalProps {
   onClose: () => void
   availableRooms: Room[]
   selectedRoomId?: number
+  initialGuest?: {
+    id?: number
+    fullName?: string
+    phone?: string
+    nationality?: string | null
+    idNumber?: string | null
+  }
   onSuccess: () => void
 }
 
@@ -21,14 +28,15 @@ export function ReservationModal({
   onClose,
   availableRooms,
   selectedRoomId,
+  initialGuest,
   onSuccess,
 }: ReservationModalProps) {
-  const [useExistingGuest, setUseExistingGuest] = useState(false)
   const [existingGuests, setExistingGuests] = useState<Guest[]>([])
-  const [selectedGuestId, setSelectedGuestId] = useState<number | ''>('')
+  const [selectedGuestId, setSelectedGuestId] = useState<number | null>(null)
   const [guestSearch, setGuestSearch] = useState('')
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false)
 
-  // New guest fields
+  // Guest fields
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [nationality, setNationality] = useState('Ethiopian')
@@ -56,18 +64,75 @@ export function ReservationModal({
     }
   }, [selectedRoomId, availableRooms, roomId, isOpen])
 
+  // Fetch all guests on open to enable instant auto-fill and search
   useEffect(() => {
-    if (isOpen && useExistingGuest) {
+    if (isOpen) {
       getGuests().then(setExistingGuests).catch(console.error)
+      if (initialGuest) {
+        setFullName(initialGuest.fullName || '')
+        setPhone(initialGuest.phone || '')
+        setNationality(initialGuest.nationality || 'Ethiopian')
+        setSelectedGuestId(initialGuest.id || null)
+      } else {
+        setFullName('')
+        setPhone('')
+        setNationality('Ethiopian')
+        setSelectedGuestId(null)
+      }
+      setGuestSearch('')
+      setShowSearchDropdown(false)
+      setError('')
     }
-  }, [isOpen, useExistingGuest])
+  }, [isOpen, initialGuest])
 
-  const filteredGuests = existingGuests.filter(
-    (g) =>
-      g.full_name.toLowerCase().includes(guestSearch.toLowerCase()) ||
-      g.phone.includes(guestSearch) ||
-      g.id_number.toLowerCase().includes(guestSearch.toLowerCase())
-  )
+  // Handle auto-matching when phone number is typed
+  function handlePhoneChange(newPhone: string) {
+    setPhone(newPhone)
+    const cleanPhone = newPhone.replace(/\s+/g, '')
+    if (cleanPhone.length >= 4) {
+      const match = existingGuests.find(
+        (g) => g.phone.replace(/\s+/g, '') === cleanPhone
+      )
+      if (match) {
+        setFullName(match.full_name)
+        if (match.nationality) setNationality(match.nationality)
+        setSelectedGuestId(match.id)
+        return
+      }
+    }
+    // If phone was changed away from a match
+    if (selectedGuestId) {
+      setSelectedGuestId(null)
+    }
+  }
+
+  function handleSelectGuest(guest: Guest) {
+    setFullName(guest.full_name)
+    setPhone(guest.phone)
+    if (guest.nationality) setNationality(guest.nationality)
+    setSelectedGuestId(guest.id)
+    setGuestSearch('')
+    setShowSearchDropdown(false)
+  }
+
+  function handleClearSelectedGuest() {
+    setSelectedGuestId(null)
+    setFullName('')
+    setPhone('')
+    setNationality('Ethiopian')
+  }
+
+  const filteredGuests = existingGuests.filter((g) => {
+    if (!guestSearch.trim()) return false
+    const q = guestSearch.toLowerCase()
+    return (
+      g.full_name.toLowerCase().includes(q) ||
+      g.phone.includes(q) ||
+      g.id_number.toLowerCase().includes(q)
+    )
+  }).slice(0, 6)
+
+  const selectedGuestObj = selectedGuestId ? existingGuests.find((g) => g.id === selectedGuestId) : null
 
   const selectedRoom = availableRooms.find((r) => r.id === roomId)
   const roomPricePerNight = Number(selectedRoom?.price || 0)
@@ -106,26 +171,29 @@ export function ReservationModal({
     try {
       let guestId: number
 
-      if (useExistingGuest) {
-        if (!selectedGuestId) {
-          setError('Please select an existing guest.')
-          setLoading(false)
-          return
-        }
-        guestId = Number(selectedGuestId)
+      if (selectedGuestId) {
+        guestId = selectedGuestId
       } else {
         if (!fullName.trim() || !phone.trim()) {
           setError('Please fill in Guest Full Name and Phone Number.')
           setLoading(false)
           return
         }
-        const newGuest = await createGuest({
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          id_number: 'PENDING_ON_ARRIVAL',
-          nationality: nationality.trim() || 'Ethiopian',
-        })
-        guestId = newGuest.id
+        // Check once more in existing guests by exact phone match to prevent duplicates
+        const existing = existingGuests.find(
+          (g) => g.phone.replace(/\s+/g, '') === phone.replace(/\s+/g, '')
+        )
+        if (existing) {
+          guestId = existing.id
+        } else {
+          const newGuest = await createGuest({
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            id_number: 'PENDING_ON_ARRIVAL',
+            nationality: nationality.trim() || 'Ethiopian',
+          })
+          guestId = newGuest.id
+        }
       }
 
       await createReservation({
@@ -140,6 +208,7 @@ export function ReservationModal({
       // Reset form
       setFullName('')
       setPhone('')
+      setSelectedGuestId(null)
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -230,75 +299,98 @@ export function ReservationModal({
           </span>
         </div>
 
-        {/* Guest selector toggle */}
-        <div className="border-t border-neutral-100 pt-3">
-          <div className="flex items-center justify-between mb-2.5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">Guest Information</h4>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => setUseExistingGuest(false)}
-                className={`px-3 py-1 rounded-full font-medium transition ${
-                  !useExistingGuest
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
-              >
-                + New Guest
-              </button>
-              <button
-                type="button"
-                onClick={() => setUseExistingGuest(true)}
-                className={`px-3 py-1 rounded-full font-medium transition ${
-                  useExistingGuest
-                    ? 'bg-neutral-900 text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
-              >
-                Select Existing
-              </button>
-            </div>
+        {/* Guest Information with instant auto-fetch & pre-fill */}
+        <div className="border-t border-neutral-100 pt-3 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
+              Guest Information
+            </h4>
+            {selectedGuestObj && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span>✓ Existing Guest Profile</span>
+                <button
+                  type="button"
+                  onClick={handleClearSelectedGuest}
+                  className="text-emerald-800 hover:text-rose-600 font-bold ml-1 text-xs cursor-pointer"
+                  title="Clear guest details"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
           </div>
 
-          {useExistingGuest ? (
-            <div className="space-y-2.5">
-              <Input
-                placeholder="Search existing guests by name, phone or ID..."
+          {/* Quick search input */}
+          <div className="relative">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="🔍 Search directory by name, phone, or ID to auto-fill..."
                 value={guestSearch}
-                onChange={(e) => setGuestSearch(e.target.value)}
+                onChange={(e) => {
+                  setGuestSearch(e.target.value)
+                  setShowSearchDropdown(true)
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
+                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2 text-xs bg-neutral-50/70 text-neutral-800 placeholder-neutral-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#FF385C]"
               />
-              <select
-                value={selectedGuestId}
-                onChange={(e) => setSelectedGuestId(Number(e.target.value))}
-                required
-                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
-              >
-                <option value="">-- Choose guest from directory --</option>
-                {filteredGuests.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.full_name} • {g.phone} ({g.id_number})
-                  </option>
-                ))}
-              </select>
+              {guestSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGuestSearch('')
+                    setShowSearchDropdown(false)
+                  }}
+                  className="absolute right-3 top-2 text-xs text-neutral-400 hover:text-neutral-600"
+                >
+                  ✕
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Input
-                label="Guest Full Name *"
-                placeholder="e.g. Hanna Girma"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
+
+            {showSearchDropdown && filteredGuests.length > 0 && (
+              <div className="absolute z-20 left-0 right-0 mt-1 bg-white rounded-xl border border-neutral-200 shadow-lg py-1 divide-y divide-neutral-100 max-h-48 overflow-y-auto">
+                {filteredGuests.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => handleSelectGuest(g)}
+                    className="w-full text-left px-3.5 py-2 text-xs hover:bg-[#FF385C]/5 flex items-center justify-between transition cursor-pointer"
+                  >
+                    <div>
+                      <span className="font-bold text-neutral-900">{g.full_name}</span>
+                      <span className="text-neutral-500 ml-2">📱 {g.phone}</span>
+                    </div>
+                    <span className="text-[11px] text-neutral-400 font-mono">
+                      {g.id_number}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Input
+              label="Guest Full Name *"
+              placeholder="e.g. Hanna Girma"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+            <div>
               <Input
                 label="Phone Number *"
                 placeholder="e.g. 0912 345678"
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
               />
+              <p className="text-[10px] text-neutral-400 mt-1">
+                Typing a registered phone number auto-fills the guest details.
+              </p>
             </div>
-          )}
+          </div>
         </div>
 
         {error && (

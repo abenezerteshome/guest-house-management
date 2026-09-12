@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
-import { CircleDollarSign, KeyRound, ShieldAlert, UserCheck, Search, X } from 'lucide-react'
+import { CircleDollarSign, KeyRound, ShieldAlert, UserCheck, Search, X, CalendarCheck } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
 import { IdPhotoCapture } from '../common/IdPhotoCapture'
-import type { Room, Guest } from '../../types/api'
-import { createGuest, getGuests } from '../../api/guests'
+import type { Room, Guest, Reservation } from '../../types/api'
+import { createGuest, getGuests, getGuest, updateGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
 import { checkInReservation } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
@@ -17,6 +17,7 @@ interface CheckInModalProps {
   availableRooms: Room[]
   allRooms?: Room[]
   selectedRoomId?: number
+  existingReservation?: Reservation | null
   initialGuest?: {
     fullName?: string
     phone?: string
@@ -33,23 +34,27 @@ export function CheckInModal({
   availableRooms,
   allRooms,
   selectedRoomId,
+  existingReservation,
   initialGuest,
   onSuccess,
 }: CheckInModalProps) {
+  const [activeReservation, setActiveReservation] = useState<Reservation | null>(null)
+
   const selectableRooms = useMemo(() => {
     const list = [...availableRooms]
-    if (selectedRoomId && allRooms) {
-      const selected = allRooms.find((r) => r.id === selectedRoomId)
-      if (selected && !list.some((r) => r.id === selectedRoomId)) {
+    const targetRoomId = existingReservation?.room_id || selectedRoomId
+    if (targetRoomId && allRooms) {
+      const selected = allRooms.find((r) => r.id === targetRoomId)
+      if (selected && !list.some((r) => r.id === targetRoomId)) {
         list.push(selected)
       }
     }
     return list
       .sort((a, b) => a.room_number.localeCompare(b.room_number, undefined, { numeric: true }))
-  }, [availableRooms, allRooms, selectedRoomId])
+  }, [availableRooms, allRooms, selectedRoomId, existingReservation])
 
   const [roomId, setRoomId] = useState<number>(
-    selectedRoomId || selectableRooms[0]?.id || 0
+    existingReservation?.room_id || selectedRoomId || selectableRooms[0]?.id || 0
   )
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -73,32 +78,63 @@ export function CheckInModal({
   const [isSearchingGuest, setIsSearchingGuest] = useState(false)
 
   useEffect(() => {
-    if (selectedRoomId) {
+    if (existingReservation?.room_id) {
+      setRoomId(existingReservation.room_id)
+    } else if (selectedRoomId) {
       setRoomId(selectedRoomId)
     } else if (selectableRooms.length > 0 && (!roomId || !selectableRooms.some(r => r.id === roomId))) {
       setRoomId(selectableRooms[0].id)
     }
-  }, [selectedRoomId, selectableRooms, isOpen])
+  }, [selectedRoomId, selectableRooms, existingReservation, isOpen])
 
   useEffect(() => {
     if (isOpen) {
       const now = new Date()
       setCheckInDate(now.toISOString().slice(0, 16))
-      const tomorrow = new Date(now)
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      tomorrow.setHours(11, 0, 0, 0)
-      setCheckoutDate(tomorrow.toISOString().slice(0, 16))
-      if (initialGuest) {
-        setFullName(initialGuest.fullName || '')
-        setPhone(initialGuest.phone || '')
-        setIdNumber(initialGuest.idNumber || '')
-        setIdPhoto(initialGuest.idPhotoUrl || null)
+      setActiveReservation(existingReservation || null)
+
+      if (existingReservation) {
+        // Pre-fill from existing reservation
+        setRoomId(existingReservation.room_id)
+        if (existingReservation.expected_checkout) {
+          const exp = new Date(existingReservation.expected_checkout)
+          setCheckoutDate(exp.toISOString().slice(0, 16))
+        }
+
+        // Fetch and pre-fill guest info
+        getGuest(existingReservation.guest_id)
+          .then((g) => {
+            setFullName(g.full_name || '')
+            setPhone(g.phone || '')
+            if (g.id_number && g.id_number !== 'PENDING_ON_ARRIVAL') {
+              setIdNumber(g.id_number)
+            } else {
+              setIdNumber('')
+            }
+            setIdPhoto(g.id_photo_url || null)
+          })
+          .catch((err) => {
+            console.error('Failed to fetch reservation guest details:', err)
+          })
       } else {
-        setFullName('')
-        setPhone('')
-        setIdNumber('')
-        setIdPhoto(null)
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setHours(11, 0, 0, 0)
+        setCheckoutDate(tomorrow.toISOString().slice(0, 16))
+
+        if (initialGuest) {
+          setFullName(initialGuest.fullName || '')
+          setPhone(initialGuest.phone || '')
+          setIdNumber(initialGuest.idNumber || '')
+          setIdPhoto(initialGuest.idPhotoUrl || null)
+        } else {
+          setFullName('')
+          setPhone('')
+          setIdNumber('')
+          setIdPhoto(null)
+        }
       }
+
       setGuestSearch('')
       setIsSearchingGuest(false)
       setError('')
@@ -106,7 +142,7 @@ export function CheckInModal({
       // Load existing guests for quick returning search
       getGuests().then(setExistingGuests).catch(() => setExistingGuests([]))
     }
-  }, [isOpen, initialGuest])
+  }, [isOpen, existingReservation, initialGuest])
 
   const activeRoom = selectableRooms.find((r) => r.id === roomId) || selectableRooms[0]
   const roomPricePerNight = Number(activeRoom?.price || 0)
@@ -173,27 +209,44 @@ export function CheckInModal({
     setLoading(true)
 
     try {
-      // 1. Create Guest (including captured/uploaded passport or ID photo)
-      const guest = await createGuest({
-        full_name: fullName.trim(),
-        id_number: idNumber.trim(),
-        phone: phone.trim(),
-        id_photo_url: idPhoto || undefined,
-      })
+      let stay: any
 
-      // 2. Create Reservation
-      const reservation = await createReservation({
-        guest_id: guest.id,
-        room_id: roomId,
-        expected_arrival: checkInTime.toISOString(),
-        expected_checkout: checkOutTime.toISOString(),
-        expected_amount: totalRoomCharge,
-      })
+      if (activeReservation) {
+        // 1. If guest ID number or photo was provided or updated, save to guest profile
+        if (idNumber.trim() || idPhoto) {
+          try {
+            await updateGuest(activeReservation.guest_id, {
+              id_number: idNumber.trim() || undefined,
+              id_photo_url: idPhoto || undefined,
+            })
+          } catch (e) {
+            console.warn('Could not update guest profile during check-in:', e)
+          }
+        }
 
-      // 3. Convert to active Stay
-      const stay = await checkInReservation(reservation.id)
+        // 2. Direct check-in of existing reservation
+        stay = await checkInReservation(activeReservation.id)
+      } else {
+        // Walk-in flow: create new Guest, create Reservation, then check-in
+        const guest = await createGuest({
+          full_name: fullName.trim(),
+          id_number: idNumber.trim() || 'PENDING_ON_ARRIVAL',
+          phone: phone.trim(),
+          id_photo_url: idPhoto || undefined,
+        })
 
-      // 4. Record Payment if provided
+        const reservation = await createReservation({
+          guest_id: guest.id,
+          room_id: roomId,
+          expected_arrival: checkInTime.toISOString(),
+          expected_checkout: checkOutTime.toISOString(),
+          expected_amount: totalRoomCharge,
+        })
+
+        stay = await checkInReservation(reservation.id)
+      }
+
+      // Record Payment if provided
       if (paid > 0 && paymentMethod !== 'CREDIT' && stay?.id) {
         await recordManualPayment({
           stay_id: stay.id,
@@ -208,6 +261,7 @@ export function CheckInModal({
       setIdNumber('')
       setIdPhoto(null)
       setAmountPaid('')
+      setActiveReservation(null)
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -221,8 +275,12 @@ export function CheckInModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Check In Guest"
-      description="Select room, enter guest information, and confirm check-in."
+      title={activeReservation ? "Check In Reserved Guest" : "Check In Guest"}
+      description={
+        activeReservation
+          ? `Completing check-in for Booking #${activeReservation.id}. Verify guest ID and collect payment.`
+          : "Select room, enter guest information, and confirm check-in."
+      }
       maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-sm text-[#222222]">
@@ -230,6 +288,28 @@ export function CheckInModal({
           <div className="p-3.5 rounded-xl bg-[#FFF7F5] border border-[#F2D1CA] text-xs text-[#C13515] flex items-center gap-2">
             <ShieldAlert size={16} className="shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Existing Reservation Banner */}
+        {activeReservation && (
+          <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 flex items-center justify-between shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-800 flex items-center justify-center font-bold">
+                <CalendarCheck size={16} />
+              </div>
+              <div>
+                <p className="font-bold text-amber-950">
+                  Checking In Booking #{activeReservation.id}
+                </p>
+                <p className="text-amber-800 text-[11px]">
+                  Guest details & booking dates have been fetched and filled already.
+                </p>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-amber-200 text-amber-900 font-extrabold text-[10px] uppercase tracking-wide">
+              Reserved Booking
+            </span>
           </div>
         )}
 
@@ -253,8 +333,9 @@ export function CheckInModal({
             </label>
             <select
               value={roomId}
+              disabled={!!activeReservation}
               onChange={(e) => setRoomId(Number(e.target.value))}
-              className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm font-medium text-[#222222] focus:outline-none focus:border-[#222222]"
+              className="w-full h-11 px-3 rounded-xl border border-[#DDDDDD] bg-white text-sm font-medium text-[#222222] focus:outline-none focus:border-[#222222] disabled:bg-neutral-100 disabled:cursor-not-allowed"
               required
             >
               {selectableRooms.map((room) => (

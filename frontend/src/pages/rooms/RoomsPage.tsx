@@ -11,8 +11,9 @@ import { CheckOutModal } from '../../components/modals/CheckOutModal'
 import { AddRoomModal } from '../../components/modals/AddRoomModal'
 import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
+import { getReservations } from '../../api/reservations'
 import { useAuth } from '../../hooks/useAuth'
-import type { Room, Stay } from '../../types/api'
+import type { Room, Stay, Reservation } from '../../types/api'
 
 export function RoomsPage() {
   const { user } = useAuth()
@@ -20,6 +21,7 @@ export function RoomsPage() {
 
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeStays, setActiveStays] = useState<Stay[]>([])
+  const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -29,17 +31,20 @@ export function RoomsPage() {
   const [checkOutOpen, setCheckOutOpen] = useState(false)
   const [addRoomOpen, setAddRoomOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [selectedStay, setSelectedStay] = useState<Stay | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const [roomsData, staysData] = await Promise.all([
+      const [roomsData, staysData, reservationsData] = await Promise.all([
         getRooms(),
         getStays('CHECKED_IN').catch(() => []),
+        getReservations('RESERVED').catch(() => []),
       ])
       setRooms(roomsData)
       setActiveStays(staysData)
+      setReservations(reservationsData)
     } catch (err) {
       console.error('Failed to load rooms:', err)
     } finally {
@@ -63,7 +68,12 @@ export function RoomsPage() {
   })
 
   function handleRoomCheckIn(roomId: number) {
+    const matchedRes =
+      reservations.find(
+        (r) => r.room_id === roomId && (r.status === 'RESERVED' || r.status === 'PENDING')
+      ) || null
     setSelectedRoomId(roomId)
+    setSelectedReservation(matchedRes)
     setCheckInOpen(true)
   }
 
@@ -105,6 +115,7 @@ export function RoomsPage() {
               size="sm"
               onClick={() => {
                 setSelectedRoomId(undefined)
+                setSelectedReservation(null)
                 setCheckInOpen(true)
               }}
               className="gap-1.5"
@@ -238,10 +249,14 @@ export function RoomsPage() {
       {/* Modals */}
       <CheckInModal
         isOpen={checkInOpen}
-        onClose={() => setCheckInOpen(false)}
+        onClose={() => {
+          setCheckInOpen(false)
+          setSelectedReservation(null)
+        }}
         availableRooms={availableRooms}
         allRooms={rooms}
         selectedRoomId={selectedRoomId}
+        existingReservation={selectedReservation}
         onSuccess={() => {
           fetchData()
         }}

@@ -23,3 +23,19 @@ export async function createGuest(data: {
   const res = await api.post<Guest>('/guests', data)
   return res.data
 }
+
+export async function updateGuest(
+  id: number,
+  data: Partial<{
+    full_name: string
+    id_number: string
+    phone: string
+    address?: string
+    nationality?: string
+    id_photo_url?: string | null
+    notes?: string
+  }>
+): Promise<Guest> {
+  const res = await api.patch<Guest>(`/guests/${id}`, data)
+  return res.data
+}

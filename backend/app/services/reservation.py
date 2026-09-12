@@ -194,8 +194,8 @@ async def check_in(
 		raise ResourceNotFoundError("Guest not found")
 	if room is None:
 		raise ResourceNotFoundError("Room not found")
-	if room.status != RoomStatus.EXPECTED.value:
-		raise ConflictError("Room is not in EXPECTED status")
+	if room.status not in (RoomStatus.EXPECTED.value, RoomStatus.AVAILABLE.value):
+		raise ConflictError("Room is already occupied or unavailable")
 	stay = Stay(
 		reservation_id=reservation.id,
 		guest_id=reservation.guest_id,

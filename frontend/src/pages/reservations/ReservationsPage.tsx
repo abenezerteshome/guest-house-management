@@ -11,12 +11,12 @@ import { Input } from '../../components/common/Input'
 import { Badge, type BadgeTone } from '../../components/common/Badge'
 import { Table, type TableColumn } from '../../components/common/Table'
 import { ReservationModal } from '../../components/modals/ReservationModal'
+import { CheckInModal } from '../../components/modals/CheckInModal'
 import {
   getReservations,
   cancelReservation,
   markReservationNoShow,
 } from '../../api/reservations'
-import { checkInReservation } from '../../api/stays'
 import { getRooms } from '../../api/rooms'
 import { getGuests } from '../../api/guests'
 import type { Reservation, Room, Guest } from '../../types/api'
@@ -30,6 +30,8 @@ export function ReservationsPage() {
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false)
+  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -57,19 +59,9 @@ export function ReservationsPage() {
   const guestMap = new Map(guests.map((g) => [g.id, g]))
   const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
 
-  async function handleCheckIn(resId: number) {
-    setActionLoadingId(resId)
-    try {
-      await checkInReservation(resId)
-      fetchData()
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to check in guest.'
-      alert(msg)
-    } finally {
-      setActionLoadingId(null)
-    }
+  function handleCheckIn(res: Reservation) {
+    setSelectedReservation(res)
+    setCheckInModalOpen(true)
   }
 
   async function handleCancel(resId: number) {
@@ -217,7 +209,7 @@ export function ReservationsPage() {
                 variant="primary"
                 size="xs"
                 isLoading={isActionLoading}
-                onClick={() => handleCheckIn(r.id)}
+                onClick={() => handleCheckIn(r)}
                 className="gap-1"
               >
                 <UserCheck className="w-3.5 h-3.5" />
@@ -292,6 +284,19 @@ export function ReservationsPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         availableRooms={availableRooms}
+        onSuccess={() => fetchData()}
+      />
+
+      <CheckInModal
+        isOpen={checkInModalOpen}
+        onClose={() => {
+          setCheckInModalOpen(false)
+          setSelectedReservation(null)
+        }}
+        availableRooms={availableRooms}
+        allRooms={rooms}
+        selectedRoomId={selectedReservation?.room_id}
+        existingReservation={selectedReservation}
         onSuccess={() => fetchData()}
       />
     </div>

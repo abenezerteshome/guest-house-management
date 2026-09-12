@@ -16,7 +16,7 @@ interface LogbookSheetProps {
   rooms: Room[]
   stays: Stay[]
   reservations: Reservation[]
-  onCheckInRoom: (roomId: number) => void
+  onCheckInRoom: (roomId: number, reservation?: Reservation) => void
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
   onRefresh?: () => void
@@ -423,7 +423,7 @@ export function LogbookSheet({
                                 ) : (
                                   <button
                                     type="button"
-                                    onClick={() => onCheckInRoom(room.id)}
+                                    onClick={() => onCheckInRoom(room.id, activeRes as Reservation)}
                                     className="w-full py-0.5 text-[9px] font-bold rounded bg-amber-600 text-white hover:bg-amber-700 transition cursor-pointer shadow-2xs"
                                   >
                                     Check In
