@@ -130,6 +130,7 @@ export function ExpensesPage() {
           data={filteredExpenses}
           keyExtractor={(e) => e.id}
           isLoading={loading}
+          loadingLabel="Loading expenses..."
           emptyMessage="No expense records found."
         />
       </div>

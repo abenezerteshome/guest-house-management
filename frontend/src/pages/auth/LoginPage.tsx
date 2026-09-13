@@ -204,7 +204,7 @@ export function LoginPage() {
                     loading={submitting}
                     className="w-full h-12 text-sm font-semibold rounded-xl mt-2"
                   >
-                    Sign in
+                    {submitting ? 'Signing in...' : 'Sign in'}
                   </Button>
                 </form>
               </>

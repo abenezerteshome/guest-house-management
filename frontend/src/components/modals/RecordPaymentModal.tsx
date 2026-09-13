@@ -282,7 +282,7 @@ export function RecordPaymentModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} disabled={loading} className="gap-2">
             <Receipt className="w-4 h-4" />
-            <span>Record Payment</span>
+            <span>{loading ? 'Recording payment...' : 'Record Payment'}</span>
           </Button>
         </div>
       </form>

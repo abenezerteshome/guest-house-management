@@ -9,16 +9,19 @@ import {
   CalendarDays,
   CalendarCheck,
   SprayCan,
+  Loader2,
 } from 'lucide-react'
 import { getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
 import { clearRoomCleaning } from '../../utils/roomCleaning'
 import type { Room, Stay, Reservation, Charge } from '../../types/api'
+import { Modal } from '../common/Modal'
 
 interface LogbookSheetProps {
   rooms: Room[]
   stays: Stay[]
   reservations: Reservation[]
   onCheckInRoom: (roomId: number, reservation?: Reservation) => void
+  checkingInRoomId?: number | null
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
   onRefresh?: () => void
@@ -52,6 +55,7 @@ export function LogbookSheet({
   stays,
   reservations,
   onCheckInRoom,
+  checkingInRoomId = null,
   onCheckOut,
   onExtendStay,
   onRefresh,
@@ -108,6 +112,8 @@ export function LogbookSheet({
         method: string
         payments: Array<{ amount: number; method: string; reference?: string | null; status?: string }>
         charges: Charge[]
+        initialRoomDue: number
+        initialRoomPaid: number
         extensionNights: number
         unpaidExtensionCredit: number
         unpaidExtensionNights: number
@@ -173,6 +179,14 @@ export function LogbookSheet({
             )
             .reduce((sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1), 0)
 
+          const initialRoomPaid = payments
+            .filter(
+              (p) =>
+                p.status === 'SUCCESS' &&
+                !(p.reference || '').toLowerCase().includes('extension')
+            )
+            .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
           const totalSuccessfulPayments = payments
             .filter((p) => p.status === 'SUCCESS')
             .reduce((sum, p) => sum + Number(p.amount || 0), 0)
@@ -197,6 +211,8 @@ export function LogbookSheet({
             method: initialMethod,
             payments: parsedPayments,
             charges,
+            initialRoomDue: initialRoomChargesTotal,
+            initialRoomPaid,
             extensionNights: totalExtNights,
             unpaidExtensionCredit,
             unpaidExtensionNights: unpaidExtNights,
@@ -217,6 +233,8 @@ export function LogbookSheet({
           method: string
           payments: Array<{ amount: number; method: string; reference?: string | null; status?: string }>
           charges: Charge[]
+          initialRoomDue: number
+          initialRoomPaid: number
           extensionNights: number
           unpaidExtensionCredit: number
           unpaidExtensionNights: number
@@ -232,6 +250,8 @@ export function LogbookSheet({
             method: r.method,
             payments: r.payments,
             charges: r.charges,
+            initialRoomDue: r.initialRoomDue,
+            initialRoomPaid: r.initialRoomPaid,
             extensionNights: r.extensionNights,
             unpaidExtensionCredit: r.unpaidExtensionCredit,
             unpaidExtensionNights: r.unpaidExtensionNights,
@@ -525,14 +545,30 @@ export function LogbookSheet({
                             ? Math.max(1, totalNights - extNights)
                             : matchedResOriginalNights > 0
                             ? matchedResOriginalNights
-                            : 1
+                            : totalNights
 
                         const paidExtNights = fin ? fin.paidExtensionNights : 0
+                        const initialMethod =
+                          (stay as any).initial_payment_method ||
+                          fin?.payments?.find(
+                            (p) =>
+                              !(p.reference || '').toLowerCase().includes('extension') &&
+                              p.status === 'SUCCESS'
+                          )?.method ||
+                          (stay as any).payment_method ||
+                          fin?.method
+                        const isInitialCredit = Boolean(
+                          fin &&
+                            fin.initialRoomDue > 0 &&
+                            (fin.initialRoomPaid < fin.initialRoomDue - 0.01 ||
+                              initialMethod === 'CREDIT')
+                        )
 
                         // Is this specific night on credit?
-                        // Only nights beyond the original check-in AND beyond any paid extension nights are credit!
+                        // Allocate payment to original nights first, then to extension nights.
                         const isThisNightCredit = fin
-                          ? nightNumber > originalNights + paidExtNights
+                          ? (nightNumber <= originalNights && isInitialCredit) ||
+                            nightNumber > originalNights + paidExtNights
                           : Boolean((stay as any).has_credit && nightNumber > originalNights)
 
                         // Determine the payment method for this specific night
@@ -547,17 +583,7 @@ export function LogbookSheet({
                           cellPaymentMethod = extPayment?.method || fin?.method || 'CASH'
                         } else {
                           // Initial check-in night: always considered paid using original check-in method
-                          const initialMethod =
-                            (stay as any).initial_payment_method ||
-                            fin?.payments?.find(
-                              (p) => !(p.reference || '').toLowerCase().includes('extension') && p.status === 'SUCCESS'
-                            )?.method ||
-                            ((stay as any).payment_method && (stay as any).payment_method !== 'CREDIT'
-                              ? (stay as any).payment_method
-                              : undefined) ||
-                            (fin?.method && fin.method !== 'CREDIT' ? fin.method : undefined) ||
-                            'CASH'
-                          cellPaymentMethod = initialMethod
+                          cellPaymentMethod = initialMethod && initialMethod !== 'CREDIT' ? initialMethod : 'CASH'
                         }
 
                         return (
@@ -725,6 +751,7 @@ export function LogbookSheet({
                       }
 
                       // Current Day Vacant Cell: Interactive + Check In
+                      const isCheckingIn = checkingInRoomId === room.id
                       return (
                         <td
                           key={dayIdx}
@@ -733,12 +760,17 @@ export function LogbookSheet({
                           <button
                             type="button"
                             onClick={() => onCheckInRoom(room.id)}
+                            disabled={isCheckingIn}
                             className="h-full w-full rounded border border-dashed border-neutral-300 group-hover/cell:border-[#FF385C] bg-white/70 group-hover/cell:bg-white p-1 flex flex-col items-center justify-center cursor-pointer transition shadow-2xs text-center"
                             title={`Click to check in room ${room.room_number} today`}
                           >
                             <span className="text-[11px] font-bold text-neutral-500 group-hover/cell:text-[#FF385C] flex items-center gap-1 transition">
-                              <Plus className="w-3 h-3 text-[#FF385C]" />
-                              <span>Check In</span>
+                              {isCheckingIn ? (
+                                <Loader2 className="w-3 h-3 text-[#FF385C] animate-spin" aria-hidden="true" />
+                              ) : (
+                                <Plus className="w-3 h-3 text-[#FF385C]" />
+                              )}
+                              <span>{isCheckingIn ? 'Checking in...' : 'Check In'}</span>
                             </span>
                             <span className="text-[9px] text-neutral-400 group-hover/cell:text-neutral-600 mt-0.5 font-medium">
                               {roomPrice} ETB
@@ -755,16 +787,23 @@ export function LogbookSheet({
         </div>
       </div>
 
-      {/* Floating Action Bar when a Stay Cell is Selected */}
+      {/* Quick actions for a selected stay */}
       {activeStayPopover && (
-        <div className="p-4 rounded-xl bg-neutral-900 text-white shadow-xl border border-neutral-700 animate-in fade-in slide-in-from-bottom-2 duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <Modal
+          isOpen={Boolean(activeStayPopover)}
+          onClose={() => setActiveStayPopover(null)}
+          title={`Room ${activeStayPopover.room.room_number} — Checked In`}
+          description="Review the stay details or continue to checkout."
+          maxWidth="xl"
+        >
+          <div className="p-4 rounded-xl bg-neutral-900 text-white shadow-xl border border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center font-black text-lg text-emerald-400">
               {activeStayPopover.room.room_number}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-white truncate max-w-full">
                   {(activeStayPopover.stay as any).guest?.full_name || (activeStayPopover.stay as any).guest_name || `Guest #${activeStayPopover.stay.guest_id}`}
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
@@ -790,7 +829,7 @@ export function LogbookSheet({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
             {onExtendStay && (
               <button
                 type="button"
@@ -798,7 +837,7 @@ export function LogbookSheet({
                   onExtendStay(activeStayPopover.stay)
                   setActiveStayPopover(null)
                 }}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 cursor-pointer border border-white/10"
+                className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 cursor-pointer border border-white/10 whitespace-nowrap"
               >
                 <CalendarDays className="w-3.5 h-3.5" />
                 <span>Extend +1 Night</span>
@@ -811,7 +850,7 @@ export function LogbookSheet({
                 onCheckOut(activeStayPopover.stay)
                 setActiveStayPopover(null)
               }}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+              className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-rose-600 hover:bg-rose-500 text-white transition flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Check Out</span>
@@ -825,7 +864,8 @@ export function LogbookSheet({
               Close
             </button>
           </div>
-        </div>
+          </div>
+        </Modal>
       )}
     </div>
   )

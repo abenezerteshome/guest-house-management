@@ -1,11 +1,12 @@
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.models.audit_log import AuditLog
-from app.models.charge import ChargeType
+from app.models.charge import Charge, ChargeType
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
@@ -24,7 +25,13 @@ def is_late_checkout(actual_checkout_at: datetime) -> bool:
 
 
 async def check_out(
-	session: AsyncSession, stay: Stay, *, user_id: int, now: datetime, penalty_amount: Decimal | None = None
+	session: AsyncSession,
+	stay: Stay,
+	*,
+	user_id: int,
+	now: datetime,
+	penalty_amount: Decimal | None = None,
+	actual_checkout_at: datetime | None = None,
 ) -> Stay:
 	if stay.status != StayStatus.CHECKED_IN.value:
 		raise InvalidTransitionError("Only CHECKED_IN stays can be checked out")
@@ -34,11 +41,35 @@ async def check_out(
 		raise ResourceNotFoundError("Reservation not found")
 	if room is None:
 		raise ResourceNotFoundError("Room not found")
+	checkout_at = actual_checkout_at or now
+	if checkout_at.tzinfo is None:
+		checkout_at = checkout_at.replace(tzinfo=timezone.utc)
+	if checkout_at <= stay.check_in_at:
+		raise InvalidTransitionError("Checkout time must be after check-in time")
+	if checkout_at > now:
+		raise InvalidTransitionError("Checkout time cannot be in the future")
+
+	if actual_checkout_at and checkout_at.date() < stay.expected_checkout.date():
+		room_charges = list(
+			(await session.execute(
+				select(Charge).where(
+					Charge.stay_id == stay.id,
+					Charge.charge_type == ChargeType.ROOM.value,
+					~Charge.description.ilike("%extension%"),
+				)
+			)).scalars().all())
+		if room_charges:
+			original_nights = max(1, (stay.expected_checkout.date() - stay.check_in_at.date()).days)
+			used_nights = max(1, (checkout_at.date() - stay.check_in_at.date()).days)
+			used_nights = min(used_nights, original_nights)
+			for charge in room_charges:
+				charge.amount = (charge.amount * Decimal(used_nights) / Decimal(original_nights)).quantize(Decimal("0.01"))
+
 	stay.status = StayStatus.CHECKED_OUT.value
-	stay.actual_checkout_at = now
+	stay.actual_checkout_at = checkout_at
 	reservation.status = ReservationStatus.CHECKED_OUT.value
 	room.status = RoomStatus.CLEANING.value
-	room.available_after = now + timedelta(hours=1)
+	room.available_after = checkout_at + timedelta(hours=1)
 	if penalty_amount is not None:
 		if penalty_amount > 0:
 			from app.services.payment import add_charge_record
@@ -68,7 +99,7 @@ async def check_out(
 			action="CHECK_OUT",
 			entity_type="Stay",
 			entity_id=stay.id,
-			details=f'{{"is_late_checkout": {str(is_late_checkout(now)).lower()}}}',
+			details=f'{{"is_late_checkout": {str(is_late_checkout(checkout_at)).lower()}}}',
 		)
 	)
 	await session.commit()

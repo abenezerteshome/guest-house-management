@@ -13,6 +13,7 @@ class StayExtend(BaseModel):
 
 class StayCheckOut(BaseModel):
 	penalty_amount: Decimal | None = None
+	actual_checkout_at: datetime | None = None
 
 
 class StayRead(BaseModel):

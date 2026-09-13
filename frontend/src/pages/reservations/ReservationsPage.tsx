@@ -27,7 +27,10 @@ export function ReservationsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null)
+  const [actionLoading, setActionLoading] = useState<{
+    id: number
+    type: 'cancel' | 'no-show'
+  } | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [checkInModalOpen, setCheckInModalOpen] = useState(false)
@@ -66,7 +69,7 @@ export function ReservationsPage() {
 
   async function handleCancel(resId: number) {
     if (!confirm('Are you sure you want to cancel this reservation? Room will become available.')) return
-    setActionLoadingId(resId)
+    setActionLoading({ id: resId, type: 'cancel' })
     try {
       await cancelReservation(resId)
       fetchData()
@@ -76,13 +79,13 @@ export function ReservationsPage() {
         'Failed to cancel reservation.'
       alert(msg)
     } finally {
-      setActionLoadingId(null)
+      setActionLoading(null)
     }
   }
 
   async function handleNoShow(resId: number) {
     if (!confirm('Mark guest as No-Show? Room will become available.')) return
-    setActionLoadingId(resId)
+    setActionLoading({ id: resId, type: 'no-show' })
     try {
       await markReservationNoShow(resId)
       fetchData()
@@ -92,7 +95,7 @@ export function ReservationsPage() {
         'Failed to mark no-show.'
       alert(msg)
     } finally {
-      setActionLoadingId(null)
+      setActionLoading(null)
     }
   }
 
@@ -201,7 +204,7 @@ export function ReservationsPage() {
       header: 'Actions',
       align: 'right',
       render: (r) => {
-        const isActionLoading = actionLoadingId === r.id
+        const isActionLoading = actionLoading?.id === r.id
         if (r.status === 'RESERVED') {
           return (
             <div className="flex items-center justify-end gap-1.5">
@@ -219,21 +222,23 @@ export function ReservationsPage() {
                 variant="outline"
                 size="xs"
                 leftIcon={<X className="w-3.5 h-3.5" />}
+                isLoading={actionLoading?.id === r.id && actionLoading.type === 'cancel'}
                 disabled={isActionLoading}
                 onClick={() => handleCancel(r.id)}
                 className="text-neutral-600 hover:text-rose-600"
               >
-                Cancel
+                {actionLoading?.id === r.id && actionLoading.type === 'cancel' ? 'Cancelling...' : 'Cancel'}
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
                 leftIcon={<Ban className="w-3.5 h-3.5" />}
+                isLoading={actionLoading?.id === r.id && actionLoading.type === 'no-show'}
                 disabled={isActionLoading}
                 onClick={() => handleNoShow(r.id)}
                 className="text-neutral-400 hover:text-amber-600"
               >
-                No-Show
+                {actionLoading?.id === r.id && actionLoading.type === 'no-show' ? 'Marking...' : 'No-Show'}
               </Button>
             </div>
           )
@@ -276,6 +281,7 @@ export function ReservationsPage() {
           data={filteredReservations}
           keyExtractor={(r) => r.id}
           isLoading={loading}
+          loadingLabel="Loading reservations..."
           emptyMessage="No reservations found matching your criteria."
         />
       </div>

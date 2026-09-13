@@ -248,6 +248,7 @@ export function GuestsPage() {
           data={filteredGuests}
           keyExtractor={(g) => g.id}
           isLoading={loading}
+          loadingLabel="Loading guest records..."
           emptyMessage="No guests found matching your search."
         />
       </div>
@@ -333,7 +334,7 @@ export function GuestsPage() {
             </Button>
             <Button variant="primary" type="submit" isLoading={formLoading} className="gap-2">
               <UserCheck className="w-4 h-4" />
-              Register Profile
+              {formLoading ? 'Saving guest...' : 'Register Profile'}
             </Button>
           </div>
         </form>

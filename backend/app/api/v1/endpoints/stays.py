@@ -54,6 +54,7 @@ async def check_out_stay(
 			user_id=current_user.id,
 			now=datetime.now(timezone.utc),
 			penalty_amount=payload.penalty_amount if payload else None,
+			actual_checkout_at=payload.actual_checkout_at if payload else None,
 		)
 	except (ResourceNotFoundError, InvalidTransitionError) as exc:
 		raise stay_error(exc) from exc

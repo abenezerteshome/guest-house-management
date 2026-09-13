@@ -406,7 +406,7 @@ export function ReservationModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <Calendar className="w-4 h-4" />
-            Confirm Reservation
+            {loading ? 'Creating reservation...' : 'Confirm Reservation'}
           </Button>
         </div>
       </form>

@@ -143,7 +143,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <Building className="w-4 h-4" />
-            Create Room
+            {loading ? 'Creating room...' : 'Create Room'}
           </Button>
         </div>
       </form>

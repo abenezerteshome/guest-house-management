@@ -16,10 +16,16 @@ export async function checkInReservation(reservation_id: number): Promise<Stay> 
   return res.data
 }
 
-export async function checkOutStay(stay_id: number, penalty_amount?: number): Promise<Stay> {
+export async function checkOutStay(
+  stay_id: number,
+  penalty_amount?: number,
+  actual_checkout_at?: string
+): Promise<Stay> {
   const res = await api.post<Stay>(
     `/stays/${stay_id}/check-out`,
-    penalty_amount !== undefined ? { penalty_amount } : undefined
+    penalty_amount !== undefined || actual_checkout_at !== undefined
+      ? { penalty_amount, actual_checkout_at }
+      : undefined
   )
   return res.data
 }
