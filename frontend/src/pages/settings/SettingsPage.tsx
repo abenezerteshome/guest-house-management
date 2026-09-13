@@ -179,7 +179,7 @@ export function SettingsPage() {
           <div className="flex justify-end pt-2">
             <Button variant="primary" type="submit" isLoading={saving} className="gap-2">
               <Save className="w-4 h-4" />
-              Save Configuration
+              {saving ? 'Saving configuration...' : 'Save Configuration'}
             </Button>
           </div>
         ) : (

@@ -297,6 +297,7 @@ export function StaysPage() {
           data={filteredStays}
           keyExtractor={(s) => s.id}
           isLoading={loading}
+          loadingLabel="Loading guest stays..."
           emptyMessage="No guest stays found matching this view."
         />
       </div>

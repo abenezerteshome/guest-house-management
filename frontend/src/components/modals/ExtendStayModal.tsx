@@ -300,7 +300,11 @@ export function ExtendStayModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <CalendarPlus className="w-4 h-4" />
-            {paymentOption === 'PAY_NOW' ? 'Confirm Extension & Payment' : 'Confirm Extension on Credit'}
+            {loading
+              ? 'Extending stay...'
+              : paymentOption === 'PAY_NOW'
+              ? 'Confirm Extension & Payment'
+              : 'Confirm Extension on Credit'}
           </Button>
         </div>
       </form>

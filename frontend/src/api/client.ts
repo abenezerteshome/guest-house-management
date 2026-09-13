@@ -52,6 +52,9 @@ export function getApiError(error: unknown, fallback = 'Something went wrong. Pl
 api.interceptors.response.use(undefined, (error) => {
   if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
     clearSession()
+    if (window.location.pathname !== '/login') {
+      window.location.replace('/login?session=expired')
+    }
   }
   return Promise.reject(error)
 })

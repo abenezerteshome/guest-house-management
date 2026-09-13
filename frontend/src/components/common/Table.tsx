@@ -20,6 +20,7 @@ export interface TableProps<T> {
   keyExtractor?: (item: T, index: number) => string | number
   onRowClick?: (item: T) => void
   isLoading?: boolean
+  loadingLabel?: string
   className?: string
 }
 
@@ -30,6 +31,7 @@ export function Table<T>({
   keyExtractor,
   onRowClick,
   isLoading = false,
+  loadingLabel = 'Loading data...',
   className = '',
 }: TableProps<T>) {
   return (
@@ -66,7 +68,7 @@ export function Table<T>({
                 >
                   <div className="flex items-center justify-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin text-[#FF385C]" />
-                    <span>Loading data...</span>
+                    <span>{loadingLabel}</span>
                   </div>
                 </td>
               </tr>

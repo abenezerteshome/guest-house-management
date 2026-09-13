@@ -172,7 +172,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <ReceiptText className="w-4 h-4" />
-            Record Expense
+            {loading ? 'Saving expense...' : 'Record Expense'}
           </Button>
         </div>
       </form>

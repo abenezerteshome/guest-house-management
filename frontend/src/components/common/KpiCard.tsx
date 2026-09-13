@@ -1,5 +1,6 @@
 import { isValidElement, type ReactNode, type ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import { Skeleton } from './StatePanel'
 
 export interface KpiCardProps {
   label?: string
@@ -10,6 +11,7 @@ export interface KpiCardProps {
   icon: LucideIcon | ReactNode
   tone?: 'success' | 'warning' | 'danger' | 'accent' | 'neutral'
   badge?: ReactNode
+  loading?: boolean
   className?: string
 }
 
@@ -22,6 +24,7 @@ export function KpiCard({
   icon,
   tone = 'neutral',
   badge,
+  loading = false,
   className = '',
 }: KpiCardProps) {
   const displayLabel = label || title || ''
@@ -59,15 +62,23 @@ export function KpiCard({
         </div>
       </div>
       <div className="mt-4 mb-1 flex items-baseline gap-2">
-        <strong className="text-2xl font-semibold text-[#222222] tracking-tight">
-          {value}
-        </strong>
-        {badge}
+        {loading ? (
+          <Skeleton className="h-8 w-28 rounded-lg" />
+        ) : (
+          <>
+            <strong className="text-2xl font-semibold text-[#222222] tracking-tight">
+              {value}
+            </strong>
+            {badge}
+          </>
+        )}
       </div>
       {displayDetail && (
-        <p className="text-xs text-[#717171] leading-normal font-normal">
-          {displayDetail}
-        </p>
+        loading ? <Skeleton className="h-3 w-36 rounded" /> : (
+          <p className="text-xs text-[#717171] leading-normal font-normal">
+            {displayDetail}
+          </p>
+        )
       )}
     </div>
   )

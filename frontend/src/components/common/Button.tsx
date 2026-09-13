@@ -58,6 +58,8 @@ export function Button({
   return (
     <button
       disabled={disabled || isSpinning}
+      aria-busy={isSpinning || undefined}
+      aria-disabled={disabled || isSpinning || undefined}
       className={`${baseStyles} ${roundedStyles} ${sizeStyles} ${variantStyles} ${className}`}
       {...props}
     >
