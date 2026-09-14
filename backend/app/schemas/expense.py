@@ -8,6 +8,7 @@ from app.models.expense import ExpenseCategory, ExpensePaymentMethod
 
 class ExpenseBase(BaseModel):
 	category: ExpenseCategory
+	reason: str | None = Field(default=None, min_length=1, max_length=120)
 	description: str = Field(min_length=1)
 	amount: Decimal = Field(gt=Decimal("0.00"), decimal_places=2)
 	payment_method: ExpensePaymentMethod = ExpensePaymentMethod.CASH
@@ -23,6 +24,7 @@ class ExpenseRead(BaseModel):
 
 	id: int
 	category: str
+	reason: str
 	description: str
 	amount: Decimal
 	payment_method: str

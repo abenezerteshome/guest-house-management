@@ -34,6 +34,7 @@ export function ExpensesPage() {
     const q = search.toLowerCase()
     return (
       e.description.toLowerCase().includes(q) ||
+      (e.reason || '').toLowerCase().includes(q) ||
       e.category.toLowerCase().includes(q) ||
       e.payment_method.toLowerCase().includes(q) ||
       String(e.id).includes(q)
@@ -60,10 +61,22 @@ export function ExpensesPage() {
     },
     {
       key: 'category',
-      header: 'Category',
+      header: 'Expense Type',
       render: (e) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-neutral-100 text-neutral-800 border border-neutral-200">
           {e.category}
+        </span>
+      ),
+    },
+    {
+      key: 'reason',
+      header: 'Reason',
+      render: (e) => (
+        <span className="text-xs font-semibold text-neutral-800">
+          {(e.reason || 'Not specified')
+            .toLowerCase()
+            .replaceAll('_', ' ')
+            .replace(/\b\w/g, (letter) => letter.toUpperCase())}
         </span>
       ),
     },
@@ -101,6 +114,7 @@ export function ExpensesPage() {
     <div className="space-y-6">
       <PageHeader
         title="Operational Expenses"
+        subtitle="Track what was spent, why it was needed, and how it was paid."
         action={
           <Button
             variant="primary"
@@ -117,7 +131,7 @@ export function ExpensesPage() {
       {/* Search */}
       <div className="w-full sm:w-80">
         <Input
-          placeholder="Search description, category, or payment method..."
+          placeholder="Search type, reason, details, or payment method..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

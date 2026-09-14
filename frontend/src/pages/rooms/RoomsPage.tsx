@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, KeyRound, CalendarPlus, LogIn, LogOut, UserCheck } from 'lucide-react'
+import { Plus, CalendarPlus, LogIn, LogOut, UserCheck } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -9,6 +9,8 @@ import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
 import { AddRoomModal } from '../../components/modals/AddRoomModal'
+import { EditRoomModal } from '../../components/modals/EditRoomModal'
+import { ConfirmDeleteModal } from '../../components/modals/ConfirmDeleteModal'
 import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
@@ -24,15 +26,20 @@ export function RoomsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED'>('ALL')
 
   // Modals state
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
   const [addRoomOpen, setAddRoomOpen] = useState(false)
+  const [editRoomOpen, setEditRoomOpen] = useState(false)
+  const [deleteRoomOpen, setDeleteRoomOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [selectedStay, setSelectedStay] = useState<Stay | null>(null)
+  const [selectedRoomToEdit, setSelectedRoomToEdit] = useState<Room | null>(null)
+  const [selectedRoomToDelete, setSelectedRoomToDelete] = useState<Room | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -61,10 +68,13 @@ export function RoomsPage() {
   const expectedRooms = rooms.filter((r) => r.status === 'EXPECTED')
 
   const filteredRooms = rooms.filter((r) => {
-    return (
+    const matchesSearch =
       r.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.room_type.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      r.status === statusFilter
+    return matchesSearch && matchesStatus
   })
 
   function handleRoomCheckIn(roomId: number) {
@@ -91,12 +101,22 @@ export function RoomsPage() {
     }
   }
 
+  function handleEditRoom(room: Room) {
+    setSelectedRoomToEdit(room)
+    setEditRoomOpen(true)
+  }
+
+  function handleDeleteRoom(room: Room) {
+    setSelectedRoomToDelete(room)
+    setDeleteRoomOpen(true)
+  }
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
-        title="Room Status Board"
+        title="Rooms"
+        subtitle="Monitor availability, arrivals, and active stays."
         action={
           <div className="flex items-center gap-2.5">
             {isAdmin && (
@@ -110,35 +130,59 @@ export function RoomsPage() {
                 Add Room
               </Button>
             )}
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setSelectedRoomId(undefined)
-                setSelectedReservation(null)
-                setCheckInOpen(true)
-              }}
-              className="gap-1.5"
-            >
-              <KeyRound className="w-3.5 h-3.5" />
-              Check In Guest
-            </Button>
           </div>
         }
       />
 
-      {/* Search input */}
-      <div className="w-full sm:w-80">
-        <Input
-          placeholder="Search room # or type..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        {[
+          { label: 'Total rooms', value: rooms.length, detail: 'Across the property' },
+          { label: 'Available', value: availableRooms.length, detail: 'Ready for check-in' },
+          { label: 'Occupied', value: occupiedRooms.length, detail: 'Active stays' },
+          { label: 'Arriving today', value: expectedRooms.length, detail: 'Expected guests' },
+        ].map((item) => (
+          <div key={item.label} className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
+            <span className="text-[11px] text-neutral-500">{item.label}</span>
+            <strong className="block text-xl font-bold text-neutral-900 mt-0.5">{item.value}</strong>
+            <span className="text-[10px] text-neutral-500">{item.detail}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="w-full sm:w-80">
+          <Input
+            placeholder="Search room or room type..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {[
+            { id: 'ALL' as const, label: 'All rooms', count: rooms.length },
+            { id: 'AVAILABLE' as const, label: 'Available', count: availableRooms.length },
+            { id: 'OCCUPIED' as const, label: 'Occupied', count: occupiedRooms.length },
+            { id: 'EXPECTED' as const, label: 'Arriving', count: expectedRooms.length },
+          ].map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setStatusFilter(filter.id)}
+              className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                statusFilter === filter.id
+                  ? 'border border-neutral-200 bg-white text-neutral-900 shadow-xs'
+                  : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900'
+              }`}
+            >
+              {filter.label} {filter.count}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Room Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {[1, 2, 3, 4, 5, 6].map((n) => (
             <div
               key={n}
@@ -158,11 +202,23 @@ export function RoomsPage() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filteredRooms.map((room) => {
             const isAvailable = room.status === 'AVAILABLE'
             const isOccupied = room.status === 'OCCUPIED'
             const isExpected = room.status === 'EXPECTED'
+
+            const stay = activeStays.find((s) => s.room_id === room.id && s.status === 'CHECKED_IN')
+            const res = reservations.find(
+              (r) => r.room_id === room.id && (r.status === 'RESERVED' || r.status === 'PENDING')
+            )
+
+            const guestName =
+              (stay as any)?.guest?.full_name ||
+              (stay as any)?.guest_name ||
+              (res as any)?.guest?.full_name ||
+              (res as any)?.guest_name
+            const hasCredit = Boolean((stay as any)?.has_credit || (stay as any)?.balance > 0)
 
             return (
               <RoomCard
@@ -176,7 +232,14 @@ export function RoomsPage() {
                   status: room.status,
                   availableAfter: room.available_after,
                   bedType: 'Comfort Bed',
+                  guestName,
+                  hasCredit,
+                  expectedCheckout: stay?.expected_checkout,
+                  expectedArrival: res?.expected_arrival,
                 }}
+                isAdmin={isAdmin}
+                onEdit={() => handleEditRoom(room)}
+                onDelete={() => handleDeleteRoom(room)}
                 actionSlot={
                   <div className="flex items-center gap-1.5 w-full">
                     {isAvailable && (
@@ -295,6 +358,34 @@ export function RoomsPage() {
       <AddRoomModal
         isOpen={addRoomOpen}
         onClose={() => setAddRoomOpen(false)}
+        onSuccess={() => {
+          fetchData()
+        }}
+      />
+
+      <EditRoomModal
+        isOpen={editRoomOpen}
+        onClose={() => {
+          setEditRoomOpen(false)
+          setSelectedRoomToEdit(null)
+        }}
+        room={selectedRoomToEdit}
+        onSuccess={() => {
+          fetchData()
+        }}
+        onDeleteRequest={(r) => {
+          setSelectedRoomToDelete(r)
+          setDeleteRoomOpen(true)
+        }}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteRoomOpen}
+        onClose={() => {
+          setDeleteRoomOpen(false)
+          setSelectedRoomToDelete(null)
+        }}
+        room={selectedRoomToDelete}
         onSuccess={() => {
           fetchData()
         }}

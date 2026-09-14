@@ -117,6 +117,7 @@ export interface FinancialSummary {
 export interface Expense {
   id: number
   category: string
+  reason?: string | null
   description: string
   amount: string
   payment_method: string

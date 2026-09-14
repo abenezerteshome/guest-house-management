@@ -18,6 +18,7 @@ async def create_expense(
 	expense_date = data.expense_date or datetime.now(timezone.utc)
 	expense = Expense(
 		category=data.category.value,
+		reason=data.reason or data.description,
 		description=data.description,
 		amount=data.amount,
 		payment_method=data.payment_method.value,

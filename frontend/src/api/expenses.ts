@@ -12,6 +12,7 @@ export async function getExpenses(params?: {
 
 export async function createExpense(data: {
   category: string
+  reason?: string
   description: string
   amount: number | string
   payment_method: string

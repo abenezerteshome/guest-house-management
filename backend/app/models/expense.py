@@ -44,6 +44,7 @@ class Expense(Base):
 
 	id: Mapped[int] = mapped_column(primary_key=True)
 	category: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+	reason: Mapped[str] = mapped_column(String(120), nullable=False)
 	description: Mapped[str] = mapped_column(Text, nullable=False)
 	amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 	payment_method: Mapped[str] = mapped_column(

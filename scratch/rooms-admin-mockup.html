@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rooms Admin Mockup</title>
+  <style>
+    :root {
+      --ink: #202326;
+      --muted: #73777d;
+      --line: #e3e5e8;
+      --surface: #ffffff;
+      --canvas: #f5f6f7;
+      --accent: #d94f61;
+      --accent-soft: #fbecef;
+      --green: #39735d;
+      --green-soft: #edf6f1;
+      --amber: #956b2d;
+      --amber-soft: #faf4e7;
+      --red: #a64a4a;
+      --red-soft: #fbefef;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-width: 1000px;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .app { display: flex; min-height: 760px; }
+    .sidebar {
+      width: 224px;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      padding: 22px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    .brand { display: flex; gap: 10px; align-items: center; padding: 0 10px 27px; }
+    .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; }
+    .brand strong { display: block; font-size: 14px; }
+    .brand small { color: var(--muted); font-size: 10px; }
+    .nav-title { color: #92969b; font-size: 10px; letter-spacing: .11em; text-transform: uppercase; font-weight: 800; padding: 0 11px 8px; }
+    .nav { display: grid; gap: 3px; }
+    .nav a { color: #555a60; text-decoration: none; padding: 10px 11px; border-radius: 7px; display: flex; gap: 11px; align-items: center; }
+    .nav a.active { color: var(--ink); background: var(--accent-soft); font-weight: 700; }
+    .nav a.active b { color: var(--accent); }
+    .nav b { color: #8f9499; font-size: 15px; width: 16px; text-align: center; }
+    .spacer { flex: 1; }
+    .profile { border-top: 1px solid var(--line); padding: 16px 10px 0; display: flex; gap: 9px; align-items: center; }
+    .avatar { width: 28px; height: 28px; border-radius: 50%; background: #303438; color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+    .profile strong { display: block; font-size: 11px; }
+    .profile small { color: var(--muted); font-size: 10px; }
+    .main { flex: 1; min-width: 0; }
+    .topbar { height: 64px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 30px; }
+    .crumb { color: var(--muted); font-size: 12px; }
+    .crumb strong { color: var(--ink); font-size: 13px; margin-right: 8px; }
+    .user { border: 1px solid var(--line); border-radius: 7px; padding: 7px 10px; display: flex; align-items: center; gap: 8px; font-size: 11px; }
+    .content { max-width: 1180px; margin: 0 auto; padding: 31px 30px 50px; }
+    .heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+    h1 { margin: 0; font-size: 27px; letter-spacing: -.03em; }
+    .heading p { color: var(--muted); margin: 5px 0 0; }
+    .actions { display: flex; gap: 8px; }
+    button { border: 0; border-radius: 6px; padding: 9px 13px; font: inherit; font-size: 12px; font-weight: 700; }
+    .button-secondary { color: var(--ink); background: var(--surface); border: 1px solid #cfd3d7; }
+    .button-primary { color: white; background: var(--ink); }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 22px 0; }
+    .summary-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+    .summary-card span { color: var(--muted); font-size: 11px; }
+    .summary-card strong { display: block; font-size: 24px; margin-top: 4px; }
+    .summary-card small { color: var(--muted); font-size: 10px; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .search { background: var(--surface); border: 1px solid #cfd3d7; border-radius: 6px; padding: 10px 12px; width: 270px; color: var(--muted); }
+    .filters { display: flex; gap: 6px; }
+    .filter { color: var(--muted); background: transparent; border: 1px solid transparent; padding: 7px 10px; }
+    .filter.active { color: var(--ink); background: var(--surface); border-color: var(--line); }
+    .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .room { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-height: 190px; padding: 15px; display: flex; flex-direction: column; }
+    .room.occupied { border-left: 3px solid #d9828d; }
+    .room.expected { border-left: 3px solid #d4ad61; }
+    .room-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .room-number { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 800; color: var(--muted); }
+    .status { border-radius: 999px; padding: 3px 7px; font-size: 10px; font-weight: 800; }
+    .available .status { color: var(--green); background: var(--green-soft); }
+    .occupied .status { color: var(--red); background: var(--red-soft); }
+    .expected .status { color: var(--amber); background: var(--amber-soft); }
+    .room h2 { margin: 17px 0 1px; font-size: 16px; }
+    .room p { margin: 0; color: var(--muted); font-size: 11px; }
+    .price { margin-top: 16px; font-size: 18px; font-weight: 800; }
+    .price small { color: var(--muted); font-size: 10px; font-weight: 500; }
+    .guest { margin-top: 12px; padding: 8px 9px; background: #fafafa; border: 1px solid var(--line); border-radius: 6px; font-size: 11px; }
+    .guest span { display: block; color: var(--muted); font-size: 10px; }
+    .room-actions { margin-top: auto; padding-top: 15px; display: flex; gap: 7px; }
+    .room-actions button { flex: 1; padding: 7px 4px; font-size: 10px; }
+    .room-actions .primary { color: #fff; background: var(--accent); }
+    .room-actions .outline { color: #4e5358; background: #fff; border: 1px solid #d7dade; }
+    @media (max-width: 1100px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">H</div><div><strong>Haven House</strong><small>Guest House Management</small></div></div>
+      <div class="nav-title">Operations</div>
+      <nav class="nav">
+        <a href="#"><b>▦</b>Daily Logbook</a>
+        <a href="#"><b>□</b>Reservations</a>
+        <a href="#"><b>♙</b>Guests</a>
+        <a href="#"><b>₿</b>Expenses</a>
+      </nav>
+      <div class="nav-title" style="margin-top:28px">Management</div>
+      <nav class="nav">
+        <a class="active" href="#"><b>▤</b>Rooms</a>
+        <a href="#"><b>≡</b>Stay History</a>
+        <a href="#"><b>▥</b>Reports</a>
+        <a href="#"><b>⚙</b>Settings</a>
+      </nav>
+      <div class="spacer"></div>
+      <div class="profile"><div class="avatar">SA</div><div><strong>System Administrator</strong><small>Administrator</small></div></div>
+    </aside>
+    <main class="main">
+      <header class="topbar"><div class="crumb"><strong>Rooms</strong> / &nbsp;Mon, Sep 14, 2026</div><div class="user"><div class="avatar">SA</div>System Administrator &nbsp;⌄</div></header>
+      <section class="content">
+        <div class="heading"><div><h1>Rooms</h1><p>Monitor availability, arrivals, and active stays.</p></div><div class="actions"><button class="button-secondary">＋ Add room</button><button class="button-primary">↪ Check in guest</button></div></div>
+        <div class="summary">
+          <div class="summary-card"><span>Total rooms</span><strong>9</strong><small>Across the property</small></div>
+          <div class="summary-card"><span>Available</span><strong>6</strong><small>Ready for check-in</small></div>
+          <div class="summary-card"><span>Occupied</span><strong>2</strong><small>Active stays</small></div>
+          <div class="summary-card"><span>Arriving today</span><strong>1</strong><small>Expected guests</small></div>
+        </div>
+        <div class="toolbar"><div class="search">⌕ &nbsp; Search room or room type</div><div class="filters"><button class="filter active">All rooms</button><button class="filter">Available 6</button><button class="filter">Occupied 2</button><button class="filter">Arriving 1</button></div></div>
+        <div class="grid">
+          <article class="room available"><div class="room-head"><div class="room-number">Room 101</div><span class="status">Available</span></div><h2>Single Room</h2><p>Comfort Bed · Standard Occupancy</p><div class="price">2,000 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Reserve</button><button class="primary">Check in</button></div></article>
+          <article class="room available"><div class="room-head"><div class="room-number">Room 102</div><span class="status">Available</span></div><h2>Standard Double</h2><p>Comfort Bed · Standard Occupancy</p><div class="price">4,000 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Reserve</button><button class="primary">Check in</button></div></article>
+          <article class="room expected"><div class="room-head"><div class="room-number">Room 103</div><span class="status">Arriving today</span></div><h2>Standard Double</h2><p>Comfort Bed · Standard Occupancy</p><div class="guest"><span>Expected guest</span>Reservation confirmed</div><div class="price">2,000 <small>ETB / night</small></div><div class="room-actions"><button class="primary">Check in guest</button></div></article>
+          <article class="room occupied"><div class="room-head"><div class="room-number">Suite A</div><span class="status">Occupied</span></div><h2>Single Room</h2><p>Comfort Bed · Standard Occupancy</p><div class="guest"><span>Checked-in guest</span>Active stay · Paid</div><div class="price">1,800 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Manage checkout</button></div></article>
+          <article class="room available"><div class="room-head"><div class="room-number">Suite B</div><span class="status">Available</span></div><h2>Twin Bed Room</h2><p>Comfort Bed · Standard Occupancy</p><div class="price">5,000 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Reserve</button><button class="primary">Check in</button></div></article>
+          <article class="room occupied"><div class="room-head"><div class="room-number">Suite C</div><span class="status">Occupied</span></div><h2>Master Penthouse</h2><p>Comfort Bed · Standard Occupancy</p><div class="guest"><span>Checked-in guest</span>Active stay · Payment due</div><div class="price">12,000 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Manage checkout</button></div></article>
+          <article class="room available"><div class="room-head"><div class="room-number">Suite D</div><span class="status">Available</span></div><h2>Single Room</h2><p>Comfort Bed · Standard Occupancy</p><div class="price">1,800 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Reserve</button><button class="primary">Check in</button></div></article>
+          <article class="room available"><div class="room-head"><div class="room-number">Suite E</div><span class="status">Available</span></div><h2>Standard Double</h2><p>Comfort Bed · Standard Occupancy</p><div class="price">2,000 <small>ETB / night</small></div><div class="room-actions"><button class="outline">Reserve</button><button class="primary">Check in</button></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
