@@ -3,6 +3,7 @@ import { Calendar, AlertCircle, Building2 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
+import { toLocalDatetimeInput, todayLocalDateString } from '../../utils/dateUtils'
 import type { Room, Guest } from '../../types/api'
 import { getGuests, createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
@@ -45,13 +46,13 @@ export function ReservationModal({
   const [arrivalDate, setArrivalDate] = useState(() => {
     const now = new Date()
     now.setHours(14, 0, 0, 0)
-    return now.toISOString().slice(0, 16)
+    return toLocalDatetimeInput(now)
   })
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(11, 0, 0, 0)
-    return tomorrow.toISOString().slice(0, 16)
+    return toLocalDatetimeInput(tomorrow)
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -270,7 +271,7 @@ export function ReservationModal({
               type="datetime-local"
               required
               value={arrivalDate}
-              min={new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate()).toISOString().slice(0, 10) + 'T00:00'}
+              min={todayLocalDateString() + 'T00:00'}
               onChange={(e) => setArrivalDate(e.target.value)}
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />

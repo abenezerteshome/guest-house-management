@@ -11,6 +11,7 @@ import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import type { Stay } from '../../types/api'
 import { checkOutStay, getStayCharges, getStayPayments } from '../../api/stays'
+import { recordManualPayment } from '../../api/payments'
 import { getSettings } from '../../api/settings'
 import { getApiError } from '../../api/client'
 import { setRoomCleaning } from '../../utils/roomCleaning'
@@ -23,6 +24,8 @@ interface CheckOutModalProps {
   roomNumber?: string
   onSuccess: (checkedOutStay?: Stay | null) => void
 }
+
+type ReceivedViaMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'
 
 export function CheckOutModal({
   isOpen,
@@ -38,6 +41,7 @@ export function CheckOutModal({
   const [deadlineMinute, setDeadlineMinute] = useState<number>(0)
   const [penaltyRate, setPenaltyRate] = useState<number>(600)
   const [applyPenalty, setApplyPenalty] = useState<boolean>(false)
+  const [receivedVia, setReceivedVia] = useState<ReceivedViaMethod>('CASH')
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -56,6 +60,7 @@ export function CheckOutModal({
     setLoading(true)
     setError('')
     setApplyPenalty(false)
+    setReceivedVia('CASH')
 
     Promise.all([
       getStayCharges(stay.id),
@@ -142,6 +147,16 @@ export function CheckOutModal({
     try {
       const customPenalty = isLate ? (applyPenalty ? Number(penaltyRate) : 0) : 0
       await checkOutStay(stay.id, customPenalty)
+
+      if (totalToCollect > 0) {
+        await recordManualPayment({
+          stay_id: stay.id,
+          amount: totalToCollect,
+          payment_method: receivedVia,
+          reference: `Checkout settlement (${receivedVia})`,
+        })
+      }
+
       setRoomCleaning(stay.room_id)
       onSuccess(stay)
       onClose()
@@ -254,6 +269,29 @@ export function CheckOutModal({
                   : '(late penalty)'}
               </span>
             </div>
+          </div>
+        )}
+
+        {!loading && totalToCollect > 0 && (
+          <div className="p-3.5 rounded-2xl bg-white border border-neutral-200 space-y-2">
+            <label htmlFor="checkout-received-via" className="block text-xs font-bold text-neutral-800">
+              Received Via
+            </label>
+            <select
+              id="checkout-received-via"
+              value={receivedVia}
+              onChange={(e) => setReceivedVia(e.target.value as ReceivedViaMethod)}
+              disabled={submitting}
+              className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 focus:outline-none focus:border-neutral-900"
+            >
+              <option value="CASH">Cash</option>
+              <option value="TELEBIRR">Telebirr</option>
+              <option value="CBE_BIRR">CBE Birr</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+            </select>
+            <p className="text-[11px] text-neutral-500">
+              This checkout collection will be recorded via {receivedVia === 'CBE_BIRR' ? 'CBE Birr' : receivedVia === 'BANK_TRANSFER' ? 'Bank Transfer' : receivedVia === 'TELEBIRR' ? 'Telebirr' : 'Cash'}.
+            </p>
           </div>
         )}
 
