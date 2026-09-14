@@ -46,7 +46,13 @@ export function toLocalDatetimeInput(date: Date): string {
  * Safe to use as the `min` attribute on <input type="date">.
  */
 export function todayLocalDateString(): string {
-  const now = new Date()
+  return toLocalDateStr(new Date())
+}
+
+/**
+ * Formats a Date object to "YYYY-MM-DD" in local time.
+ */
+export function toLocalDateStr(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }

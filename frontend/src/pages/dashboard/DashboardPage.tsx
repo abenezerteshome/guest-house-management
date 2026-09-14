@@ -4,13 +4,11 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
-  KeyRound,
   LogOut,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { Button } from '../../components/common/Button'
 import { Modal } from '../../components/common/Modal'
 import { KpiCard } from '../../components/common/KpiCard'
 import { LoadingState } from '../../components/common/StatePanel'
@@ -45,6 +43,7 @@ export function DashboardPage() {
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeStays, setActiveStays] = useState<StayWithGuest[]>([])
+  const [recentStays, setRecentStays] = useState<StayWithGuest[]>([])
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [checkingInRoomId, setCheckingInRoomId] = useState<number | null>(null)
@@ -62,10 +61,11 @@ export function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     setLoading(true)
     try {
-      const [reportData, roomsData, staysData, resData, guestsData] = await Promise.all([
+      const [reportData, roomsData, staysData, checkedOutData, resData, guestsData] = await Promise.all([
         isAdmin ? getDailyReport().catch(() => null) : Promise.resolve(null),
         getRooms(),
         getStays('CHECKED_IN').catch(() => []),
+        getStays('CHECKED_OUT').catch(() => []),
         getReservations('RESERVED').catch(() => []),
         getGuests().catch(() => []),
       ])
@@ -96,6 +96,14 @@ export function DashboardPage() {
         guest: guestMap.get(s.guest_id),
       }))
       setActiveStays(enrichedStays)
+
+      // Enrich all checked-out stays for full historical visibility in the logbook
+      const enrichedCheckedOut: StayWithGuest[] = checkedOutData.map((s) => ({
+        ...s,
+        guest: guestMap.get(s.guest_id),
+      }))
+      setRecentStays(enrichedCheckedOut)
+
       setReservations(resData)
     } catch (err) {
       console.error('Failed to load dashboard data:', err)
@@ -113,31 +121,14 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        {isAdmin ? (
+      {/* Header Title (Admin only) */}
+      {isAdmin && (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <h1 className="text-2xl font-bold text-[#222222] tracking-tight">
             Guest House Overview
           </h1>
-        ) : (
-          <div />
-        )}
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <Button
-            variant="primary"
-            size="md"
-            leftIcon={<KeyRound size={16} />}
-            onClick={() => {
-              setSelectedRoomId(undefined)
-              setSelectedReservation(null)
-              setCheckInOpen(true)
-            }}
-          >
-            + Check In Guest
-          </Button>
         </div>
-      </div>
+      )}
 
       {/* KPI Cards Grid — Visible strictly to Administrator */}
       {isAdmin && (
@@ -237,6 +228,7 @@ export function DashboardPage() {
         <LogbookSheet
           rooms={rooms}
           stays={activeStays}
+          recentStays={recentStays}
           reservations={reservations}
           checkingInRoomId={checkingInRoomId}
           onCheckInRoom={(roomId, res) => {

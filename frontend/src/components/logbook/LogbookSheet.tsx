@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Plus,
   CreditCard,
@@ -6,10 +6,14 @@ import {
   Smartphone,
   Building2,
   LogOut,
+  BedDouble,
   CalendarDays,
   CalendarCheck,
   SprayCan,
   Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
 } from 'lucide-react'
 import { getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
 import { clearRoomCleaning } from '../../utils/roomCleaning'
@@ -19,6 +23,8 @@ import { Modal } from '../common/Modal'
 interface LogbookSheetProps {
   rooms: Room[]
   stays: Stay[]
+  /** CHECKED_OUT stays — used to render logbook history on past columns */
+  recentStays?: Stay[]
   reservations: Reservation[]
   onCheckInRoom: (roomId: number, reservation?: Reservation) => void
   checkingInRoomId?: number | null
@@ -53,6 +59,7 @@ function formatCountdown(ms: number): string {
 export function LogbookSheet({
   rooms,
   stays,
+  recentStays = [],
   reservations,
   onCheckInRoom,
   checkingInRoomId = null,
@@ -60,13 +67,74 @@ export function LogbookSheet({
   onExtendStay,
   onRefresh,
 }: LogbookSheetProps) {
-  // Calendar Start Date
-  const [startDate] = useState<Date>(() => {
-    const d = new Date()
+  // Current month being viewed (defaults to current calendar month)
+  const [currentMonthDate, setCurrentMonthDate] = useState<Date>(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+
+  // Calendar: start from day 1 of the selected month
+  const startDate = useMemo(() => {
+    const d = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1)
     d.setHours(0, 0, 0, 0)
     return d
-  })
-  const [daysCount] = useState(7) // 7-day rolling window
+  }, [currentMonthDate])
+
+  // Number of days in the selected month
+  const daysCount = useMemo(() => {
+    return new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth() + 1, 0).getDate()
+  }, [currentMonthDate])
+
+  const monthName = useMemo(() => {
+    return currentMonthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }, [currentMonthDate])
+
+  const isViewingCurrentMonth = useMemo(() => {
+    const now = new Date()
+    return (
+      currentMonthDate.getFullYear() === now.getFullYear() &&
+      currentMonthDate.getMonth() === now.getMonth()
+    )
+  }, [currentMonthDate])
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const todayHeaderRef = useRef<HTMLTableCellElement>(null)
+
+  const handlePrevMonth = () => {
+    setCurrentMonthDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
+  }
+
+  const handleNextMonth = () => {
+    setCurrentMonthDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))
+  }
+
+  const handleJumpToToday = () => {
+    const now = new Date()
+    const firstOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    if (!isViewingCurrentMonth) {
+      setCurrentMonthDate(firstOfCurrentMonth)
+    }
+    setTimeout(() => {
+      if (todayHeaderRef.current && scrollContainerRef.current) {
+        const offsetLeft = todayHeaderRef.current.offsetLeft - 170
+        scrollContainerRef.current.scrollTo({
+          left: Math.max(0, offsetLeft),
+          behavior: 'smooth',
+        })
+      }
+    }, 50)
+  }
+
+  // Smooth scroll to today on initial mount if viewing the current month
+  useEffect(() => {
+    if (isViewingCurrentMonth && todayHeaderRef.current && scrollContainerRef.current) {
+      const offsetLeft = todayHeaderRef.current.offsetLeft - 170
+      scrollContainerRef.current.scrollTo({
+        left: Math.max(0, offsetLeft),
+        behavior: 'smooth',
+      })
+    }
+  }, [isViewingCurrentMonth, startDate])
   const [activeStayPopover, setActiveStayPopover] = useState<{
     stay: Stay
     room: Room
@@ -118,6 +186,8 @@ export function LogbookSheet({
         unpaidExtensionCredit: number
         unpaidExtensionNights: number
         paidExtensionNights: number
+        nightStatusMap?: Record<number, { isCredit: boolean; method: string }>
+        dateStatusMap?: Record<string, { isCredit: boolean; method: string }>
       }
     >
   >({})
@@ -203,6 +273,193 @@ export function LogbookSheet({
             extRate > 0 ? Math.min(totalExtNights, Math.round(unpaidExtensionCredit / extRate)) : 0
           const paidExtNights = Math.max(0, totalExtNights - unpaidExtNights)
 
+          // Compute transaction-aware night status
+          let matchedResOriginalNights = 0
+          if (s.reservation_id) {
+            const r = reservations.find((res) => res.id === s.reservation_id)
+            if (r?.expected_arrival && r?.expected_checkout) {
+              const arrStr = toLocalDateStr(new Date(r.expected_arrival))
+              const depStr = toLocalDateStr(new Date(r.expected_checkout))
+              const diff = getDayDiff(arrStr, depStr)
+              if (diff > 0) matchedResOriginalNights = diff
+            }
+          }
+
+          const sCheckInRaw = s.check_in_at || (s as any).check_in_date
+          const sCheckOutRaw = s.expected_checkout || (s as any).checkout_date
+          let totalStayDays = 1
+          if (sCheckInRaw && sCheckOutRaw) {
+            const d1 = toLocalDateStr(new Date(sCheckInRaw))
+            const d2 = toLocalDateStr(new Date(sCheckOutRaw))
+            const diff = getDayDiff(d1, d2)
+            if (diff > 0) totalStayDays = diff
+          }
+
+          const originalNights =
+            totalExtNights > 0
+              ? Math.max(1, totalStayDays - totalExtNights)
+              : matchedResOriginalNights > 0
+              ? matchedResOriginalNights
+              : totalStayDays
+
+          const isInitialCredit = Boolean(
+            initialRoomChargesTotal > 0 &&
+            (initialRoomPaid < initialRoomChargesTotal - 0.01 || initialMethod === 'CREDIT')
+          )
+
+          const dateStatusMap: Record<string, { isCredit: boolean; method: string }> = {}
+          const nightStatusMap: Record<number, { isCredit: boolean; method: string }> = {}
+
+          // 1. Initial Check-In Nights
+          const initialStatus = {
+            isCredit: isInitialCredit,
+            method: isInitialCredit ? 'CREDIT' : (initialMethod && initialMethod !== 'CREDIT' ? initialMethod : 'CASH'),
+          }
+
+          const sCheckInDate = sCheckInRaw ? new Date(sCheckInRaw) : new Date()
+          const checkInDateStr = toLocalDateStr(sCheckInDate)
+          const [inY, inM, inD] = checkInDateStr.split('-').map(Number)
+
+          for (let n = 1; n <= originalNights; n++) {
+            nightStatusMap[n] = initialStatus
+            const nD = new Date(inY, inM - 1, inD + (n - 1))
+            dateStatusMap[toLocalDateStr(nD)] = initialStatus
+          }
+
+          // 2. Extension Charges (chronologically sorted)
+          const sortedExtCharges = [...extCharges].sort((a, b) => {
+            const tA = new Date(a.charged_at || a.created_at).getTime()
+            const tB = new Date(b.charged_at || b.created_at).getTime()
+            return tA - tB || a.id - b.id
+          })
+
+          const usedPaymentIds = new Set<string | number>()
+          let curNight = originalNights + 1
+          let extCursorDate = new Date(inY, inM - 1, inD + originalNights)
+
+          for (const charge of sortedExtCharges) {
+            const desc = charge.description || ''
+            const matchN = desc.match(/(\d+)\s*night/i)
+            let chargeNights = matchN ? parseInt(matchN[1], 10) : (charge.quantity || 1)
+            if (chargeNights <= 0 && extRate > 0) {
+              chargeNights = Math.max(1, Math.round(Number(charge.amount || 0) / extRate))
+            }
+            if (chargeNights <= 0) chargeNights = 1
+
+            // Deterministic start & end date for this extension charge
+            const dateMatch = desc.match(/(\d{4}-\d{2}-\d{2})\s*(?:to|-)\s*(\d{4}-\d{2}-\d{2})/)
+            const chargeStartDate = dateMatch
+              ? (() => {
+                  const [y, m, d] = dateMatch[1].split('-').map(Number)
+                  return new Date(y, m - 1, d)
+                })()
+              : new Date(extCursorDate)
+
+            const fromStr = toLocalDateStr(chargeStartDate)
+            const chargeEndDate = new Date(
+              chargeStartDate.getFullYear(),
+              chargeStartDate.getMonth(),
+              chargeStartDate.getDate() + chargeNights
+            )
+            const toStr = toLocalDateStr(chargeEndDate)
+
+            // Explicit CREDIT or PAID tag in charge description
+            const isExplicitCredit = desc.toUpperCase().includes('CREDIT') || desc.toUpperCase().includes('ON CREDIT')
+            const isExplicitPaid = desc.toUpperCase().includes('PAID VIA') || desc.toUpperCase().includes('- PAID')
+
+            let extractedMethod: string | null = null
+            const methodMatch = desc.match(/PAID\s+via\s+([A-Z_]+)/i)
+            if (methodMatch) {
+              extractedMethod = methodMatch[1].toUpperCase()
+            }
+
+            // Find matching payment in extPayments
+            const matchingPayment = extPayments.find((p, idx) => {
+              const key = (p as any).id || `${(p as any).amount}_${idx}`
+              if (usedPaymentIds.has(key)) return false
+              const ref = (p.reference || '').toLowerCase()
+              const paymentDates: string[] = (p.reference || '').match(/\d{4}-\d{2}-\d{2}/g) || []
+
+              // If payment specifies date(s):
+              if (paymentDates.length > 0) {
+                // Must match fromStr or fall strictly within [fromStr, toStr)
+                const matchesDate =
+                  paymentDates.includes(fromStr) ||
+                  ref.includes(fromStr.toLowerCase()) ||
+                  paymentDates.some((pd) => pd >= fromStr && pd < toStr)
+                if (matchesDate) return true
+                // If it specifies dates but NONE match this charge, it belongs to another extension!
+                return false
+              }
+
+              // If payment has NO dates in reference:
+              if (isExplicitCredit) return false
+              if (ref.includes('credit')) return false
+
+              const chargeAmt = Number(charge.amount || 0) * (charge.quantity || 1)
+              const payAmt = Number(p.amount || 0)
+              if (Math.abs(chargeAmt - payAmt) < 0.01) return true
+
+              return false
+            })
+
+            let isCredit = false
+            let payMethod = 'CASH'
+
+            if (isExplicitCredit) {
+              isCredit = true
+              payMethod = 'CREDIT'
+            } else if (matchingPayment) {
+              const key = (matchingPayment as any).id || `${(matchingPayment as any).amount}_${extPayments.indexOf(matchingPayment)}`
+              usedPaymentIds.add(key)
+              isCredit = false
+              payMethod = matchingPayment.payment_method || extractedMethod || 'CASH'
+            } else if (isExplicitPaid) {
+              isCredit = false
+              payMethod = extractedMethod || 'CASH'
+            } else {
+              // No payment matching this extension's date/amount -> it's on CREDIT!
+              isCredit = true
+              payMethod = 'CREDIT'
+            }
+
+            const statusObj = { isCredit, method: payMethod }
+
+            for (let i = 0; i < chargeNights; i++) {
+              nightStatusMap[curNight + i] = statusObj
+              const nd = new Date(
+                chargeStartDate.getFullYear(),
+                chargeStartDate.getMonth(),
+                chargeStartDate.getDate() + i
+              )
+              dateStatusMap[toLocalDateStr(nd)] = statusObj
+            }
+
+            curNight += chargeNights
+            extCursorDate = new Date(chargeEndDate)
+          }
+
+          // 3. Fallback: Allocate any leftover unused extension payments to credit nights in order
+          // ONLY allocate unallocated payments that have NO specific date reference
+          const remainingPayments = extPayments.filter((p, idx) => {
+            const key = (p as any).id || `${(p as any).amount}_${idx}`
+            if (usedPaymentIds.has(key)) return false
+            const datesInRef: string[] = (p.reference || '').match(/\d{4}-\d{2}-\d{2}/g) || []
+            return datesInRef.length === 0
+          })
+          for (const remPay of remainingPayments) {
+            let remAmount = Number(remPay.amount) || 0
+            const payMethod = remPay.payment_method || 'CASH'
+            for (let n = originalNights + 1; n <= totalStayDays; n++) {
+              if (nightStatusMap[n]?.isCredit && remAmount >= extRate - 0.01) {
+                nightStatusMap[n] = { isCredit: false, method: payMethod }
+                const nD = new Date(inY, inM - 1, inD + (n - 1))
+                dateStatusMap[toLocalDateStr(nD)] = { isCredit: false, method: payMethod }
+                remAmount -= extRate
+              }
+            }
+          }
+
           return {
             stayId: s.id,
             balance,
@@ -217,6 +474,8 @@ export function LogbookSheet({
             unpaidExtensionCredit,
             unpaidExtensionNights: unpaidExtNights,
             paidExtensionNights: paidExtNights,
+            nightStatusMap,
+            dateStatusMap,
           }
         } catch {
           return null
@@ -239,6 +498,8 @@ export function LogbookSheet({
           unpaidExtensionCredit: number
           unpaidExtensionNights: number
           paidExtensionNights: number
+          nightStatusMap?: Record<number, { isCredit: boolean; method: string }>
+          dateStatusMap?: Record<string, { isCredit: boolean; method: string }>
         }
       > = {}
       for (const r of results) {
@@ -256,6 +517,8 @@ export function LogbookSheet({
             unpaidExtensionCredit: r.unpaidExtensionCredit,
             unpaidExtensionNights: r.unpaidExtensionNights,
             paidExtensionNights: r.paidExtensionNights,
+            nightStatusMap: r.nightStatusMap,
+            dateStatusMap: r.dateStatusMap,
           }
         }
       }
@@ -356,8 +619,35 @@ export function LogbookSheet({
     return null
   }
 
+  // Helper to look up a recently checked-out stay on a past date
+  const getHistoricalStayForRoomAndDate = (roomId: number, date: Date): {
+    stay: Stay
+    /** true  → guest checked out ON this exact date */
+    wasCheckoutDay: boolean
+  } | null => {
+    const targetStr = toLocalDateStr(date)
+    const matches: Array<{ stay: Stay; wasCheckoutDay: boolean }> = []
 
-  // Format date headers
+    for (const s of recentStays) {
+      if (s.room_id !== roomId) continue
+      if (s.status !== 'CHECKED_OUT') continue
+      const checkInRaw = s.check_in_at
+      const checkOutRaw = s.actual_checkout_at || s.expected_checkout
+      if (!checkInRaw || !checkOutRaw) continue
+      const checkInStr = toLocalDateStr(new Date(checkInRaw))
+      const checkOutStr = toLocalDateStr(new Date(checkOutRaw))
+      if (targetStr >= checkInStr && targetStr <= checkOutStr) {
+        matches.push({ stay: s, wasCheckoutDay: targetStr === checkOutStr })
+      }
+    }
+
+    if (matches.length === 0) return null
+    // Prioritize stays where the guest stayed overnight on this date over checkout day
+    const overnightStay = matches.find((m) => !m.wasCheckoutDay)
+    return overnightStay || matches[0]
+  }
+
+
   const formatDayHeader = (date: Date) => {
     const isToday = toLocalDateStr(date) === todayStr
     const dayName = date.toLocaleDateString('en-US', { weekday: 'short' })
@@ -410,9 +700,86 @@ export function LogbookSheet({
 
   return (
     <div className="space-y-3">
+      {/* Month Navigation & Toolbar */}
+      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition cursor-pointer"
+              title="Previous Month"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-2 px-2">
+              <Calendar className="w-4 h-4 text-[#FF385C]" />
+              <span className="text-base font-black text-neutral-900 tracking-tight">
+                {monthName}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-1.5 rounded-lg border border-neutral-200 hover:bg-neutral-100 text-neutral-600 transition cursor-pointer"
+              title="Next Month"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+            {daysCount} Days
+          </span>
+
+          {!isViewingCurrentMonth && (
+            <button
+              type="button"
+              onClick={handleJumpToToday}
+              className="text-xs font-bold text-[#FF385C] hover:underline cursor-pointer"
+            >
+              Return to Current Month
+            </button>
+          )}
+        </div>
+
+        {/* Legend & Jump to Today Button */}
+        <div className="flex items-center gap-4 flex-wrap text-xs text-neutral-600">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
+              Occupied
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FF385C] inline-block" />
+              Today
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+              Reserved
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
+              Past / Checked Out
+            </span>
+          </div>
+
+          {isViewingCurrentMonth && (
+            <button
+              type="button"
+              onClick={handleJumpToToday}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-rose-50 text-[#FF385C] border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1.5 cursor-pointer ml-auto md:ml-0"
+            >
+              <CalendarDays className="w-3.5 h-3.5" />
+              <span>Jump to Today</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Main Excel-Style Spreadsheet Table */}
       <div className="bg-white rounded-xl border border-neutral-300 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
+        <div ref={scrollContainerRef} className="overflow-x-auto">
           <table className="w-full border-separate border-spacing-0 text-left select-none border-t border-l border-neutral-300">
             {/* Header: Column labels */}
             <thead>
@@ -433,6 +800,7 @@ export function LogbookSheet({
                   return (
                     <th
                       key={idx}
+                      ref={isToday ? todayHeaderRef : undefined}
                       className={`p-2 min-w-[170px] border-b border-r border-neutral-300 text-center transition ${
                         isToday
                           ? 'bg-rose-50/70 border-t-2 border-t-[#FF385C]'
@@ -564,16 +932,20 @@ export function LogbookSheet({
                               initialMethod === 'CREDIT')
                         )
 
-                        // Is this specific night on credit?
-                        // Allocate payment to original nights first, then to extension nights.
-                        const isThisNightCredit = fin
+                        const dateStatus = fin?.dateStatusMap?.[dateStr]
+                        const nightStatus = dateStatus || fin?.nightStatusMap?.[nightNumber]
+                        const isThisNightCredit = nightStatus
+                          ? nightStatus.isCredit
+                          : fin
                           ? (nightNumber <= originalNights && isInitialCredit) ||
                             nightNumber > originalNights + paidExtNights
                           : Boolean((stay as any).has_credit && nightNumber > originalNights)
 
                         // Determine the payment method for this specific night
                         let cellPaymentMethod = 'CASH'
-                        if (isThisNightCredit) {
+                        if (nightStatus) {
+                          cellPaymentMethod = nightStatus.method
+                        } else if (isThisNightCredit) {
                           cellPaymentMethod = 'CREDIT'
                         } else if (nightNumber > originalNights) {
                           // Paid extension night: use extension payment method
@@ -730,13 +1102,80 @@ export function LogbookSheet({
                       }
 
 
-                      // Case 4: Vacant / Available Room (Check-in allowed for CURRENT DAY only)
-                      if (!isToday) {
+                      // Case 4: Vacant / Available Room
+                      // Past dates → show history from recentStays if available, else static
+                      // Today + future dates → interactive Check In button
+                      if (isPast) {
+                        const history = getHistoricalStayForRoomAndDate(room.id, colDate)
+                        if (history) {
+                          const { stay: hs, wasCheckoutDay } = history
+                          const guestName = (hs as any).guest?.full_name || `Guest #${hs.guest_id}`
+                          return (
+                            <td
+                              key={dayIdx}
+                              className={`border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch ${
+                                wasCheckoutDay ? 'bg-red-50/40' : 'bg-rose-50/30'
+                              }`}
+                            >
+                              <div
+                                className={`h-full w-full p-1.5 rounded border flex flex-col justify-between border-l-4 shadow-2xs ${
+                                  wasCheckoutDay
+                                    ? 'border-red-300 border-l-red-600 bg-red-50/95'
+                                    : 'border-rose-200 border-l-rose-500 bg-rose-50/85'
+                                }`}
+                              >
+                                {/* Top: status badge */}
+                                <div className="flex items-center justify-between gap-1">
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-tight ${
+                                      wasCheckoutDay ? 'text-red-700' : 'text-rose-700'
+                                    }`}
+                                  >
+                                    {wasCheckoutDay ? (
+                                      <LogOut className="w-2.5 h-2.5 text-red-600" />
+                                    ) : (
+                                      <BedDouble className="w-2.5 h-2.5 text-rose-600" />
+                                    )}
+                                    {wasCheckoutDay ? 'Checked Out' : 'Was Occupied'}
+                                  </span>
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded text-[9px] font-black border ${
+                                      wasCheckoutDay
+                                        ? 'bg-red-100 text-red-700 border-red-200'
+                                        : 'bg-rose-100 text-rose-700 border-rose-200'
+                                    }`}
+                                  >
+                                    {wasCheckoutDay ? 'Departed' : 'Stay'}
+                                  </span>
+                                </div>
+                                {/* Guest name */}
+                                <div
+                                  className={`text-[11px] font-bold truncate ${
+                                    wasCheckoutDay ? 'text-red-950' : 'text-rose-950'
+                                  }`}
+                                  title={guestName}
+                                >
+                                  {guestName}
+                                </div>
+                                {/* Room price */}
+                                <div
+                                  className={`text-[9px] font-bold ${
+                                    wasCheckoutDay ? 'text-red-700' : 'text-rose-700'
+                                  }`}
+                                >
+                                  {roomPrice} ETB
+                                </div>
+                              </div>
+                            </td>
+                          )
+                        }
+
+                        // Truly vacant past date
                         return (
                           <td
                             key={dayIdx}
                             className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-neutral-50/40 select-none"
-                            title={isPast ? `Past date (${dateStr}) — cannot check in retroactively` : `Future date (${dateStr}) — check-in is for current day only`}
+                            title={`Past date (${dateStr}) — cannot check in retroactively`}
                           >
                             <div className="h-full w-full rounded p-1 flex flex-col items-center justify-center text-center">
                               <span className="text-xs font-semibold text-neutral-300">
@@ -750,19 +1189,19 @@ export function LogbookSheet({
                         )
                       }
 
-                      // Current Day Vacant Cell: Interactive + Check In
+                      // Today or any future vacant cell: Check In button
                       const isCheckingIn = checkingInRoomId === room.id
                       return (
                         <td
                           key={dayIdx}
-                          className="border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch bg-rose-50/15 group/cell"
+                          className={`border-b border-r border-neutral-300 p-1.5 h-[68px] align-stretch group/cell ${isToday ? 'bg-rose-50/15' : 'bg-white'}`}
                         >
                           <button
                             type="button"
                             onClick={() => onCheckInRoom(room.id)}
                             disabled={isCheckingIn}
                             className="h-full w-full rounded border border-dashed border-neutral-300 group-hover/cell:border-[#FF385C] bg-white/70 group-hover/cell:bg-white p-1 flex flex-col items-center justify-center cursor-pointer transition shadow-2xs text-center"
-                            title={`Click to check in room ${room.room_number} today`}
+                            title={`Click to check in room ${room.room_number} (check-in starts today)`}
                           >
                             <span className="text-[11px] font-bold text-neutral-500 group-hover/cell:text-[#FF385C] flex items-center gap-1 transition">
                               {isCheckingIn ? (
@@ -840,7 +1279,7 @@ export function LogbookSheet({
                 className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 cursor-pointer border border-white/10 whitespace-nowrap"
               >
                 <CalendarDays className="w-3.5 h-3.5" />
-                <span>Extend +1 Night</span>
+                <span>Extend Stay</span>
               </button>
             )}
 

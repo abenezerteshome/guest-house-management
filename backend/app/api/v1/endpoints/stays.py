@@ -74,6 +74,8 @@ async def extend_stay_endpoint(
 			stay,
 			user_id=current_user.id,
 			new_expected_checkout=payload.new_expected_checkout,
+			payment_option=payload.payment_option,
+			payment_method=payload.payment_method,
 		)
 	except (ResourceNotFoundError, InvalidTransitionError) as exc:
 		raise stay_error(exc) from exc
