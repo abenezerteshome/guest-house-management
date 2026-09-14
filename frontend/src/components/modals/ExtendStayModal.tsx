@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { CalendarPlus, Clock, AlertCircle, CircleDollarSign, CreditCard, Banknote, Check } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
-import { extendStay } from '../../api/stays'
+import { extendStay, getStayPayments } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
-import { toLocalDatetimeInput } from '../../utils/dateUtils'
+import { toLocalDatetimeInput, toLocalDateStr } from '../../utils/dateUtils'
 import type { Stay } from '../../types/api'
 
 interface ExtendStayModalProps {
@@ -88,20 +88,37 @@ export function ExtendStayModal({
     setError('')
 
     try {
-      // 1. Extend the stay (appends room charge for the extra nights to stay ledger)
-      await extendStay(stay.id, selected.toISOString())
+      // 1. Extend the stay (sends payment option to backend)
+      await extendStay(
+        stay.id,
+        selected.toISOString(),
+        paymentOption,
+        paymentOption === 'PAY_NOW' ? paymentMethod : undefined
+      )
 
-      // 2. If guest chooses to pay right away, immediately record the manual payment
+      // 2. If guest pays right away, ensure a payment with the exact date range is recorded
       if (paymentOption === 'PAY_NOW' && totalExtensionFee > 0) {
+        const fromStr = toLocalDateStr(currentCheckoutDate)
+        const toStr = toLocalDateStr(selected)
+        const paymentRef = `Stay extension (${extensionNights} night${extensionNights > 1 ? 's' : ''}: ${fromStr} to ${toStr}) - ${paymentMethod}`
+
         try {
-          await recordManualPayment({
-            stay_id: stay.id,
-            amount: totalExtensionFee,
-            payment_method: paymentMethod,
-            reference: `Stay extension (${extensionNights} night${extensionNights > 1 ? 's' : ''}) - ${paymentMethod}`,
-          })
-        } catch (payErr: unknown) {
-          console.error('Stay was extended but payment recording failed:', payErr)
+          const existingPayments = await getStayPayments(stay.id)
+          const alreadyRecorded = existingPayments.some(
+            (p) =>
+              p.status === 'SUCCESS' &&
+              (p.reference || '').toLowerCase().includes(fromStr.toLowerCase())
+          )
+          if (!alreadyRecorded) {
+            await recordManualPayment({
+              stay_id: stay.id,
+              amount: totalExtensionFee,
+              payment_method: paymentMethod,
+              reference: paymentRef,
+            })
+          }
+        } catch (payErr) {
+          console.error('Payment verification/recording fallback:', payErr)
         }
       }
 
@@ -147,7 +164,7 @@ export function ExtendStayModal({
           </div>
         </div>
 
-        {/* Quick extension shortcuts */}
+        {/* Quick extension shortcuts: 1, 2, 3 Days */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-2">
             Quick Extension

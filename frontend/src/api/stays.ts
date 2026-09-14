@@ -30,8 +30,17 @@ export async function checkOutStay(
   return res.data
 }
 
-export async function extendStay(stay_id: number, new_expected_checkout: string): Promise<Stay> {
-  const res = await api.patch<Stay>(`/stays/${stay_id}/extend`, { new_expected_checkout })
+export async function extendStay(
+  stay_id: number,
+  new_expected_checkout: string,
+  payment_option?: string,
+  payment_method?: string
+): Promise<Stay> {
+  const res = await api.patch<Stay>(`/stays/${stay_id}/extend`, {
+    new_expected_checkout,
+    payment_option,
+    payment_method,
+  })
   return res.data
 }
 

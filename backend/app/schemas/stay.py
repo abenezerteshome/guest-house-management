@@ -9,6 +9,8 @@ from app.models.stay import StayStatus
 
 class StayExtend(BaseModel):
 	new_expected_checkout: datetime
+	payment_option: str | None = None
+	payment_method: str | None = None
 
 
 class StayCheckOut(BaseModel):

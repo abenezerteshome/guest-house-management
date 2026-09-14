@@ -186,6 +186,8 @@ export function LogbookSheet({
         unpaidExtensionCredit: number
         unpaidExtensionNights: number
         paidExtensionNights: number
+        nightStatusMap?: Record<number, { isCredit: boolean; method: string }>
+        dateStatusMap?: Record<string, { isCredit: boolean; method: string }>
       }
     >
   >({})
@@ -271,6 +273,193 @@ export function LogbookSheet({
             extRate > 0 ? Math.min(totalExtNights, Math.round(unpaidExtensionCredit / extRate)) : 0
           const paidExtNights = Math.max(0, totalExtNights - unpaidExtNights)
 
+          // Compute transaction-aware night status
+          let matchedResOriginalNights = 0
+          if (s.reservation_id) {
+            const r = reservations.find((res) => res.id === s.reservation_id)
+            if (r?.expected_arrival && r?.expected_checkout) {
+              const arrStr = toLocalDateStr(new Date(r.expected_arrival))
+              const depStr = toLocalDateStr(new Date(r.expected_checkout))
+              const diff = getDayDiff(arrStr, depStr)
+              if (diff > 0) matchedResOriginalNights = diff
+            }
+          }
+
+          const sCheckInRaw = s.check_in_at || (s as any).check_in_date
+          const sCheckOutRaw = s.expected_checkout || (s as any).checkout_date
+          let totalStayDays = 1
+          if (sCheckInRaw && sCheckOutRaw) {
+            const d1 = toLocalDateStr(new Date(sCheckInRaw))
+            const d2 = toLocalDateStr(new Date(sCheckOutRaw))
+            const diff = getDayDiff(d1, d2)
+            if (diff > 0) totalStayDays = diff
+          }
+
+          const originalNights =
+            totalExtNights > 0
+              ? Math.max(1, totalStayDays - totalExtNights)
+              : matchedResOriginalNights > 0
+              ? matchedResOriginalNights
+              : totalStayDays
+
+          const isInitialCredit = Boolean(
+            initialRoomChargesTotal > 0 &&
+            (initialRoomPaid < initialRoomChargesTotal - 0.01 || initialMethod === 'CREDIT')
+          )
+
+          const dateStatusMap: Record<string, { isCredit: boolean; method: string }> = {}
+          const nightStatusMap: Record<number, { isCredit: boolean; method: string }> = {}
+
+          // 1. Initial Check-In Nights
+          const initialStatus = {
+            isCredit: isInitialCredit,
+            method: isInitialCredit ? 'CREDIT' : (initialMethod && initialMethod !== 'CREDIT' ? initialMethod : 'CASH'),
+          }
+
+          const sCheckInDate = sCheckInRaw ? new Date(sCheckInRaw) : new Date()
+          const checkInDateStr = toLocalDateStr(sCheckInDate)
+          const [inY, inM, inD] = checkInDateStr.split('-').map(Number)
+
+          for (let n = 1; n <= originalNights; n++) {
+            nightStatusMap[n] = initialStatus
+            const nD = new Date(inY, inM - 1, inD + (n - 1))
+            dateStatusMap[toLocalDateStr(nD)] = initialStatus
+          }
+
+          // 2. Extension Charges (chronologically sorted)
+          const sortedExtCharges = [...extCharges].sort((a, b) => {
+            const tA = new Date(a.charged_at || a.created_at).getTime()
+            const tB = new Date(b.charged_at || b.created_at).getTime()
+            return tA - tB || a.id - b.id
+          })
+
+          const usedPaymentIds = new Set<string | number>()
+          let curNight = originalNights + 1
+          let extCursorDate = new Date(inY, inM - 1, inD + originalNights)
+
+          for (const charge of sortedExtCharges) {
+            const desc = charge.description || ''
+            const matchN = desc.match(/(\d+)\s*night/i)
+            let chargeNights = matchN ? parseInt(matchN[1], 10) : (charge.quantity || 1)
+            if (chargeNights <= 0 && extRate > 0) {
+              chargeNights = Math.max(1, Math.round(Number(charge.amount || 0) / extRate))
+            }
+            if (chargeNights <= 0) chargeNights = 1
+
+            // Deterministic start & end date for this extension charge
+            const dateMatch = desc.match(/(\d{4}-\d{2}-\d{2})\s*(?:to|-)\s*(\d{4}-\d{2}-\d{2})/)
+            const chargeStartDate = dateMatch
+              ? (() => {
+                  const [y, m, d] = dateMatch[1].split('-').map(Number)
+                  return new Date(y, m - 1, d)
+                })()
+              : new Date(extCursorDate)
+
+            const fromStr = toLocalDateStr(chargeStartDate)
+            const chargeEndDate = new Date(
+              chargeStartDate.getFullYear(),
+              chargeStartDate.getMonth(),
+              chargeStartDate.getDate() + chargeNights
+            )
+            const toStr = toLocalDateStr(chargeEndDate)
+
+            // Explicit CREDIT or PAID tag in charge description
+            const isExplicitCredit = desc.toUpperCase().includes('CREDIT') || desc.toUpperCase().includes('ON CREDIT')
+            const isExplicitPaid = desc.toUpperCase().includes('PAID VIA') || desc.toUpperCase().includes('- PAID')
+
+            let extractedMethod: string | null = null
+            const methodMatch = desc.match(/PAID\s+via\s+([A-Z_]+)/i)
+            if (methodMatch) {
+              extractedMethod = methodMatch[1].toUpperCase()
+            }
+
+            // Find matching payment in extPayments
+            const matchingPayment = extPayments.find((p, idx) => {
+              const key = (p as any).id || `${(p as any).amount}_${idx}`
+              if (usedPaymentIds.has(key)) return false
+              const ref = (p.reference || '').toLowerCase()
+              const paymentDates: string[] = (p.reference || '').match(/\d{4}-\d{2}-\d{2}/g) || []
+
+              // If payment specifies date(s):
+              if (paymentDates.length > 0) {
+                // Must match fromStr or fall strictly within [fromStr, toStr)
+                const matchesDate =
+                  paymentDates.includes(fromStr) ||
+                  ref.includes(fromStr.toLowerCase()) ||
+                  paymentDates.some((pd) => pd >= fromStr && pd < toStr)
+                if (matchesDate) return true
+                // If it specifies dates but NONE match this charge, it belongs to another extension!
+                return false
+              }
+
+              // If payment has NO dates in reference:
+              if (isExplicitCredit) return false
+              if (ref.includes('credit')) return false
+
+              const chargeAmt = Number(charge.amount || 0) * (charge.quantity || 1)
+              const payAmt = Number(p.amount || 0)
+              if (Math.abs(chargeAmt - payAmt) < 0.01) return true
+
+              return false
+            })
+
+            let isCredit = false
+            let payMethod = 'CASH'
+
+            if (isExplicitCredit) {
+              isCredit = true
+              payMethod = 'CREDIT'
+            } else if (matchingPayment) {
+              const key = (matchingPayment as any).id || `${(matchingPayment as any).amount}_${extPayments.indexOf(matchingPayment)}`
+              usedPaymentIds.add(key)
+              isCredit = false
+              payMethod = matchingPayment.payment_method || extractedMethod || 'CASH'
+            } else if (isExplicitPaid) {
+              isCredit = false
+              payMethod = extractedMethod || 'CASH'
+            } else {
+              // No payment matching this extension's date/amount -> it's on CREDIT!
+              isCredit = true
+              payMethod = 'CREDIT'
+            }
+
+            const statusObj = { isCredit, method: payMethod }
+
+            for (let i = 0; i < chargeNights; i++) {
+              nightStatusMap[curNight + i] = statusObj
+              const nd = new Date(
+                chargeStartDate.getFullYear(),
+                chargeStartDate.getMonth(),
+                chargeStartDate.getDate() + i
+              )
+              dateStatusMap[toLocalDateStr(nd)] = statusObj
+            }
+
+            curNight += chargeNights
+            extCursorDate = new Date(chargeEndDate)
+          }
+
+          // 3. Fallback: Allocate any leftover unused extension payments to credit nights in order
+          // ONLY allocate unallocated payments that have NO specific date reference
+          const remainingPayments = extPayments.filter((p, idx) => {
+            const key = (p as any).id || `${(p as any).amount}_${idx}`
+            if (usedPaymentIds.has(key)) return false
+            const datesInRef: string[] = (p.reference || '').match(/\d{4}-\d{2}-\d{2}/g) || []
+            return datesInRef.length === 0
+          })
+          for (const remPay of remainingPayments) {
+            let remAmount = Number(remPay.amount) || 0
+            const payMethod = remPay.payment_method || 'CASH'
+            for (let n = originalNights + 1; n <= totalStayDays; n++) {
+              if (nightStatusMap[n]?.isCredit && remAmount >= extRate - 0.01) {
+                nightStatusMap[n] = { isCredit: false, method: payMethod }
+                const nD = new Date(inY, inM - 1, inD + (n - 1))
+                dateStatusMap[toLocalDateStr(nD)] = { isCredit: false, method: payMethod }
+                remAmount -= extRate
+              }
+            }
+          }
+
           return {
             stayId: s.id,
             balance,
@@ -285,6 +474,8 @@ export function LogbookSheet({
             unpaidExtensionCredit,
             unpaidExtensionNights: unpaidExtNights,
             paidExtensionNights: paidExtNights,
+            nightStatusMap,
+            dateStatusMap,
           }
         } catch {
           return null
@@ -307,6 +498,8 @@ export function LogbookSheet({
           unpaidExtensionCredit: number
           unpaidExtensionNights: number
           paidExtensionNights: number
+          nightStatusMap?: Record<number, { isCredit: boolean; method: string }>
+          dateStatusMap?: Record<string, { isCredit: boolean; method: string }>
         }
       > = {}
       for (const r of results) {
@@ -324,6 +517,8 @@ export function LogbookSheet({
             unpaidExtensionCredit: r.unpaidExtensionCredit,
             unpaidExtensionNights: r.unpaidExtensionNights,
             paidExtensionNights: r.paidExtensionNights,
+            nightStatusMap: r.nightStatusMap,
+            dateStatusMap: r.dateStatusMap,
           }
         }
       }
@@ -737,16 +932,20 @@ export function LogbookSheet({
                               initialMethod === 'CREDIT')
                         )
 
-                        // Is this specific night on credit?
-                        // Allocate payment to original nights first, then to extension nights.
-                        const isThisNightCredit = fin
+                        const dateStatus = fin?.dateStatusMap?.[dateStr]
+                        const nightStatus = dateStatus || fin?.nightStatusMap?.[nightNumber]
+                        const isThisNightCredit = nightStatus
+                          ? nightStatus.isCredit
+                          : fin
                           ? (nightNumber <= originalNights && isInitialCredit) ||
                             nightNumber > originalNights + paidExtNights
                           : Boolean((stay as any).has_credit && nightNumber > originalNights)
 
                         // Determine the payment method for this specific night
                         let cellPaymentMethod = 'CASH'
-                        if (isThisNightCredit) {
+                        if (nightStatus) {
+                          cellPaymentMethod = nightStatus.method
+                        } else if (isThisNightCredit) {
                           cellPaymentMethod = 'CREDIT'
                         } else if (nightNumber > originalNights) {
                           // Paid extension night: use extension payment method
@@ -1080,7 +1279,7 @@ export function LogbookSheet({
                 className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white/10 hover:bg-white/20 text-white transition flex items-center gap-1.5 cursor-pointer border border-white/10 whitespace-nowrap"
               >
                 <CalendarDays className="w-3.5 h-3.5" />
-                <span>Extend +1 Night</span>
+                <span>Extend Stay</span>
               </button>
             )}
 

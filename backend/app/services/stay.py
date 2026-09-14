@@ -1,4 +1,4 @@
-from datetime import datetime, time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -108,7 +108,13 @@ async def check_out(
 
 
 async def extend_stay(
-	session: AsyncSession, stay: Stay, *, user_id: int, new_expected_checkout: datetime
+	session: AsyncSession,
+	stay: Stay,
+	*,
+	user_id: int,
+	new_expected_checkout: datetime,
+	payment_option: str | None = None,
+	payment_method: str | None = None,
 ) -> Stay:
 	if stay.status != StayStatus.CHECKED_IN.value:
 		raise InvalidTransitionError("Only CHECKED_IN stays can be extended")
@@ -120,29 +126,72 @@ async def extend_stay(
 	if room is None:
 		raise ResourceNotFoundError("Room not found")
 	from app.services.payment import add_charge_record
+	from app.models.payment import Payment, PaymentStatus
 
-	extension_days = max(1, (new_expected_checkout.date() - old_checkout.date()).days)
+	hotel_tz = timezone(timedelta(hours=3))
+	local_old = old_checkout.astimezone(hotel_tz) if old_checkout.tzinfo else old_checkout
+	local_new = new_expected_checkout.astimezone(hotel_tz) if new_expected_checkout.tzinfo else new_expected_checkout
+
+	from_str = local_old.strftime("%Y-%m-%d")
+	to_str = local_new.strftime("%Y-%m-%d")
+	extension_days = max(1, round((new_expected_checkout - old_checkout).total_seconds() / 86400))
 	extension_charge = Decimal(extension_days) * Decimal(str(room.price))
+
+	is_pay_now = (payment_option or "").upper() == "PAY_NOW"
+	is_credit = (payment_option or "").upper() == "CREDIT"
+	pay_method_val = (payment_method or "CASH").upper()
+
+	if is_credit:
+		charge_desc = f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''}: {from_str} to {to_str} - CREDIT @ ETB {room.price:,.2f})"
+	elif is_pay_now:
+		charge_desc = f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''}: {from_str} to {to_str} - PAID via {pay_method_val} @ ETB {room.price:,.2f})"
+	else:
+		charge_desc = f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''}: {from_str} to {to_str} @ ETB {room.price:,.2f})"
 
 	await add_charge_record(
 		session,
 		stay_id=stay.id,
 		charge_type=ChargeType.ROOM,
-		description=f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''} @ ETB {room.price:,.2f})",
+		description=charge_desc,
 		amount=extension_charge,
 		created_by=user_id,
 	)
+
+	if is_pay_now:
+		payment_ref = f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''}: {from_str} to {to_str}) - {pay_method_val}"
+		payment = Payment(
+			stay_id=stay.id,
+			amount=extension_charge,
+			payment_method=pay_method_val,
+			status=PaymentStatus.SUCCESS.value,
+			reference=payment_ref,
+			paid_at=datetime.now(timezone.utc),
+			created_by=user_id,
+		)
+		session.add(payment)
+		session.add(
+			AuditLog(
+				user_id=user_id,
+				action="PAYMENT_CREATED",
+				entity_type="Payment",
+				entity_id=stay.id,
+				details=f'{{"amount": "{extension_charge}", "method": "{pay_method_val}", "extension_days": {extension_days}}}',
+			)
+		)
+
 	session.add(
 		AuditLog(
 			user_id=user_id,
 			action="STAY_EXTENDED",
 			entity_type="Stay",
 			entity_id=stay.id,
+			details=f'{{"from": "{from_str}", "to": "{to_str}", "days": {extension_days}, "payment_option": "{payment_option or "NONE"}"}}',
 		)
 	)
 	await session.commit()
 	await session.refresh(stay)
 	return stay
+
 
 
 async def get_stay(session: AsyncSession, stay_id: int) -> Stay:
