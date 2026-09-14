@@ -4,6 +4,7 @@ import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
 import { IdPhotoCapture } from '../common/IdPhotoCapture'
+import { toLocalDatetimeInput } from '../../utils/dateUtils'
 import type { Room, Guest, Reservation, Stay } from '../../types/api'
 import { createGuest, getGuest, updateGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
@@ -65,12 +66,12 @@ export function CheckInModal({
   const [phone, setPhone] = useState('')
   const [idPhoto, setIdPhoto] = useState<string | null>(null)
   const [receivedVia, setReceivedVia] = useState<ReceivedViaMethod>('CASH')
-  const [checkInDate, setCheckInDate] = useState(() => new Date().toISOString().slice(0, 16))
+  const [checkInDate, setCheckInDate] = useState(() => toLocalDatetimeInput(new Date()))
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
     tomorrow.setHours(11, 0, 0, 0)
-    return tomorrow.toISOString().slice(0, 16)
+    return toLocalDatetimeInput(tomorrow)
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -91,7 +92,7 @@ export function CheckInModal({
   useEffect(() => {
     if (isOpen) {
       const now = new Date()
-      setCheckInDate(now.toISOString().slice(0, 16))
+      setCheckInDate(toLocalDatetimeInput(now))
       setActiveReservation(existingReservation || null)
       setReceivedVia('CASH')
 
@@ -100,7 +101,7 @@ export function CheckInModal({
         setRoomId(existingReservation.room_id)
         if (existingReservation.expected_checkout) {
           const exp = new Date(existingReservation.expected_checkout)
-          setCheckoutDate(exp.toISOString().slice(0, 16))
+          setCheckoutDate(toLocalDatetimeInput(exp))
         }
 
         // Only the name and phone number is fetched and filled already from the reservation
@@ -117,7 +118,7 @@ export function CheckInModal({
         const tomorrow = new Date(now)
         tomorrow.setDate(tomorrow.getDate() + 1)
         tomorrow.setHours(11, 0, 0, 0)
-        setCheckoutDate(tomorrow.toISOString().slice(0, 16))
+        setCheckoutDate(toLocalDatetimeInput(tomorrow))
 
         if (initialGuest) {
           setFullName(initialGuest.fullName || '')

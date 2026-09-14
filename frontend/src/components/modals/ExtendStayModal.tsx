@@ -4,6 +4,7 @@ import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { extendStay } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
+import { toLocalDatetimeInput } from '../../utils/dateUtils'
 import type { Stay } from '../../types/api'
 
 interface ExtendStayModalProps {
@@ -38,7 +39,9 @@ export function ExtendStayModal({
     if (stay) {
       const current = new Date(stay.expected_checkout)
       current.setDate(current.getDate() + 1)
-      setNewCheckout(current.toISOString().slice(0, 16))
+      // Use local-timezone formatting so the datetime-local input shows the
+      // correct local time (not UTC shifted). See utils/dateUtils.ts.
+      setNewCheckout(toLocalDatetimeInput(current))
       setSelectedQuickDays(1)
       setError('')
       setPaymentOption('PAY_NOW')
@@ -66,7 +69,9 @@ export function ExtendStayModal({
     setSelectedQuickDays(days)
     const d = new Date(stay!.expected_checkout)
     d.setDate(d.getDate() + days)
-    setNewCheckout(d.toISOString().slice(0, 16))
+    // toLocalDatetimeInput() preserves the local timezone offset so the
+    // value sent to the backend is always LATER than the existing checkout.
+    setNewCheckout(toLocalDatetimeInput(d))
   }
 
   async function handleExtend(e: React.FormEvent) {
