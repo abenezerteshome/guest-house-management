@@ -222,7 +222,7 @@ export interface SettingsData {
 
 export interface DailyManifestItem {
   id: string
-  activity_type: 'CHECKED_IN' | 'CHECKED_OUT' | 'RESERVED'
+  activity_type: 'CHECKED_IN' | 'CHECKED_OUT' | 'OCCUPIED' | 'RESERVED'
   guest_id: number
   guest_name: string
   guest_phone: string
@@ -244,6 +244,7 @@ export interface DailyManifestReport {
   total_guests_count: number
   checked_in_count: number
   checked_out_count: number
+  occupied_count?: number
   reserved_count: number
   total_amount_paid: string | number
   items: DailyManifestItem[]

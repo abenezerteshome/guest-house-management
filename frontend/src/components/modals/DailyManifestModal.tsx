@@ -13,6 +13,7 @@ import {
   Building,
   Phone,
   FileSpreadsheet,
+  BedDouble,
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
@@ -26,7 +27,7 @@ interface DailyManifestModalProps {
   initialDate?: string
 }
 
-type FilterActivity = 'ALL' | 'CHECKED_IN' | 'CHECKED_OUT' | 'RESERVED'
+type FilterActivity = 'ALL' | 'CHECKED_IN' | 'CHECKED_OUT' | 'OCCUPIED' | 'RESERVED'
 
 export function DailyManifestModal({
   isOpen,
@@ -416,6 +417,17 @@ export function DailyManifestModal({
               Checked Out ({report?.checked_out_count || 0})
             </button>
             <button
+              onClick={() => setActivityFilter('OCCUPIED')}
+              className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                activityFilter === 'OCCUPIED'
+                  ? 'bg-purple-700 text-white font-semibold'
+                  : 'text-stone-600 hover:bg-stone-100'
+              }`}
+            >
+              <BedDouble size={14} className="text-purple-300" />
+              Occupied / In-House ({report?.occupied_count || 0})
+            </button>
+            <button
               onClick={() => setActivityFilter('RESERVED')}
               className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
                 activityFilter === 'RESERVED'
@@ -481,6 +493,7 @@ export function DailyManifestModal({
                   filteredItems.map((item) => {
                     const isCheckedIn = item.activity_type === 'CHECKED_IN'
                     const isCheckedOut = item.activity_type === 'CHECKED_OUT'
+                    const isOccupied = item.activity_type === 'OCCUPIED'
                     const isReserved = item.activity_type === 'RESERVED'
 
                     return (
@@ -497,6 +510,12 @@ export function DailyManifestModal({
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
                               <LogOut size={11} />
                               Checked Out
+                            </span>
+                          )}
+                          {isOccupied && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                              <BedDouble size={11} />
+                              Occupied
                             </span>
                           )}
                           {isReserved && (

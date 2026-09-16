@@ -102,6 +102,7 @@ class DailyManifestReport(BaseModel):
 	total_guests_count: int
 	checked_in_count: int
 	checked_out_count: int
+	occupied_count: int = 0
 	reserved_count: int
 	total_amount_paid: Decimal
 	items: list[DailyManifestItem] = []

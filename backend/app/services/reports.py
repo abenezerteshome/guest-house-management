@@ -2,7 +2,7 @@ from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.charge import Charge, ChargeType
@@ -429,8 +429,29 @@ async def get_daily_manifest(
 	)
 	checkout_rows = (await session.execute(checkout_stmt)).all()
 
+	# 3. Active in-house stays during target date (checked in prior to today, and staying across today)
+	staying_stmt = (
+		select(Stay, Guest, Room)
+		.join(Guest, Stay.guest_id == Guest.id)
+		.join(Room, Stay.room_id == Room.id)
+		.where(
+			Stay.status != StayStatus.VOIDED.value,
+			Stay.check_in_at < start_dt,
+			or_(
+				Stay.actual_checkout_at.is_(None),
+				Stay.actual_checkout_at > end_dt,
+			),
+		)
+		.order_by(Room.room_number.asc())
+	)
+	staying_rows = (await session.execute(staying_stmt)).all()
+
 	# Query payments and charges for all retrieved stays
-	stay_ids = list({row[0].id for row in checkin_rows} | {row[0].id for row in checkout_rows})
+	stay_ids = list(
+		{row[0].id for row in checkin_rows}
+		| {row[0].id for row in checkout_rows}
+		| {row[0].id for row in staying_rows}
+	)
 	stay_payments: dict[int, Decimal] = {}
 	stay_charges: dict[int, Decimal] = {}
 
@@ -515,7 +536,36 @@ async def get_daily_manifest(
 			)
 		)
 
-	# 3. Reservations expected or active today that haven't checked in yet
+	for stay, guest, room in staying_rows:
+		checkout_target = stay.actual_checkout_at or stay.expected_checkout
+		days = max(1, (checkout_target.date() - stay.check_in_at.date()).days) if checkout_target else 1
+		paid = stay_payments.get(stay.id, Decimal("0.00"))
+		expected = stay_charges.get(stay.id, Decimal("0.00"))
+		if expected == Decimal("0.00"):
+			expected = Decimal(str(room.price or 0)) * Decimal(days)
+
+		items.append(
+			DailyManifestItem(
+				id=f"stay-occ-{stay.id}",
+				activity_type="OCCUPIED",
+				guest_id=guest.id,
+				guest_name=guest.full_name,
+				guest_phone=guest.phone,
+				guest_id_number=guest.id_number,
+				room_id=room.id,
+				room_number=room.room_number,
+				room_type=room.room_type,
+				days_count=days,
+				amount_paid=paid,
+				expected_amount=expected,
+				check_in_date=stay.check_in_at,
+				checkout_date=stay.actual_checkout_at or stay.expected_checkout,
+				status=stay.status,
+				notes=stay.notes,
+			)
+		)
+
+	# 4. Reservations expected or active today that haven't checked in yet
 	res_stmt = (
 		select(Reservation, Guest, Room)
 		.join(Guest, Reservation.guest_id == Guest.id)
@@ -559,6 +609,7 @@ async def get_daily_manifest(
 
 	checked_in_count = len(checkin_rows)
 	checked_out_count = len(checkout_rows)
+	occupied_count = len(staying_rows)
 	reserved_count = len(res_rows)
 	total_guests_count = len(items)
 	total_amount_paid = sum(stay_payments.values(), Decimal("0.00"))
@@ -568,6 +619,7 @@ async def get_daily_manifest(
 		total_guests_count=total_guests_count,
 		checked_in_count=checked_in_count,
 		checked_out_count=checked_out_count,
+		occupied_count=occupied_count,
 		reserved_count=reserved_count,
 		total_amount_paid=total_amount_paid,
 		items=items,
