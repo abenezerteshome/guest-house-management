@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
+import { CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/common/Button'
 import { Modal } from '../../components/common/Modal'
+import { LoginChangePasswordModal } from '../../components/modals/LoginChangePasswordModal'
 
 export function LoginPage() {
   const { login, user, isAuthenticated, logout } = useAuth()
@@ -12,6 +13,8 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -161,6 +164,16 @@ export function LoginPage() {
                       >
                         Password
                       </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangePasswordOpen(true)
+                          setSuccessMessage(null)
+                        }}
+                        className="text-xs font-semibold text-[#FF385C] hover:text-[#E00B41] transition-colors cursor-pointer"
+                      >
+                        Change or reset?
+                      </button>
                     </div>
                     <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] hover:border-[#B0B0B0] focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222] bg-white px-3.5 transition-all">
                       <LockKeyhole size={17} className="text-[#717171] shrink-0 mr-2.5" />
@@ -184,6 +197,17 @@ export function LoginPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Success Message */}
+                  {successMessage && (
+                    <div
+                      role="status"
+                      className="p-3.5 rounded-xl bg-[#EBF9EB] border border-[#C6E7C6] text-xs text-[#008A05] leading-relaxed flex items-start gap-2.5"
+                    >
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                      <span>{successMessage}</span>
+                    </div>
+                  )}
 
                   {/* Error Message */}
                   {error && (
@@ -239,24 +263,25 @@ export function LoginPage() {
       <Modal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
-        title="Family Guest House Staff Support"
-        description="Assistance with account access and operational desk procedures."
+        title="Need Sign In Help?"
+        description="Here is how to get access to your account."
       >
-        <div className="space-y-4 text-sm text-[#222222]">
-          <div className="p-3.5 rounded-xl bg-[#F7F7F7] border border-[#DDDDDD]">
-            <strong className="block text-xs font-bold uppercase tracking-wider text-[#717171] mb-1">
-              Account Credentials
-            </strong>
-            <p className="text-xs text-[#717171] leading-relaxed">
-              Standard credentials are provided to designated staff members by the Guest House Administrator. If you have forgotten your password or need a role change, contact your general manager.
-            </p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-[#F7F7F7] border border-[#DDDDDD]">
-            <strong className="block text-xs font-bold uppercase tracking-wider text-[#717171] mb-1">
-              Server Connectivity
-            </strong>
-            <p className="text-xs text-[#717171] leading-relaxed">
-              Ensure the Family Guest House backend service is active and reachable at <code className="text-[#FF385C] bg-white px-1.5 py-0.5 rounded border border-[#DDDDDD]">http://localhost:8000</code>.
+        <div className="space-y-4 text-xs text-[#717171] leading-relaxed">
+          <p>
+            <strong className="text-[#222222]">Default Accounts:</strong>
+            <br />
+            • Administrator: username <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">admin</code>
+            <br />
+            • Reception Desk: username <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">reception</code>
+          </p>
+          <p>
+            <strong className="text-[#222222]">Forgotten Passwords:</strong>
+            <br />
+            Click <strong>"Change or reset?"</strong> on the login screen to update your password with your current password or request an Administrator Shift Override.
+          </p>
+          <div className="pt-2 border-t border-[#F0F0F0]">
+            <p className="text-[11px] text-[#999999]">
+              Family Guest House Front Desk &bull; Internal System
             </p>
           </div>
         </div>

@@ -248,3 +248,21 @@ export interface DailyManifestReport {
   total_amount_paid: string | number
   items: DailyManifestItem[]
 }
+
+export interface PublicChangePasswordPayload {
+  username: string
+  current_password: string
+  new_password: string
+}
+
+export interface AdminOverrideResetPayload {
+  target_username: string
+  new_password: string
+  admin_username: string
+  admin_password: string
+}
+
+export interface PasswordChangeResponse {
+  message: string
+  username: string
+}
