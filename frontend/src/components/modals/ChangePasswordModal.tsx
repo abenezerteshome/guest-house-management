@@ -49,7 +49,7 @@ export function ChangePasswordModal({ user, adminReset = false, onClose, onSaved
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF0F2] text-[#FF385C]"><KeyRound size={19} /></div>
             <div>
               <h2 id="password-dialog-title" className="text-lg font-bold text-[#222222]">{adminReset ? 'Set staff password' : 'Change your password'}</h2>
-              <p className="text-xs text-[#717171]">{adminReset ? `Set a new password for ${user.full_name}.` : 'Use at least 12 characters.'}</p>
+              <p className="text-xs text-[#717171]">{adminReset ? `Set a new password for ${user.full_name}.` : 'Use at least 6 characters.'}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[#717171] hover:bg-[#F7F7F7]" aria-label="Close password dialog"><X size={18} /></button>
@@ -64,11 +64,11 @@ export function ChangePasswordModal({ user, adminReset = false, onClose, onSaved
           )}
           <label className="block text-sm font-medium text-[#222222]">
             New password
-            <input required minLength={12} maxLength={128} type={showPasswords ? 'text' : 'password'} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
+            <input required minLength={6} maxLength={128} type={showPasswords ? 'text' : 'password'} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
           </label>
           <label className="block text-sm font-medium text-[#222222]">
             Confirm new password
-            <input required minLength={12} maxLength={128} type={showPasswords ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
+            <input required minLength={6} maxLength={128} type={showPasswords ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
           </label>
           <button type="button" onClick={() => setShowPasswords((visible) => !visible)} className="flex items-center gap-2 text-xs font-medium text-[#717171] hover:text-[#222222]">
             {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}

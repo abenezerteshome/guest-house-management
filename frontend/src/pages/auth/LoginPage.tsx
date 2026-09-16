@@ -286,6 +286,19 @@ export function LoginPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Change / Reset Password Modal */}
+      <LoginChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        initialUsername={username}
+        onSuccess={(msg, updatedUsername) => {
+          setSuccessMessage(msg)
+          if (updatedUsername) setUsername(updatedUsername)
+          setPassword('')
+          setError('')
+        }}
+      />
     </div>
   )
 }

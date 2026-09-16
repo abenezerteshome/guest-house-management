@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   KeyRound,
   ShieldCheck,
@@ -44,6 +44,22 @@ export function LoginChangePasswordModal({
   const [overrideConfirmPassword, setOverrideConfirmPassword] = useState('')
   const [adminUsername, setAdminUsername] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialUsername) {
+        setSelfUsername(initialUsername)
+        setTargetUsername(initialUsername)
+      }
+      setError(null)
+      setCurrentPassword('')
+      setSelfNewPassword('')
+      setSelfConfirmPassword('')
+      setOverrideNewPassword('')
+      setOverrideConfirmPassword('')
+      setAdminPassword('')
+    }
+  }, [isOpen, initialUsername])
 
   // UI helpers
   const [showPasswords, setShowPasswords] = useState(false)

@@ -8,7 +8,7 @@ from app.models.user import UserRole
 class UserCreate(BaseModel):
     full_name: str = Field(min_length=1, max_length=200)
     username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@-]+$")
-    password: str = Field(min_length=12, max_length=128)
+    password: str = Field(min_length=6, max_length=128)
     role: UserRole
 
 
@@ -19,7 +19,7 @@ class UserUpdate(BaseModel):
 
 
 class UserPasswordUpdate(BaseModel):
-    new_password: str = Field(min_length=12, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
 
 
 class UserRead(BaseModel):
