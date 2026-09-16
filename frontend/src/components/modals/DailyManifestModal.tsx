@@ -84,10 +84,6 @@ export function DailyManifestModal({
     })
   }, [report, activityFilter, searchQuery])
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   const formatCurrency = (val: string | number) => {
     const num = typeof val === 'string' ? parseFloat(val) : val
     return `${(num || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`
@@ -111,6 +107,236 @@ export function DailyManifestModal({
     } catch {
       return dtStr
     }
+  }
+
+  const handlePrint = () => {
+    const totalExpected = filteredItems.reduce(
+      (sum, item) => sum + (parseFloat(String(item.expected_amount)) || 0),
+      0
+    )
+    const totalPaid = filteredItems.reduce(
+      (sum, item) => sum + (parseFloat(String(item.amount_paid)) || 0),
+      0
+    )
+
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = 'none'
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      window.print()
+      return
+    }
+
+    const rowsHtml = filteredItems
+      .map((item, idx) => {
+        let badgeColor = '#065f46'
+        let badgeBg = '#ecfdf5'
+        let badgeBorder = '#a7f3d0'
+        let badgeText = 'CHECKED IN'
+
+        if (item.activity_type === 'CHECKED_OUT') {
+          badgeColor = '#1e40af'
+          badgeBg = '#eff6ff'
+          badgeBorder = '#bfdbfe'
+          badgeText = 'CHECKED OUT'
+        } else if (item.activity_type === 'OCCUPIED') {
+          badgeColor = '#6b21a8'
+          badgeBg = '#faf5ff'
+          badgeBorder = '#e9d5ff'
+          badgeText = 'OCCUPIED'
+        } else if (item.activity_type === 'RESERVED') {
+          badgeColor = '#92400e'
+          badgeBg = '#fffbeb'
+          badgeBorder = '#fde68a'
+          badgeText = 'RESERVED'
+        }
+
+        const paidNum = parseFloat(String(item.amount_paid)) || 0
+        const expNum = parseFloat(String(item.expected_amount)) || 0
+
+        return `
+          <tr style="border-bottom: 1px solid #e5e7eb; ${idx % 2 === 1 ? 'background-color: #f9fafb;' : 'background-color: #ffffff;'}">
+            <td style="padding: 8px 10px; font-size: 11px; vertical-align: top;">
+              <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-weight: 700; font-size: 9px; letter-spacing: 0.5px; color: ${badgeColor}; background: ${badgeBg}; border: 1px solid ${badgeBorder};">
+                ${badgeText}
+              </span>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; vertical-align: top;">
+              <div style="font-weight: 700; color: #111827; font-size: 12px;">${item.guest_name}</div>
+              <div style="color: #4b5563; font-size: 10px; margin-top: 2px;">
+                Tel: ${item.guest_phone}${item.guest_id_number ? ' &bull; ID: ' + item.guest_id_number : ''}
+              </div>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; vertical-align: top;">
+              <div style="font-weight: 700; color: #111827;">Room ${item.room_number}</div>
+              <div style="color: #6b7280; font-size: 10px;">${item.room_type || 'Standard'}</div>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; vertical-align: top;">
+              <div style="font-weight: 600; color: #111827;">${item.days_count} ${item.days_count === 1 ? 'Day / Night' : 'Days / Nights'}</div>
+              <div style="color: #6b7280; font-size: 10px; margin-top: 1px;">
+                ${formatDateLabel(item.check_in_date)} &rarr; ${formatDateLabel(item.checkout_date)}
+              </div>
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; text-align: right; vertical-align: top; font-weight: 700; font-family: monospace; color: ${paidNum > 0 ? '#065f46' : '#9ca3af'};">
+              ${formatCurrency(item.amount_paid)}
+            </td>
+            <td style="padding: 8px 10px; font-size: 11px; text-align: right; vertical-align: top; font-weight: 700; font-family: monospace; color: #111827;">
+              ${formatCurrency(item.expected_amount)}
+            </td>
+            <td style="padding: 8px 10px; font-size: 10px; vertical-align: top; color: #4b5563;">
+              <div style="font-weight: 600; text-transform: uppercase;">${item.status}</div>
+              ${item.notes ? `<div style="color: #9ca3af; font-style: italic; font-size: 9px; margin-top: 1px;">${item.notes}</div>` : ''}
+            </td>
+          </tr>
+        `
+      })
+      .join('')
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Daily Manifest - ${targetDate}</title>
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 12mm 10mm;
+            }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              color: #111827;
+              margin: 0;
+              padding: 0;
+              background: #ffffff;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            tr {
+              page-break-inside: avoid;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Header -->
+          <div style="border-bottom: 2px solid #111827; padding-bottom: 12px; margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 1px; color: #111827;">FAMILY GUEST HOUSE</h1>
+                <p style="margin: 3px 0 0; font-size: 13px; font-weight: 700; color: #4b5563;">Daily Guest Activity & Manifest Report</p>
+                <p style="margin: 2px 0 0; font-size: 10px; color: #6b7280;">Official Logbook Record of Guest Check-Ins, Check-Outs & Occupancy</p>
+              </div>
+              <div style="text-align: right; font-size: 11px; color: #374151;">
+                <div><strong>Manifest Date:</strong> ${targetDate}</div>
+                <div><strong>Printed:</strong> ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</div>
+                <div><strong>Staff:</strong> ${user?.full_name || user?.username || 'Reception Staff'}</div>
+              </div>
+            </div>
+
+            <!-- KPI Cards Bar -->
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 12px; text-align: center;">
+              <div style="padding: 6px 4px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #4b5563;">Total Guests</div>
+                <div style="font-size: 16px; font-weight: 800; color: #111827;">${filteredItems.length}</div>
+              </div>
+              <div style="padding: 6px 4px; border: 1px solid #a7f3d0; border-radius: 6px; background: #ecfdf5;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #065f46;">Checked In</div>
+                <div style="font-size: 16px; font-weight: 800; color: #065f46;">${report?.checked_in_count || 0}</div>
+              </div>
+              <div style="padding: 6px 4px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #1e40af;">Checked Out</div>
+                <div style="font-size: 16px; font-weight: 800; color: #1e40af;">${report?.checked_out_count || 0}</div>
+              </div>
+              <div style="padding: 6px 4px; border: 1px solid #e9d5ff; border-radius: 6px; background: #faf5ff;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #6b21a8;">Occupied</div>
+                <div style="font-size: 16px; font-weight: 800; color: #6b21a8;">${report?.occupied_count || 0}</div>
+              </div>
+              <div style="padding: 6px 4px; border: 1px solid #fde68a; border-radius: 6px; background: #fffbeb;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #92400e;">Reserved</div>
+                <div style="font-size: 16px; font-weight: 800; color: #92400e;">${report?.reserved_count || 0}</div>
+              </div>
+              <div style="padding: 6px 4px; border: 1px solid #fecdd3; border-radius: 6px; background: #fff1f2;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; color: #9f1239;">Total Collected</div>
+                <div style="font-size: 12px; font-weight: 900; color: #9f1239; margin-top: 2px;">${formatCurrency(totalPaid)}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Manifest Guests Table -->
+          <div style="margin-bottom: 20px;">
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #d1d5db; border-radius: 6px;">
+              <thead>
+                <tr style="background: #f3f4f6; border-bottom: 2px solid #d1d5db; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #374151;">
+                  <th style="padding: 8px 10px; text-align: left;">Activity</th>
+                  <th style="padding: 8px 10px; text-align: left;">Guest Information</th>
+                  <th style="padding: 8px 10px; text-align: left;">Room</th>
+                  <th style="padding: 8px 10px; text-align: left;">Duration (Stay)</th>
+                  <th style="padding: 8px 10px; text-align: right;">Amount Paid</th>
+                  <th style="padding: 8px 10px; text-align: right;">Total Expected</th>
+                  <th style="padding: 8px 10px; text-align: left;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml.length > 0 ? rowsHtml : '<tr><td colspan="7" style="text-align: center; padding: 24px; color: #6b7280; font-size: 12px;">No guest activities recorded for this date.</td></tr>'}
+              </tbody>
+              <tfoot>
+                <tr style="background: #f9fafb; border-top: 2px solid #111827; font-weight: 800; font-size: 11px;">
+                  <td colspan="4" style="padding: 10px; text-align: right; text-transform: uppercase; letter-spacing: 0.5px;">Total for Manifest Page:</td>
+                  <td style="padding: 10px; text-align: right; color: #065f46; font-size: 12px; font-family: monospace;">${formatCurrency(totalPaid)}</td>
+                  <td style="padding: 10px; text-align: right; color: #111827; font-size: 12px; font-family: monospace;">${formatCurrency(totalExpected)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Signatures Section -->
+          <div style="display: flex; justify-content: space-between; margin-top: 36px; padding-top: 16px; border-top: 1px dashed #9ca3af; font-size: 11px; color: #4b5563;">
+            <div style="width: 220px; text-align: center;">
+              <div style="border-bottom: 1px solid #111827; height: 35px; margin-bottom: 6px;"></div>
+              <div><strong>Prepared By (Receptionist)</strong></div>
+              <div style="font-size: 10px; color: #6b7280;">Sign & Date</div>
+            </div>
+            <div style="width: 220px; text-align: center;">
+              <div style="border-bottom: 1px solid #111827; height: 35px; margin-bottom: 6px;"></div>
+              <div><strong>Verified By (Manager / Owner)</strong></div>
+              <div style="font-size: 10px; color: #6b7280;">Sign & Date</div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `
+
+    doc.open()
+    doc.write(printHtml)
+    doc.close()
+
+    setTimeout(() => {
+      iframe.contentWindow?.focus()
+      iframe.contentWindow?.print()
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe)
+        }
+      }, 3000)
+    }, 250)
   }
 
   const exportCSV = () => {
@@ -147,7 +373,9 @@ export function DailyManifestModal({
       `"${(item.notes || '').replace(/"/g, '""')}"`,
     ])
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((e) => e.join(','))].join('\n')
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement('a')
     link.setAttribute('href', encodedUri)
@@ -162,21 +390,74 @@ export function DailyManifestModal({
       {/* Inline styles for clean print handling */}
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
+          @page {
+            size: A4 portrait;
+            margin: 12mm 10mm;
+          }
+          html, body {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+          }
+          body > * {
+            visibility: hidden !important;
+          }
+          div[role="dialog"] {
+            position: static !important;
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            inset: auto !important;
+            background: transparent !important;
+          }
+          div[role="dialog"] > div[aria-hidden="true"] {
+            display: none !important;
+          }
+          div[role="dialog"] > div:not([aria-hidden="true"]) {
+            position: static !important;
+            display: block !important;
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            background: white !important;
           }
           #manifest-printable-area, #manifest-printable-area * {
-            visibility: visible;
+            visibility: visible !important;
           }
           #manifest-printable-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 16px;
+            position: static !important;
+            display: block !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: white !important;
             color: black !important;
+          }
+          .overflow-x-auto {
+            overflow: visible !important;
+          }
+          table {
+            width: 100% !important;
+            page-break-inside: auto;
+          }
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          thead {
+            display: table-header-group !important;
+          }
+          tfoot {
+            display: table-footer-group !important;
           }
           .no-print {
             display: none !important;
@@ -254,22 +535,30 @@ export function DailyManifestModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-stone-200 text-center">
+            <div className="grid grid-cols-6 gap-2 mt-4 pt-3 border-t border-stone-200 text-center">
+              <div className="p-2 border border-stone-300 rounded bg-stone-50">
+                <p className="text-[10px] uppercase font-bold text-stone-500">Total Guests</p>
+                <p className="text-base font-bold text-stone-900">{filteredItems.length}</p>
+              </div>
               <div className="p-2 border border-stone-300 rounded">
-                <p className="text-[10px] uppercase font-bold text-stone-500">Total Checked In</p>
+                <p className="text-[10px] uppercase font-bold text-emerald-700">Checked In</p>
                 <p className="text-base font-bold text-stone-900">{report?.checked_in_count || 0}</p>
               </div>
               <div className="p-2 border border-stone-300 rounded">
-                <p className="text-[10px] uppercase font-bold text-stone-500">Total Checked Out</p>
+                <p className="text-[10px] uppercase font-bold text-blue-700">Checked Out</p>
                 <p className="text-base font-bold text-stone-900">{report?.checked_out_count || 0}</p>
               </div>
               <div className="p-2 border border-stone-300 rounded">
-                <p className="text-[10px] uppercase font-bold text-stone-500">Total Reserved</p>
+                <p className="text-[10px] uppercase font-bold text-purple-700">Occupied</p>
+                <p className="text-base font-bold text-stone-900">{report?.occupied_count || 0}</p>
+              </div>
+              <div className="p-2 border border-stone-300 rounded">
+                <p className="text-[10px] uppercase font-bold text-amber-700">Reserved</p>
                 <p className="text-base font-bold text-stone-900">{report?.reserved_count || 0}</p>
               </div>
               <div className="p-2 border border-stone-300 rounded bg-stone-50">
-                <p className="text-[10px] uppercase font-bold text-stone-500">Total Collected</p>
-                <p className="text-base font-bold text-stone-900">{formatCurrency(report?.total_amount_paid || 0)}</p>
+                <p className="text-[10px] uppercase font-bold text-rose-700">Total Collected</p>
+                <p className="text-sm font-bold text-stone-900">{formatCurrency(report?.total_amount_paid || 0)}</p>
               </div>
             </div>
           </div>
