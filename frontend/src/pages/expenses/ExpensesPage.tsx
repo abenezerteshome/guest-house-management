@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
 import { Table, type TableColumn } from '../../components/common/Table'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
+import { ConfirmDeleteExpenseModal } from '../../components/modals/ConfirmDeleteExpenseModal'
 import { getExpenses } from '../../api/expenses'
 import type { Expense } from '../../types/api'
 
@@ -13,6 +14,8 @@ export function ExpensesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null)
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -108,6 +111,33 @@ export function ExpensesPage() {
         </span>
       ),
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (e) => (
+        <div className="flex items-center justify-end gap-1.5">
+          <button
+            type="button"
+            onClick={() => setEditingExpense(e)}
+            title="Edit Expense"
+            aria-label={`Edit Expense #${e.id}`}
+            className="p-1.5 rounded-lg text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition cursor-pointer"
+          >
+            <Pencil size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeletingExpense(e)}
+            title="Delete Expense"
+            aria-label={`Delete Expense #${e.id}`}
+            className="p-1.5 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
+      ),
+    },
   ]
 
   return (
@@ -119,7 +149,10 @@ export function ExpensesPage() {
           <Button
             variant="primary"
             size="sm"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setEditingExpense(null)
+              setModalOpen(true)
+            }}
             className="gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -150,10 +183,22 @@ export function ExpensesPage() {
       </div>
 
       <RecordExpenseModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        isOpen={modalOpen || editingExpense !== null}
+        expense={editingExpense}
+        onClose={() => {
+          setModalOpen(false)
+          setEditingExpense(null)
+        }}
+        onSuccess={() => fetchData()}
+      />
+
+      <ConfirmDeleteExpenseModal
+        isOpen={deletingExpense !== null}
+        expense={deletingExpense}
+        onClose={() => setDeletingExpense(null)}
         onSuccess={() => fetchData()}
       />
     </div>
   )
 }
+

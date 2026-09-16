@@ -7,6 +7,7 @@ from app.core.dependencies import require_role
 from app.db.session import get_db
 from app.models.user import UserRole
 from app.schemas.reports import (
+	DailyManifestReport,
 	DailyReport,
 	ExpenseAnalysisReport,
 	IncomeAnalysisReport,
@@ -14,6 +15,7 @@ from app.schemas.reports import (
 	WeeklyReport,
 )
 from app.services.reports import (
+	get_daily_manifest,
 	get_daily_report,
 	get_expenses_analysis,
 	get_income_analysis,
@@ -23,6 +25,15 @@ from app.services.reports import (
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 admin_user = Depends(require_role(UserRole.ADMIN))
+operational_user = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))
+
+
+@router.get("/daily-manifest", response_model=DailyManifestReport, dependencies=[operational_user])
+async def daily_manifest(
+	target_date: date | None = Query(default=None),
+	session: AsyncSession = Depends(get_db),
+) -> DailyManifestReport:
+	return await get_daily_manifest(session, target_date=target_date)
 
 
 @router.get("/daily", response_model=DailyReport, dependencies=[admin_user])

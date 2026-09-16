@@ -6,7 +6,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit_log import AuditLog
 from app.models.expense import Expense, ExpenseCategory, ExpensePaymentMethod
 from app.repositories.expense import ExpenseRepository
-from app.schemas.expense import ExpenseCreate
+from app.schemas.expense import ExpenseCreate, ExpenseUpdate
+
+
+class ExpenseNotFoundError(Exception):
+	pass
+
+
+async def get_expense(session: AsyncSession, expense_id: int) -> Expense:
+	expense = await ExpenseRepository(session).get_by_id(expense_id)
+	if expense is None:
+		raise ExpenseNotFoundError("Expense not found")
+	return expense
 
 
 async def create_expense(
@@ -40,6 +51,64 @@ async def create_expense(
 	await session.commit()
 	await session.refresh(expense)
 	return expense
+
+
+async def update_expense(
+	session: AsyncSession,
+	expense_id: int,
+	data: ExpenseUpdate,
+	*,
+	user_id: int,
+) -> Expense:
+	expense = await get_expense(session, expense_id)
+
+	if data.category is not None:
+		expense.category = data.category.value
+	if data.reason is not None:
+		expense.reason = data.reason
+	if data.description is not None:
+		expense.description = data.description
+	if data.amount is not None:
+		expense.amount = data.amount
+	if data.payment_method is not None:
+		expense.payment_method = data.payment_method.value
+	if data.expense_date is not None:
+		expense.expense_date = data.expense_date
+
+	session.add(
+		AuditLog(
+			user_id=user_id,
+			action="EXPENSE_UPDATED",
+			entity_type="Expense",
+			entity_id=expense.id,
+			details=f'{{"amount": "{expense.amount}", "category": "{expense.category}"}}',
+		)
+	)
+	await session.commit()
+	await session.refresh(expense)
+	return expense
+
+
+async def delete_expense(
+	session: AsyncSession,
+	expense_id: int,
+	*,
+	user_id: int,
+) -> None:
+	expense = await get_expense(session, expense_id)
+	repo = ExpenseRepository(session)
+
+	session.add(
+		AuditLog(
+			user_id=user_id,
+			action="EXPENSE_DELETED",
+			entity_type="Expense",
+			entity_id=expense.id,
+			details=f'{{"amount": "{expense.amount}", "category": "{expense.category}"}}',
+		)
+	)
+	await repo.delete(expense)
+	await session.commit()
 
 
 async def list_expenses(

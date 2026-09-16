@@ -52,10 +52,10 @@ export function LoginPage() {
           </div>
           <div>
             <span className="block text-base font-bold text-[#222222] tracking-tight leading-tight">
-              Haven House
+              Family Guest House
             </span>
             <span className="block text-[11px] font-medium text-[#717171]">
-              Guest House Management System
+              Management System
             </span>
           </div>
         </div>
@@ -214,7 +214,7 @@ export function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#F0F0F0] text-center">
               <span className="text-xs text-[#717171] flex items-center justify-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-                Staff access only · Haven Guest House Management System
+                Staff access only · Family Guest House Management System
               </span>
             </div>
           </div>
@@ -224,7 +224,7 @@ export function LoginPage() {
       {/* Footer */}
       <footer className="w-full py-6 px-6 text-center text-xs text-[#717171] border-t border-[#EEEEEE]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© {new Date().getFullYear()} Haven House. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Family Guest House. All rights reserved.</span>
           <div className="flex items-center gap-4 text-xs text-[#717171]">
             <span>Privacy</span>
             <span>·</span>
@@ -239,7 +239,7 @@ export function LoginPage() {
       <Modal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
-        title="Haven House Staff Support"
+        title="Family Guest House Staff Support"
         description="Assistance with account access and operational desk procedures."
       >
         <div className="space-y-4 text-sm text-[#222222]">
@@ -256,7 +256,7 @@ export function LoginPage() {
               Server Connectivity
             </strong>
             <p className="text-xs text-[#717171] leading-relaxed">
-              Ensure the Haven House backend service is active and reachable at <code className="text-[#FF385C] bg-white px-1.5 py-0.5 rounded border border-[#DDDDDD]">http://localhost:8000</code>.
+              Ensure the Family Guest House backend service is active and reachable at <code className="text-[#FF385C] bg-white px-1.5 py-0.5 rounded border border-[#DDDDDD]">http://localhost:8000</code>.
             </p>
           </div>
         </div>

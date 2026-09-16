@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.models.audit_log import AuditLog
 from app.models.charge import Charge, ChargeType
+from app.models.payment import Payment, PaymentMethod, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
@@ -199,3 +200,121 @@ async def get_stay(session: AsyncSession, stay_id: int) -> Stay:
 	if stay is None:
 		raise ResourceNotFoundError("Stay not found")
 	return stay
+
+
+async def void_check_in(
+	session: AsyncSession,
+	stay: Stay,
+	*,
+	user_id: int,
+	now: datetime,
+	reason: str,
+	notes: str | None = None,
+	room_condition: str = "AVAILABLE",
+	refund_amount: Decimal | None = None,
+	refund_method: str | None = None,
+	refund_bank_name: str | None = None,
+) -> Stay:
+	if stay.status != StayStatus.CHECKED_IN.value:
+		raise InvalidTransitionError("Only CHECKED_IN stays can be voided")
+
+	reservation = await session.get(Reservation, stay.reservation_id)
+	room = await session.get(Room, stay.room_id)
+	if reservation is None:
+		raise ResourceNotFoundError("Reservation not found")
+	if room is None:
+		raise ResourceNotFoundError("Room not found")
+
+	# Update stay
+	stay.status = StayStatus.VOIDED.value
+	stay.actual_checkout_at = now
+	full_reason = f"Check-in voided: {reason}" + (f" - {notes}" if notes else "")
+	stay.notes = (f"{stay.notes} | {full_reason}") if stay.notes else full_reason
+
+	# Update reservation
+	reservation.status = ReservationStatus.CANCELLED.value
+	reservation.reason = full_reason
+
+	# Update room status
+	if room_condition == "CLEANING":
+		room.status = RoomStatus.CLEANING.value
+		room.available_after = now + timedelta(hours=1)
+	else:
+		room.status = RoomStatus.AVAILABLE.value
+		room.available_after = None
+
+	# Find successful payments for this stay
+	successful_payments = list(
+		(
+			await session.execute(
+				select(Payment).where(
+					Payment.stay_id == stay.id,
+					Payment.status == PaymentStatus.SUCCESS.value,
+				)
+			)
+		)
+		.scalars()
+		.all()
+	)
+	total_paid = sum((Decimal(str(p.amount)) for p in successful_payments), Decimal("0.00"))
+
+	# Remove existing room charges so no open debt remains
+	charges = list(
+		(await session.execute(select(Charge).where(Charge.stay_id == stay.id))).scalars().all()
+	)
+	for c in charges:
+		await session.delete(c)
+
+	# Calculate refund and retained fee
+	refund_amt = refund_amount if refund_amount is not None else total_paid
+	refund_amt = max(Decimal("0.00"), min(refund_amt, total_paid))
+	retained_fee = total_paid - refund_amt
+
+	# Mark existing payments as REFUNDED
+	for p in successful_payments:
+		p.status = PaymentStatus.REFUNDED.value
+		ref_method_str = refund_method or p.payment_method
+		if ref_method_str == "OTHER" and refund_bank_name:
+			ref_method_str = f"OTHER ({refund_bank_name})"
+		p.reference = (
+			f"{p.reference or ''} [REFUNDED on void check-in: {refund_amt:,.2f} ETB via {ref_method_str}]"
+		).strip()
+
+	# If guest house retains a fee (cancellation / cleaning fee)
+	if retained_fee > 0:
+		fee_charge = Charge(
+			stay_id=stay.id,
+			charge_type=ChargeType.ROOM.value,
+			description=f"Retained cancellation/cleaning fee on voided check-in ({reason})",
+			amount=retained_fee,
+			quantity=1,
+			created_by=user_id,
+		)
+		session.add(fee_charge)
+
+		retained_payment = Payment(
+			stay_id=stay.id,
+			amount=retained_fee,
+			payment_method=successful_payments[0].payment_method if successful_payments else PaymentMethod.CASH.value,
+			status=PaymentStatus.SUCCESS.value,
+			reference=f"Retained cancellation fee for voided check-in #{stay.id}",
+			paid_at=now,
+			created_by=user_id,
+		)
+		session.add(retained_payment)
+
+	# Audit Log
+	session.add(
+		AuditLog(
+			user_id=user_id,
+			action="CHECK_IN_VOIDED",
+			entity_type="Stay",
+			entity_id=stay.id,
+			details=f'{{"reason": "{reason}", "room_condition": "{room_condition}", "total_paid": "{total_paid}", "refunded": "{refund_amt}", "retained_fee": "{retained_fee}"}}',
+		)
+	)
+
+	await session.commit()
+	await session.refresh(stay)
+	return stay
+

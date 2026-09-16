@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, CalendarPlus, LogIn, LogOut, UserCheck } from 'lucide-react'
+import { Plus, CalendarPlus, LogIn, LogOut, UserCheck, Undo2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -8,6 +8,7 @@ import { StatePanel } from '../../components/common/StatePanel'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { VoidCheckInModal } from '../../components/modals/VoidCheckInModal'
 import { AddRoomModal } from '../../components/modals/AddRoomModal'
 import { EditRoomModal } from '../../components/modals/EditRoomModal'
 import { ConfirmDeleteModal } from '../../components/modals/ConfirmDeleteModal'
@@ -32,6 +33,7 @@ export function RoomsPage() {
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
+  const [voidCheckInOpen, setVoidCheckInOpen] = useState(false)
   const [addRoomOpen, setAddRoomOpen] = useState(false)
   const [editRoomOpen, setEditRoomOpen] = useState(false)
   const [deleteRoomOpen, setDeleteRoomOpen] = useState(false)
@@ -98,6 +100,15 @@ export function RoomsPage() {
       setSelectedStay(stay)
       setSelectedRoomId(room.id)
       setCheckOutOpen(true)
+    }
+  }
+
+  function handleVoidCheckIn(room: Room) {
+    const stay = activeStays.find((s) => s.room_id === room.id)
+    if (stay) {
+      setSelectedStay(stay)
+      setSelectedRoomId(room.id)
+      setVoidCheckInOpen(true)
     }
   }
 
@@ -213,12 +224,15 @@ export function RoomsPage() {
               (r) => r.room_id === room.id && (r.status === 'RESERVED' || r.status === 'PENDING')
             )
 
+            const stayRecord = stay as (Stay & { guest?: { full_name?: string }; guest_name?: string; has_credit?: boolean; balance?: number }) | undefined
+            const resRecord = res as (Reservation & { guest?: { full_name?: string }; guest_name?: string }) | undefined
+
             const guestName =
-              (stay as any)?.guest?.full_name ||
-              (stay as any)?.guest_name ||
-              (res as any)?.guest?.full_name ||
-              (res as any)?.guest_name
-            const hasCredit = Boolean((stay as any)?.has_credit || (stay as any)?.balance > 0)
+              stayRecord?.guest?.full_name ||
+              stayRecord?.guest_name ||
+              resRecord?.guest?.full_name ||
+              resRecord?.guest_name
+            const hasCredit = Boolean(stayRecord?.has_credit || (stayRecord?.balance ?? 0) > 0)
 
             return (
               <RoomCard
@@ -272,18 +286,33 @@ export function RoomsPage() {
                     )}
 
                     {isOccupied && (
-                      <Button
-                        variant="outline"
-                        size="xs"
-                        leftIcon={<LogOut size={13} />}
-                        className="flex-1 whitespace-nowrap text-rose-600 border-rose-200 hover:bg-rose-50"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleRoomManageStay(room)
-                        }}
-                      >
-                        Checkout
-                      </Button>
+                      <div className="flex items-center gap-1.5 w-full">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          leftIcon={<LogOut size={13} />}
+                          className="flex-1 whitespace-nowrap text-rose-600 border-rose-200 hover:bg-rose-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRoomManageStay(room)
+                          }}
+                        >
+                          Checkout
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          leftIcon={<Undo2 size={13} />}
+                          className="text-neutral-500 hover:text-rose-600 hover:bg-rose-50 px-2"
+                          title="Void / Cancel Check-In"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleVoidCheckIn(room)
+                          }}
+                        >
+                          Void
+                        </Button>
+                      </div>
                     )}
 
                     {isExpected && (
@@ -339,6 +368,10 @@ export function RoomsPage() {
         isOpen={checkOutOpen}
         onClose={() => setCheckOutOpen(false)}
         stay={selectedStay}
+        onOpenVoidModal={(stay) => {
+          setSelectedStay(stay)
+          setVoidCheckInOpen(true)
+        }}
         onSuccess={(checkedOutStay) => {
           const s = checkedOutStay || selectedStay
           if (s) {
@@ -351,6 +384,16 @@ export function RoomsPage() {
               )
             )
           }
+          fetchData()
+        }}
+      />
+
+      <VoidCheckInModal
+        isOpen={voidCheckInOpen}
+        onClose={() => setVoidCheckInOpen(false)}
+        stay={selectedStay}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
+        onSuccess={() => {
           fetchData()
         }}
       />

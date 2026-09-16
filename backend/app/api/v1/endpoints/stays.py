@@ -8,9 +8,9 @@ from app.db.session import get_db
 from app.models.stay import Stay, StayStatus
 from app.models.user import User, UserRole
 from app.repositories.stay import StayRepository
-from app.schemas.stay import StayCheckOut, StayExtend, StayRead
+from app.schemas.stay import StayCheckOut, StayExtend, StayRead, VoidCheckInRequest
 from app.services.reservation import InvalidTransitionError, ResourceNotFoundError
-from app.services.stay import check_out, extend_stay, get_stay
+from app.services.stay import check_out, extend_stay, get_stay, void_check_in
 
 
 router = APIRouter(prefix="/stays", tags=["stays"])
@@ -76,6 +76,31 @@ async def extend_stay_endpoint(
 			new_expected_checkout=payload.new_expected_checkout,
 			payment_option=payload.payment_option,
 			payment_method=payload.payment_method,
+		)
+	except (ResourceNotFoundError, InvalidTransitionError) as exc:
+		raise stay_error(exc) from exc
+
+
+@router.post("/{stay_id}/void", response_model=StayRead, dependencies=[operational_user])
+async def void_stay_check_in(
+	stay_id: int,
+	payload: VoidCheckInRequest,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	session: AsyncSession = Depends(get_db),
+) -> Stay:
+	try:
+		stay = await get_stay(session, stay_id)
+		return await void_check_in(
+			session,
+			stay,
+			user_id=current_user.id,
+			now=datetime.now(timezone.utc),
+			reason=payload.reason,
+			notes=payload.notes,
+			room_condition=payload.room_condition,
+			refund_amount=payload.refund_amount,
+			refund_method=payload.refund_method,
+			refund_bank_name=payload.refund_bank_name,
 		)
 	except (ResourceNotFoundError, InvalidTransitionError) as exc:
 		raise stay_error(exc) from exc

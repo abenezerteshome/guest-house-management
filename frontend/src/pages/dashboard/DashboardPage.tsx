@@ -4,19 +4,20 @@ import {
   CalendarDays,
   CheckCircle2,
   CircleDollarSign,
-  LogOut,
+  Printer,
   TrendingUp,
   Wallet,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
-import { Modal } from '../../components/common/Modal'
 import { KpiCard } from '../../components/common/KpiCard'
 import { LoadingState } from '../../components/common/StatePanel'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { VoidCheckInModal } from '../../components/modals/VoidCheckInModal'
 import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
+import { DailyManifestModal } from '../../components/modals/DailyManifestModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
 import { getRooms } from '../../api/rooms'
@@ -49,10 +50,12 @@ export function DashboardPage() {
   const [checkingInRoomId, setCheckingInRoomId] = useState<number | null>(null)
 
   // Modals
+  const [dailyManifestOpen, setDailyManifestOpen] = useState(false)
   const [checkInOpen, setCheckInOpen] = useState(false)
   const [reservationOpen, setReservationOpen] = useState(false)
   const [expenseOpen, setExpenseOpen] = useState(false)
   const [checkOutOpen, setCheckOutOpen] = useState(false)
+  const [voidCheckInOpen, setVoidCheckInOpen] = useState(false)
   const [extendOpen, setExtendOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
@@ -215,6 +218,37 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Quick Shift Audit & Daily Manifest Bar */}
+      <div className="bg-white rounded-xl border border-neutral-300 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+            <Printer size={18} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-neutral-900">
+                Today's Guest Activity & Daily Manifest
+              </h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                Live Audit
+              </span>
+            </div>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Review today's checked-in, checked-out, and reserved guests with stay durations and payment tracking.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setDailyManifestOpen(true)}
+          className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
+        >
+          <Printer size={14} />
+          <span>View & Print Daily Manifest</span>
+        </button>
+      </div>
+
       {/* Primary Logbook Sheet View (Notebook Replica) */}
       {loading ? (
         <div
@@ -231,6 +265,7 @@ export function DashboardPage() {
           recentStays={recentStays}
           reservations={reservations}
           checkingInRoomId={checkingInRoomId}
+          onOpenDailyManifest={() => setDailyManifestOpen(true)}
           onCheckInRoom={(roomId, res) => {
             const matchedRes =
               res ||
@@ -298,6 +333,10 @@ export function DashboardPage() {
         stay={selectedStay}
         roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number || String(selectedStay?.room_id || '')}
         guestName={selectedStay?.guest?.full_name}
+        onOpenVoidModal={(stay) => {
+          setSelectedStay(stay as StayWithGuest)
+          setVoidCheckInOpen(true)
+        }}
         onSuccess={(checkedOutStay) => {
           const targetStay = checkedOutStay || selectedStay
           if (targetStay) {
@@ -316,6 +355,18 @@ export function DashboardPage() {
         }}
       />
 
+      <VoidCheckInModal
+        isOpen={voidCheckInOpen}
+        onClose={() => {
+          setVoidCheckInOpen(false)
+          setSelectedStay(null)
+        }}
+        stay={selectedStay}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
+        guestName={selectedStay?.guest?.full_name}
+        onSuccess={() => fetchDashboardData()}
+      />
+
       <ExtendStayModal
         isOpen={extendOpen}
         onClose={() => setExtendOpen(false)}
@@ -324,6 +375,11 @@ export function DashboardPage() {
         roomPrice={Number(rooms.find((r) => r.id === selectedStay?.room_id)?.price || 0)}
         guestName={selectedStay?.guest?.full_name}
         onSuccess={() => fetchDashboardData()}
+      />
+
+      <DailyManifestModal
+        isOpen={dailyManifestOpen}
+        onClose={() => setDailyManifestOpen(false)}
       />
     </div>
   )

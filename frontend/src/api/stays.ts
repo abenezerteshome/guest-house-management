@@ -58,3 +58,12 @@ export async function getStayPayments(stay_id: number): Promise<Payment[]> {
   const res = await api.get<Payment[]>(`/stays/${stay_id}/payments`)
   return res.data
 }
+
+export async function voidCheckIn(
+  stay_id: number,
+  data: import('../types/api').VoidCheckInRequest
+): Promise<Stay> {
+  const res = await api.post<Stay>(`/stays/${stay_id}/void`, data)
+  return res.data
+}
+

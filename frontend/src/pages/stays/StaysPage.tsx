@@ -4,6 +4,7 @@ import {
   CreditCard,
   DoorClosed,
   KeyRound,
+  Undo2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -13,6 +14,7 @@ import { Table, type TableColumn } from '../../components/common/Table'
 import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
 import { RecordPaymentModal } from '../../components/modals/RecordPaymentModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
+import { VoidCheckInModal } from '../../components/modals/VoidCheckInModal'
 import { CheckInModal } from '../../components/modals/CheckInModal'
 import { getStays, getStayFinancialSummary } from '../../api/stays'
 import { getRooms } from '../../api/rooms'
@@ -36,6 +38,7 @@ export function StaysPage() {
   const [extendStayItem, setExtendStayItem] = useState<StayWithDetails | null>(null)
   const [paymentStayItem, setPaymentStayItem] = useState<StayWithDetails | null>(null)
   const [checkoutStayItem, setCheckoutStayItem] = useState<StayWithDetails | null>(null)
+  const [voidStayItem, setVoidStayItem] = useState<StayWithDetails | null>(null)
   const [checkInOpen, setCheckInOpen] = useState(false)
 
   const fetchData = useCallback(async () => {
@@ -98,6 +101,7 @@ export function StaysPage() {
 
   const checkedInCount = stays.filter((s) => s.status === 'CHECKED_IN').length
   const completedCount = stays.filter((s) => s.status === 'CHECKED_OUT').length
+  const voidedCount = stays.filter((s) => s.status === 'VOIDED').length
 
   const columns: TableColumn<StayWithDetails>[] = [
     {
@@ -180,8 +184,11 @@ export function StaysPage() {
       key: 'status',
       header: 'Status',
       render: (s) => (
-        <Badge tone={s.status === 'CHECKED_IN' ? 'occupied' : 'neutral'} size="sm">
-          {s.status === 'CHECKED_IN' ? 'In House' : 'Checked Out'}
+        <Badge
+          tone={s.status === 'CHECKED_IN' ? 'occupied' : s.status === 'VOIDED' ? 'red' : 'neutral'}
+          size="sm"
+        >
+          {s.status === 'CHECKED_IN' ? 'In House' : s.status === 'VOIDED' ? 'Voided' : 'Checked Out'}
         </Badge>
       ),
     },
@@ -223,6 +230,16 @@ export function StaysPage() {
                 <DoorClosed className="w-3.5 h-3.5" />
                 Checkout
               </Button>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={() => setVoidStayItem(s)}
+                className="gap-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700 px-2"
+                title="Void / Cancel Check-In"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                Void
+              </Button>
             </div>
           )
         }
@@ -255,6 +272,7 @@ export function StaysPage() {
           {[
             { id: 'CHECKED_IN', label: 'In House (Active)', count: checkedInCount },
             { id: 'CHECKED_OUT', label: 'Completed (Checked Out)', count: completedCount },
+            { id: 'VOIDED', label: 'Voided / Cancelled', count: voidedCount },
             { id: 'ALL', label: 'All Stays', count: stays.length },
           ].map((tab) => {
             const active = filterStatus === tab.id
@@ -328,6 +346,7 @@ export function StaysPage() {
         stay={checkoutStayItem}
         guestName={checkoutStayItem?.guest?.full_name}
         roomNumber={checkoutStayItem?.room?.room_number}
+        onOpenVoidModal={(stay) => setVoidStayItem(stay as StayWithDetails)}
         onSuccess={(checkedOutStay) => {
           const s = checkedOutStay || checkoutStayItem
           if (s) {
@@ -342,6 +361,15 @@ export function StaysPage() {
           }
           fetchData()
         }}
+      />
+
+      <VoidCheckInModal
+        isOpen={Boolean(voidStayItem)}
+        onClose={() => setVoidStayItem(null)}
+        stay={voidStayItem}
+        guestName={voidStayItem?.guest?.full_name}
+        roomNumber={voidStayItem?.room?.room_number}
+        onSuccess={() => fetchData()}
       />
 
       <CheckInModal

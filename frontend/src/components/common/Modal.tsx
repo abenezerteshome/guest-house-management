@@ -10,8 +10,8 @@ export interface ModalProps {
   description?: string
   children: ReactNode
   footer?: ReactNode
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl'
 }
 
 export function Modal({
@@ -54,7 +54,10 @@ export function Modal({
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-2xl',
-  }[resolvedWidth]
+    '2xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl',
+    '5xl': 'max-w-6xl',
+  }[resolvedWidth] || 'max-w-2xl'
 
   return createPortal(
     <div

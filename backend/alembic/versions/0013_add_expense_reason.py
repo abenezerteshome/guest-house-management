@@ -17,7 +17,7 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-	op.add_column("expenses", sa.Column("reason", sa.String(length=120), nullable=True))
+	op.execute(sa.text("ALTER TABLE expenses ADD COLUMN IF NOT EXISTS reason VARCHAR(120)"))
 	op.execute(sa.text("UPDATE expenses SET reason = description WHERE reason IS NULL"))
 	with op.batch_alter_table("expenses") as batch_op:
 		batch_op.alter_column("reason", existing_type=sa.String(length=120), nullable=False)

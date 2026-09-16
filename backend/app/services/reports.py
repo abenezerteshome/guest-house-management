@@ -7,10 +7,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.charge import Charge, ChargeType
 from app.models.expense import Expense
+from app.models.guest import Guest
 from app.models.payment import Payment, PaymentMethod, PaymentStatus
+from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
 from app.schemas.reports import (
+	DailyManifestItem,
+	DailyManifestReport,
 	DailyReport,
 	DaySummary,
 	ExpenseAnalysisReport,
@@ -147,6 +151,7 @@ async def get_income_analysis(
 		PaymentMethod.TELEBIRR.value,
 		PaymentMethod.CBE_BIRR.value,
 		PaymentMethod.BANK_TRANSFER.value,
+		PaymentMethod.OTHER.value,
 		PaymentMethod.CREDIT.value,
 	]
 	items = []
@@ -259,16 +264,24 @@ async def get_weekly_report(session: AsyncSession, target_date: date | None = No
 
 async def get_monthly_report(session: AsyncSession, year: int | None = None, month: int | None = None) -> MonthlyReport:
 	now = datetime.now(timezone.utc)
-	if year is None:
-		year = now.year
-	if month is None:
-		month = now.month
+	is_all_time = (year == 0 or month == 0)
 
-	first_day = date(year, month, 1)
-	num_days = monthrange(year, month)[1]
-	last_day = date(year, month, num_days)
-	start_dt = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
-	end_dt = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+	if is_all_time:
+		start_dt = datetime(2020, 1, 1, tzinfo=timezone.utc)
+		end_dt = now
+		month_title = "Total Statement (All Time)"
+		num_days = max(1, (now.date() - date(2025, 1, 1)).days)
+	else:
+		if year is None:
+			year = now.year
+		if month is None:
+			month = now.month
+		first_day = date(year, month, 1)
+		num_days = monthrange(year, month)[1]
+		last_day = date(year, month, num_days)
+		start_dt = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
+		end_dt = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+		month_title = first_day.strftime("%B %Y")
 
 	inc_stmt = select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
 		Payment.status == PaymentStatus.SUCCESS.value,
@@ -308,8 +321,64 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 
 	avg_daily_income = round(total_income / Decimal(num_days), 2)
 
+	# Daily breakdown
+	daily_inc_stmt = (
+		select(func.date(Payment.created_at), func.coalesce(func.sum(Payment.amount), Decimal("0.00")))
+		.where(
+			Payment.status == PaymentStatus.SUCCESS.value,
+			Payment.created_at >= start_dt,
+			Payment.created_at <= end_dt,
+		)
+		.group_by(func.date(Payment.created_at))
+	)
+	inc_rows = (await session.execute(daily_inc_stmt)).all()
+	inc_by_date = {str(r[0]): Decimal(str(r[1])) for r in inc_rows}
+
+	daily_exp_stmt = (
+		select(func.date(Expense.expense_date), func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+		.where(
+			Expense.expense_date >= start_dt,
+			Expense.expense_date <= end_dt,
+		)
+		.group_by(func.date(Expense.expense_date))
+	)
+	exp_rows = (await session.execute(daily_exp_stmt)).all()
+	exp_by_date = {str(r[0]): Decimal(str(r[1])) for r in exp_rows}
+
+	days: list[DaySummary] = []
+	if is_all_time:
+		all_dates = sorted(set(inc_by_date.keys()) | set(exp_by_date.keys()), reverse=True)
+		for d_str in all_dates:
+			inc = inc_by_date.get(d_str, Decimal("0.00"))
+			exp = exp_by_date.get(d_str, Decimal("0.00"))
+			d_obj = datetime.strptime(d_str, "%Y-%m-%d").date()
+			days.append(
+				DaySummary(
+					day=d_obj.strftime("%a"),
+					date=d_str,
+					income=inc,
+					expense=exp,
+					net=inc - exp,
+				)
+			)
+	else:
+		for day_num in range(num_days, 0, -1):
+			d = date(year, month, day_num)
+			d_str = d.isoformat()
+			inc = inc_by_date.get(d_str, Decimal("0.00"))
+			exp = exp_by_date.get(d_str, Decimal("0.00"))
+			days.append(
+				DaySummary(
+					day=d.strftime("%a"),
+					date=d_str,
+					income=inc,
+					expense=exp,
+					net=inc - exp,
+				)
+			)
+
 	return MonthlyReport(
-		month=first_day.strftime("%B %Y"),
+		month=month_title,
 		total_income=total_income,
 		total_expenses=total_expenses,
 		net_income=total_income - total_expenses,
@@ -318,4 +387,188 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 		total_credit=Decimal("0.00"),
 		total_penalties=total_penalties,
 		occupancy_rate=occupancy_rate,
+		days=days,
+	)
+
+
+async def get_daily_manifest(
+	session: AsyncSession, target_date: date | None = None
+) -> DailyManifestReport:
+	if target_date is None:
+		target_date = datetime.now(timezone.utc).date()
+	start_dt, end_dt = _to_utc_range(target_date)
+
+	items: list[DailyManifestItem] = []
+
+	# 1. Stays that checked in today
+	checkin_stmt = (
+		select(Stay, Guest, Room)
+		.join(Guest, Stay.guest_id == Guest.id)
+		.join(Room, Stay.room_id == Room.id)
+		.where(
+			Stay.status != StayStatus.VOIDED.value,
+			Stay.check_in_at >= start_dt,
+			Stay.check_in_at <= end_dt,
+		)
+		.order_by(Stay.check_in_at.desc())
+	)
+	checkin_rows = (await session.execute(checkin_stmt)).all()
+
+	# 2. Stays that checked out today
+	checkout_stmt = (
+		select(Stay, Guest, Room)
+		.join(Guest, Stay.guest_id == Guest.id)
+		.join(Room, Stay.room_id == Room.id)
+		.where(
+			Stay.status != StayStatus.VOIDED.value,
+			Stay.actual_checkout_at.is_not(None),
+			Stay.actual_checkout_at >= start_dt,
+			Stay.actual_checkout_at <= end_dt,
+		)
+		.order_by(Stay.actual_checkout_at.desc())
+	)
+	checkout_rows = (await session.execute(checkout_stmt)).all()
+
+	# Query payments and charges for all retrieved stays
+	stay_ids = list({row[0].id for row in checkin_rows} | {row[0].id for row in checkout_rows})
+	stay_payments: dict[int, Decimal] = {}
+	stay_charges: dict[int, Decimal] = {}
+
+	if stay_ids:
+		pmt_stmt = (
+			select(Payment.stay_id, func.coalesce(func.sum(Payment.amount), Decimal("0.00")))
+			.where(
+				Payment.stay_id.in_(stay_ids),
+				Payment.status == PaymentStatus.SUCCESS.value,
+			)
+			.group_by(Payment.stay_id)
+		)
+		pmt_res = await session.execute(pmt_stmt)
+		stay_payments = {r[0]: Decimal(str(r[1])) for r in pmt_res.all()}
+
+		chg_stmt = (
+			select(
+				Charge.stay_id,
+				func.coalesce(func.sum(Charge.amount * Charge.quantity), Decimal("0.00")),
+			)
+			.where(Charge.stay_id.in_(stay_ids))
+			.group_by(Charge.stay_id)
+		)
+		chg_res = await session.execute(chg_stmt)
+		stay_charges = {r[0]: Decimal(str(r[1])) for r in chg_res.all()}
+
+	for stay, guest, room in checkin_rows:
+		checkout_target = stay.actual_checkout_at or stay.expected_checkout
+		days = max(1, (checkout_target.date() - stay.check_in_at.date()).days) if checkout_target else 1
+		paid = stay_payments.get(stay.id, Decimal("0.00"))
+		expected = stay_charges.get(stay.id, Decimal("0.00"))
+		if expected == Decimal("0.00"):
+			expected = Decimal(str(room.price or 0)) * Decimal(days)
+
+		items.append(
+			DailyManifestItem(
+				id=f"stay-in-{stay.id}",
+				activity_type="CHECKED_IN",
+				guest_id=guest.id,
+				guest_name=guest.full_name,
+				guest_phone=guest.phone,
+				guest_id_number=guest.id_number,
+				room_id=room.id,
+				room_number=room.room_number,
+				room_type=room.room_type,
+				days_count=days,
+				amount_paid=paid,
+				expected_amount=expected,
+				check_in_date=stay.check_in_at,
+				checkout_date=stay.actual_checkout_at or stay.expected_checkout,
+				status=stay.status,
+				notes=stay.notes,
+			)
+		)
+
+	for stay, guest, room in checkout_rows:
+		checkout_target = stay.actual_checkout_at or stay.expected_checkout
+		days = max(1, (checkout_target.date() - stay.check_in_at.date()).days) if checkout_target else 1
+		paid = stay_payments.get(stay.id, Decimal("0.00"))
+		expected = stay_charges.get(stay.id, Decimal("0.00"))
+		if expected == Decimal("0.00"):
+			expected = Decimal(str(room.price or 0)) * Decimal(days)
+
+		items.append(
+			DailyManifestItem(
+				id=f"stay-out-{stay.id}",
+				activity_type="CHECKED_OUT",
+				guest_id=guest.id,
+				guest_name=guest.full_name,
+				guest_phone=guest.phone,
+				guest_id_number=guest.id_number,
+				room_id=room.id,
+				room_number=room.room_number,
+				room_type=room.room_type,
+				days_count=days,
+				amount_paid=paid,
+				expected_amount=expected,
+				check_in_date=stay.check_in_at,
+				checkout_date=stay.actual_checkout_at,
+				status=stay.status,
+				notes=stay.notes,
+			)
+		)
+
+	# 3. Reservations expected or active today that haven't checked in yet
+	res_stmt = (
+		select(Reservation, Guest, Room)
+		.join(Guest, Reservation.guest_id == Guest.id)
+		.join(Room, Reservation.room_id == Room.id)
+		.where(
+			Reservation.status == ReservationStatus.RESERVED.value,
+			Reservation.expected_arrival <= end_dt,
+		)
+		.order_by(Reservation.expected_arrival.asc())
+	)
+	res_rows = (await session.execute(res_stmt)).all()
+
+	for res, guest, room in res_rows:
+		days = max(1, (res.expected_checkout.date() - res.expected_arrival.date()).days)
+		expected = (
+			res.expected_amount
+			if res.expected_amount > 0
+			else (Decimal(str(room.price or 0)) * Decimal(days))
+		)
+
+		items.append(
+			DailyManifestItem(
+				id=f"res-{res.id}",
+				activity_type="RESERVED",
+				guest_id=guest.id,
+				guest_name=guest.full_name,
+				guest_phone=guest.phone,
+				guest_id_number=guest.id_number,
+				room_id=room.id,
+				room_number=room.room_number,
+				room_type=room.room_type,
+				days_count=days,
+				amount_paid=Decimal("0.00"),
+				expected_amount=expected,
+				check_in_date=res.expected_arrival,
+				checkout_date=res.expected_checkout,
+				status=res.status,
+				notes=res.notes or res.reason,
+			)
+		)
+
+	checked_in_count = len(checkin_rows)
+	checked_out_count = len(checkout_rows)
+	reserved_count = len(res_rows)
+	total_guests_count = len(items)
+	total_amount_paid = sum(stay_payments.values(), Decimal("0.00"))
+
+	return DailyManifestReport(
+		target_date=target_date.isoformat(),
+		total_guests_count=total_guests_count,
+		checked_in_count=checked_in_count,
+		checked_out_count=checked_out_count,
+		reserved_count=reserved_count,
+		total_amount_paid=total_amount_paid,
+		items=items,
 	)

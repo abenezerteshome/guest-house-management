@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ReceiptText, AlertCircle } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
-import { createExpense } from '../../api/expenses'
+import { createExpense, updateExpense } from '../../api/expenses'
+import type { Expense } from '../../types/api'
 
 interface RecordExpenseModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  expense?: Expense | null
 }
 
 const EXPENSE_CATEGORIES = [
@@ -56,7 +58,7 @@ const EXPENSE_REASONS: Record<string, { id: string; label: string }[]> = {
   OTHER: [{ id: 'OTHER', label: 'Other operational reason' }],
 }
 
-export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpenseModalProps) {
+export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: RecordExpenseModalProps) {
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].id)
   const [reason, setReason] = useState(EXPENSE_REASONS[EXPENSE_CATEGORIES[0].id][0].id)
   const [description, setDescription] = useState('')
@@ -65,6 +67,35 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      if (expense) {
+        setCategory(expense.category)
+        setReason(expense.reason || EXPENSE_REASONS[expense.category]?.[0]?.id || 'OTHER')
+        setDescription(expense.description)
+        setAmount(String(expense.amount))
+        setPaymentMethod(
+          (['CASH', 'TELEBIRR', 'CBE_BIRR', 'BANK_TRANSFER'].includes(expense.payment_method)
+            ? expense.payment_method
+            : 'CASH') as 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'
+        )
+        setExpenseDate(
+          expense.expense_date
+            ? new Date(expense.expense_date).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10)
+        )
+      } else {
+        setCategory(EXPENSE_CATEGORIES[0].id)
+        setReason(EXPENSE_REASONS[EXPENSE_CATEGORIES[0].id][0].id)
+        setDescription('')
+        setAmount('')
+        setPaymentMethod('CASH')
+        setExpenseDate(new Date().toISOString().slice(0, 10))
+      }
+      setError('')
+    }
+  }, [isOpen, expense])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -83,21 +114,32 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
     setError('')
 
     try {
-      await createExpense({
-        category,
-        reason,
-        description: description.trim(),
-        amount: numAmount,
-        payment_method: paymentMethod,
-        expense_date: new Date(expenseDate).toISOString(),
-      })
+      if (expense) {
+        await updateExpense(expense.id, {
+          category,
+          reason,
+          description: description.trim(),
+          amount: numAmount,
+          payment_method: paymentMethod,
+          expense_date: new Date(expenseDate).toISOString(),
+        })
+      } else {
+        await createExpense({
+          category,
+          reason,
+          description: description.trim(),
+          amount: numAmount,
+          payment_method: paymentMethod,
+          expense_date: new Date(expenseDate).toISOString(),
+        })
+      }
 
       onSuccess()
       onClose()
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to record expense. Please try again.'
+        'Failed to save expense. Please try again.'
       setError(msg)
     } finally {
       setLoading(false)
@@ -105,7 +147,12 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Log Operational Expense" size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={expense ? `Edit Operational Expense #${expense.id}` : 'Log Operational Expense'}
+      size="md"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Expense type and reason */}
         <div>
@@ -229,7 +276,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <ReceiptText className="w-4 h-4" />
-            {loading ? 'Saving expense...' : 'Record Expense'}
+            {loading ? (expense ? 'Updating expense...' : 'Saving expense...') : (expense ? 'Update Expense' : 'Record Expense')}
           </Button>
         </div>
       </form>

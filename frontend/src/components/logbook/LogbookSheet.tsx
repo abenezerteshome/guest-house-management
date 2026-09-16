@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  Printer,
 } from 'lucide-react'
 import { getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
 import { clearRoomCleaning } from '../../utils/roomCleaning'
@@ -31,6 +32,7 @@ interface LogbookSheetProps {
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
   onRefresh?: () => void
+  onOpenDailyManifest?: () => void
 }
 
 function toLocalDateStr(d: Date): string {
@@ -66,6 +68,7 @@ export function LogbookSheet({
   onCheckOut,
   onExtendStay,
   onRefresh,
+  onOpenDailyManifest,
 }: LogbookSheetProps) {
   // Current month being viewed (defaults to current calendar month)
   const [currentMonthDate, setCurrentMonthDate] = useState<Date>(() => {
@@ -688,6 +691,13 @@ export function LogbookSheet({
             Bank
           </span>
         )
+      case 'OTHER':
+        return (
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+            <Building2 className="w-2.5 h-2.5" />
+            Other Bank
+          </span>
+        )
       default:
         return (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -739,6 +749,18 @@ export function LogbookSheet({
               className="text-xs font-bold text-[#FF385C] hover:underline cursor-pointer"
             >
               Return to Current Month
+            </button>
+          )}
+
+          {onOpenDailyManifest && (
+            <button
+              type="button"
+              onClick={onOpenDailyManifest}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold transition cursor-pointer shadow-2xs"
+              title="View & print today's checked-in, checked-out, and reserved guest manifest"
+            >
+              <Printer className="w-3.5 h-3.5 text-neutral-600" />
+              <span>Today's Manifest</span>
             </button>
           )}
         </div>

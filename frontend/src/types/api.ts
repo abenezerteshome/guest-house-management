@@ -1,5 +1,7 @@
 export type Role = 'ADMIN' | 'RECEPTION'
 
+export type PaymentMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT' | 'OTHER'
+
 export interface User {
   id: number
   full_name: string
@@ -82,6 +84,16 @@ export interface Stay {
   created_at: string
   updated_at: string
 }
+
+export interface VoidCheckInRequest {
+  reason: string
+  notes?: string | null
+  room_condition: 'AVAILABLE' | 'CLEANING'
+  refund_amount?: number | null
+  refund_method?: PaymentMethod | null
+  refund_bank_name?: string | null
+}
+
 
 export interface Charge {
   id: number
@@ -197,6 +209,7 @@ export interface MonthlyReport {
   total_credit: string
   total_penalties: string
   occupancy_rate: number
+  days?: DaySummary[]
 }
 
 export interface SettingsData {
@@ -205,4 +218,33 @@ export interface SettingsData {
   late_checkout_penalty: string
   property_name: string
   currency: string
+}
+
+export interface DailyManifestItem {
+  id: string
+  activity_type: 'CHECKED_IN' | 'CHECKED_OUT' | 'RESERVED'
+  guest_id: number
+  guest_name: string
+  guest_phone: string
+  guest_id_number?: string | null
+  room_id: number
+  room_number: string
+  room_type?: string | null
+  days_count: number
+  amount_paid: string | number
+  expected_amount: string | number
+  check_in_date?: string | null
+  checkout_date?: string | null
+  status: string
+  notes?: string | null
+}
+
+export interface DailyManifestReport {
+  target_date: string
+  total_guests_count: number
+  checked_in_count: number
+  checked_out_count: number
+  reserved_count: number
+  total_amount_paid: string | number
+  items: DailyManifestItem[]
 }

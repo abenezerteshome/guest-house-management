@@ -19,6 +19,15 @@ class ExpenseCreate(ExpenseBase):
 	pass
 
 
+class ExpenseUpdate(BaseModel):
+	category: ExpenseCategory | None = None
+	reason: str | None = Field(default=None, min_length=1, max_length=120)
+	description: str | None = Field(default=None, min_length=1)
+	amount: Decimal | None = Field(default=None, gt=Decimal("0.00"), decimal_places=2)
+	payment_method: ExpensePaymentMethod | None = None
+	expense_date: datetime | None = None
+
+
 class ExpenseRead(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 

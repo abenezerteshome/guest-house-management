@@ -452,7 +452,7 @@ export function PlaceholderPage({ id, title, description, icon: Icon }: Placehol
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] flex justify-between">
                 <span className="text-[#717171]">Guest House Name</span>
-                <span className="font-semibold text-[#222222]">Haven House</span>
+                <span className="font-semibold text-[#222222]">Family Guest House</span>
               </div>
               <div className="p-3 bg-[#F7F7F7] rounded-xl border border-[#EEEEEE] flex justify-between">
                 <span className="text-[#717171]">Base Currency</span>

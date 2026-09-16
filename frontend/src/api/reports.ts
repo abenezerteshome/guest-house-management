@@ -1,11 +1,19 @@
 import { api } from './client'
 import type {
+  DailyManifestReport,
   DailyReport,
   ExpenseAnalysisReport,
   IncomeAnalysisReport,
   MonthlyReport,
   WeeklyReport,
 } from '../types/api'
+
+export async function getDailyManifest(target_date?: string): Promise<DailyManifestReport> {
+  const res = await api.get<DailyManifestReport>('/reports/daily-manifest', {
+    params: target_date ? { target_date } : undefined,
+  })
+  return res.data
+}
 
 export async function getDailyReport(target_date?: string): Promise<DailyReport> {
   const res = await api.get<DailyReport>('/reports/daily', {

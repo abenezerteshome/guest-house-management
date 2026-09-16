@@ -10,12 +10,13 @@ from app.db.base import Base
 class StayStatus(StrEnum):
 	CHECKED_IN = "CHECKED_IN"
 	CHECKED_OUT = "CHECKED_OUT"
+	VOIDED = "VOIDED"
 
 
 class Stay(Base):
 	__tablename__ = "stays"
 	__table_args__ = (
-		CheckConstraint("status IN ('CHECKED_IN', 'CHECKED_OUT')", name="ck_stays_status"),
+		CheckConstraint("status IN ('CHECKED_IN', 'CHECKED_OUT', 'VOIDED')", name="ck_stays_status"),
 	)
 
 	id: Mapped[int] = mapped_column(primary_key=True)

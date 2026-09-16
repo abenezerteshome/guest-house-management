@@ -125,10 +125,10 @@ export function AppShell() {
               </div>
               <div>
                 <span className="block text-base font-bold text-[#222222] tracking-tight leading-tight">
-                  Haven House
+                  Family Guest House
                 </span>
                 <span className="block text-[11px] font-medium text-[#717171]">
-                  Guest House Management
+                  Management System
                 </span>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function AppShell() {
             </button>
             <div className="flex items-center gap-2 text-xs text-[#717171]">
               <span className="font-bold text-sm text-[#222222]">
-                {currentItem?.label || 'Haven House Guest House'}
+                {currentItem?.label || 'Family Guest House'}
               </span>
               <span className="text-[#CCCCCC]">/</span>
               <span>
