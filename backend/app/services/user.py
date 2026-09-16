@@ -2,11 +2,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserRole
+from app.core.security import hash_password, verify_password
 from app.repositories.user import UserRepository
 from app.services.auth import build_user
 
 
 class DuplicateUsernameError(Exception):
+    pass
+
+
+class InvalidCurrentPasswordError(Exception):
     pass
 
 
@@ -46,6 +51,28 @@ async def update_user(
         user.role = role.value
     if is_active is not None:
         user.is_active = is_active
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def change_password(
+    session: AsyncSession,
+    user: User,
+    *,
+    current_password: str,
+    new_password: str,
+) -> User:
+    if not verify_password(current_password, user.password_hash):
+        raise InvalidCurrentPasswordError("Current password is incorrect")
+    user.password_hash = hash_password(new_password)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def set_password(session: AsyncSession, user: User, *, new_password: str) -> User:
+    user.password_hash = hash_password(new_password)
     await session.commit()
     await session.refresh(user)
     return user

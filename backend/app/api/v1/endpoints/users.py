@@ -5,8 +5,8 @@ from app.core.dependencies import require_admin
 from app.db.session import get_db
 from app.models.user import User
 from app.repositories.user import UserRepository
-from app.schemas.user import UserCreate, UserRead, UserUpdate
-from app.services.user import DuplicateUsernameError, create_user, update_user
+from app.schemas.user import UserCreate, UserPasswordUpdate, UserRead, UserUpdate
+from app.services.user import DuplicateUsernameError, create_user, set_password, update_user
 
 
 router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(require_admin)])
@@ -57,3 +57,13 @@ async def activate_user(user_id: int, session: AsyncSession = Depends(get_db)) -
 async def deactivate_user(user_id: int, session: AsyncSession = Depends(get_db)) -> User:
     user = await get_user_or_404(user_id, session)
     return await update_user(session, user, is_active=False)
+
+
+@router.post("/{user_id}/password", response_model=UserRead)
+async def reset_user_password(
+    user_id: int,
+    payload: UserPasswordUpdate,
+    session: AsyncSession = Depends(get_db),
+) -> User:
+    user = await get_user_or_404(user_id, session)
+    return await set_password(session, user, new_password=payload.new_password)

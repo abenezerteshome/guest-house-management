@@ -83,6 +83,49 @@ async def test_authenticated_me(client: AsyncClient, users) -> None:
 
 
 @pytest.mark.asyncio
+async def test_user_can_change_own_password(client: AsyncClient, users) -> None:
+	token = await token_for(client, "reception", "reception-password-123")
+	headers = {"Authorization": f"Bearer {token}"}
+	response = await client.post(
+		"/api/v1/auth/change-password",
+		headers=headers,
+		json={"current_password": "reception-password-123", "new_password": "new-reception-password-123"},
+	)
+	assert response.status_code == 200
+	assert (await client.post(
+		"/api/v1/auth/login",
+		json={"username": "reception", "password": "new-reception-password-123"},
+	)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_can_change_reception_password(client: AsyncClient, users) -> None:
+	token = await token_for(client, "admin", "admin-password-123")
+	headers = {"Authorization": f"Bearer {token}"}
+	response = await client.post(
+		"/api/v1/users/2/password",
+		headers=headers,
+		json={"new_password": "admin-reset-reception-123"},
+	)
+	assert response.status_code == 200
+	assert (await client.post(
+		"/api/v1/auth/login",
+		json={"username": "reception", "password": "admin-reset-reception-123"},
+	)).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_password_changes_require_correct_permissions(client: AsyncClient, users) -> None:
+	reception_token = await token_for(client, "reception", "reception-password-123")
+	response = await client.post(
+		"/api/v1/users/1/password",
+		headers={"Authorization": f"Bearer {reception_token}"},
+		json={"new_password": "reception-reset-admin-123"},
+	)
+	assert response.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_unauthenticated_me(client: AsyncClient) -> None:
 	response = await client.get("/api/v1/auth/me")
 	assert response.status_code == 401
