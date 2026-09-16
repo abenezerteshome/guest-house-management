@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ReceiptText, AlertCircle } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
-import { createExpense } from '../../api/expenses'
+import { createExpense, updateExpense } from '../../api/expenses'
+import type { Expense } from '../../types/api'
 
 interface RecordExpenseModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  expense?: Expense | null
 }
 
 const EXPENSE_CATEGORIES = [
@@ -23,14 +25,77 @@ const EXPENSE_CATEGORIES = [
   { id: 'OTHER', label: 'Other Operational Expenses' },
 ]
 
-export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpenseModalProps) {
+const EXPENSE_REASONS: Record<string, { id: string; label: string }[]> = {
+  CLEANING: [
+    { id: 'ROOM_CLEANING', label: 'Room cleaning' },
+    { id: 'LAUNDRY', label: 'Laundry service' },
+    { id: 'CLEANING_SUPPLIES', label: 'Cleaning supplies' },
+  ],
+  ELECTRICITY: [{ id: 'ELECTRICITY_BILL', label: 'Electricity bill' }],
+  WATER: [
+    { id: 'WATER_BILL', label: 'Water bill' },
+    { id: 'WATER_DELIVERY', label: 'Water delivery' },
+  ],
+  MAINTENANCE: [
+    { id: 'PLUMBING_REPAIR', label: 'Plumbing repair' },
+    { id: 'ELECTRICAL_REPAIR', label: 'Electrical repair' },
+    { id: 'FURNITURE_REPAIR', label: 'Furniture repair' },
+    { id: 'APPLIANCE_REPAIR', label: 'Appliance repair' },
+  ],
+  FOOD: [
+    { id: 'GUEST_BREAKFAST', label: 'Guest breakfast' },
+    { id: 'STAFF_MEAL', label: 'Staff meal' },
+  ],
+  SALARY: [{ id: 'STAFF_PAYROLL', label: 'Staff payroll' }],
+  TRANSPORTATION: [
+    { id: 'SUPPLY_DELIVERY', label: 'Supply delivery' },
+    { id: 'GUEST_TRANSPORT', label: 'Guest transport' },
+  ],
+  SUPPLIES: [
+    { id: 'ROOM_AMENITIES', label: 'Room amenities' },
+    { id: 'OFFICE_SUPPLIES', label: 'Office supplies' },
+  ],
+  OTHER: [{ id: 'OTHER', label: 'Other operational reason' }],
+}
+
+export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: RecordExpenseModalProps) {
   const [category, setCategory] = useState(EXPENSE_CATEGORIES[0].id)
+  const [reason, setReason] = useState(EXPENSE_REASONS[EXPENSE_CATEGORIES[0].id][0].id)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'>('CASH')
   const [expenseDate, setExpenseDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (isOpen) {
+      if (expense) {
+        setCategory(expense.category)
+        setReason(expense.reason || EXPENSE_REASONS[expense.category]?.[0]?.id || 'OTHER')
+        setDescription(expense.description)
+        setAmount(String(expense.amount))
+        setPaymentMethod(
+          (['CASH', 'TELEBIRR', 'CBE_BIRR', 'BANK_TRANSFER'].includes(expense.payment_method)
+            ? expense.payment_method
+            : 'CASH') as 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'
+        )
+        setExpenseDate(
+          expense.expense_date
+            ? new Date(expense.expense_date).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10)
+        )
+      } else {
+        setCategory(EXPENSE_CATEGORIES[0].id)
+        setReason(EXPENSE_REASONS[EXPENSE_CATEGORIES[0].id][0].id)
+        setDescription('')
+        setAmount('')
+        setPaymentMethod('CASH')
+        setExpenseDate(new Date().toISOString().slice(0, 10))
+      }
+      setError('')
+    }
+  }, [isOpen, expense])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -49,20 +114,32 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
     setError('')
 
     try {
-      await createExpense({
-        category,
-        description: description.trim(),
-        amount: numAmount,
-        payment_method: paymentMethod,
-        expense_date: new Date(expenseDate).toISOString(),
-      })
+      if (expense) {
+        await updateExpense(expense.id, {
+          category,
+          reason,
+          description: description.trim(),
+          amount: numAmount,
+          payment_method: paymentMethod,
+          expense_date: new Date(expenseDate).toISOString(),
+        })
+      } else {
+        await createExpense({
+          category,
+          reason,
+          description: description.trim(),
+          amount: numAmount,
+          payment_method: paymentMethod,
+          expense_date: new Date(expenseDate).toISOString(),
+        })
+      }
 
       onSuccess()
       onClose()
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to record expense. Please try again.'
+        'Failed to save expense. Please try again.'
       setError(msg)
     } finally {
       setLoading(false)
@@ -70,21 +147,48 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Log Operational Expense" size="md">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={expense ? `Edit Operational Expense #${expense.id}` : 'Log Operational Expense'}
+      size="md"
+    >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Category selector */}
+        {/* Expense type and reason */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Expense Category *
+            Expense Type *
           </label>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              const nextCategory = e.target.value
+              setCategory(nextCategory)
+              setReason(EXPENSE_REASONS[nextCategory][0].id)
+            }}
             className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
           >
             {EXPENSE_CATEGORIES.map((cat) => (
               <option key={cat.id} value={cat.id}>
                 {cat.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+            Expense Reason *
+          </label>
+          <select
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            required
+            className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
+          >
+            {EXPENSE_REASONS[category].map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
               </option>
             ))}
           </select>
@@ -147,7 +251,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
         {/* Description */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Description / Item Details *
+            Details / Notes *
           </label>
           <textarea
             rows={2}
@@ -172,7 +276,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess }: RecordExpense
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <ReceiptText className="w-4 h-4" />
-            {loading ? 'Saving expense...' : 'Record Expense'}
+            {loading ? (expense ? 'Updating expense...' : 'Saving expense...') : (expense ? 'Update Expense' : 'Record Expense')}
           </Button>
         </div>
       </form>

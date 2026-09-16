@@ -5,7 +5,7 @@ import { Button } from '../common/Button'
 import { Input } from '../common/Input'
 import { IdPhotoCapture } from '../common/IdPhotoCapture'
 import { toLocalDatetimeInput } from '../../utils/dateUtils'
-import type { Room, Guest, Reservation, Stay } from '../../types/api'
+import type { Room, Reservation, Stay } from '../../types/api'
 import { createGuest, getGuest, updateGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
 import { checkInReservation } from '../../api/stays'
@@ -30,7 +30,7 @@ interface CheckInModalProps {
   onLoadingChange?: (roomId: number, loading: boolean) => void
 }
 
-type ReceivedViaMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'
+type ReceivedViaMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT' | 'OTHER'
 
 export function CheckInModal({
   isOpen,
@@ -66,6 +66,7 @@ export function CheckInModal({
   const [phone, setPhone] = useState('')
   const [idPhoto, setIdPhoto] = useState<string | null>(null)
   const [receivedVia, setReceivedVia] = useState<ReceivedViaMethod>('CASH')
+  const [bankName, setBankName] = useState('')
   const [checkInDate, setCheckInDate] = useState(() => toLocalDatetimeInput(new Date()))
   const [checkoutDate, setCheckoutDate] = useState(() => {
     const tomorrow = new Date()
@@ -95,6 +96,7 @@ export function CheckInModal({
       setCheckInDate(toLocalDatetimeInput(now))
       setActiveReservation(existingReservation || null)
       setReceivedVia('CASH')
+      setBankName('')
 
       if (existingReservation) {
         // Pre-fill from existing reservation
@@ -169,6 +171,10 @@ export function CheckInModal({
       setError('Please fill in Guest Full Name and Phone Number.')
       return
     }
+    if (receivedVia === 'OTHER' && !bankName.trim()) {
+      setError('Please enter the name of the bank.')
+      return
+    }
 
     setError('')
     setLoading(true)
@@ -214,11 +220,15 @@ export function CheckInModal({
       // Record payment immediately if not on credit
       if (stay && receivedVia !== 'CREDIT' && totalRoomCharge > 0) {
         try {
+          const paymentRef =
+            receivedVia === 'OTHER'
+              ? `Check-in payment (Other: ${bankName.trim()})`
+              : `Check-in payment (${receivedVia})`
           await recordManualPayment({
             stay_id: stay.id,
             amount: totalRoomCharge,
             payment_method: receivedVia,
-            reference: `Check-in payment (${receivedVia})`,
+            reference: paymentRef,
           })
         } catch (payErr) {
           console.error('Check-in was successful but recording payment failed:', payErr)
@@ -229,6 +239,7 @@ export function CheckInModal({
       setPhone('')
       setIdPhoto(null)
       setReceivedVia('CASH')
+      setBankName('')
       setActiveReservation(null)
       onSuccess()
       onClose()
@@ -343,9 +354,25 @@ export function CheckInModal({
               <option value="TELEBIRR">Telebirr</option>
               <option value="CBE_BIRR">CBE Birr</option>
               <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="OTHER">Other</option>
               <option value="CREDIT">On Credit (Pay Later)</option>
             </select>
           </div>
+
+          {receivedVia === 'OTHER' && (
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                Bank Name *
+              </label>
+              <Input
+                placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+          )}
 
           {receivedVia === 'CREDIT' ? (
             <p className="text-[11px] text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
@@ -360,7 +387,11 @@ export function CheckInModal({
                   ? 'Telebirr'
                   : receivedVia === 'CBE_BIRR'
                   ? 'CBE Birr'
-                  : 'Bank Transfer'
+                  : receivedVia === 'BANK_TRANSFER'
+                  ? 'Bank Transfer'
+                  : bankName.trim()
+                  ? bankName.trim()
+                  : 'Other Bank'
               }.
             </p>
           )}

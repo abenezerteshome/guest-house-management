@@ -1,20 +1,22 @@
 import axios from 'axios'
 
-export const TOKEN_KEY = 'haven_house_access_token'
+export const TOKEN_KEY = 'family_guest_house_access_token'
+const LEGACY_TOKEN_KEY = 'haven_house_access_token'
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://haven-house-api.onrender.com/api/v1',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api/v1',
   headers: { 'Content-Type': 'application/json' },
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY)
+  const token = localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY)
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(LEGACY_TOKEN_KEY)
 }
 
 export function getApiError(error: unknown, fallback = 'Something went wrong. Please try again.') {

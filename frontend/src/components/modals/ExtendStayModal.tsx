@@ -33,7 +33,8 @@ export function ExtendStayModal({
 
   // Payment Settlement Choice
   const [paymentOption, setPaymentOption] = useState<'PAY_NOW' | 'CREDIT'>('PAY_NOW')
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'>('CASH')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'OTHER'>('CASH')
+  const [bankName, setBankName] = useState('')
 
   useEffect(() => {
     if (stay) {
@@ -45,6 +46,7 @@ export function ExtendStayModal({
       setSelectedQuickDays(1)
       setError('')
       setPaymentOption('PAY_NOW')
+      setBankName('')
     }
   }, [stay])
 
@@ -84,6 +86,11 @@ export function ExtendStayModal({
       return
     }
 
+    if (paymentOption === 'PAY_NOW' && paymentMethod === 'OTHER' && !bankName.trim()) {
+      setError('Please enter the name of the bank.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -100,7 +107,8 @@ export function ExtendStayModal({
       if (paymentOption === 'PAY_NOW' && totalExtensionFee > 0) {
         const fromStr = toLocalDateStr(currentCheckoutDate)
         const toStr = toLocalDateStr(selected)
-        const paymentRef = `Stay extension (${extensionNights} night${extensionNights > 1 ? 's' : ''}: ${fromStr} to ${toStr}) - ${paymentMethod}`
+        const methodLabel = paymentMethod === 'OTHER' ? (bankName.trim() || 'Other Bank') : paymentMethod
+        const paymentRef = `Stay extension (${extensionNights} night${extensionNights > 1 ? 's' : ''}: ${fromStr} to ${toStr}) - ${methodLabel}`
 
         try {
           const existingPayments = await getStayPayments(stay.id)
@@ -293,8 +301,26 @@ export function ExtendStayModal({
                   <option value="TELEBIRR">Telebirr</option>
                   <option value="CBE_BIRR">CBE Birr</option>
                   <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="OTHER">Other</option>
                 </select>
               </div>
+
+              {paymentMethod === 'OTHER' && (
+                <div>
+                  <label className="block text-xs font-semibold text-emerald-900 mb-1">
+                    Bank Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    className="w-full h-9 px-3 rounded-lg border border-emerald-300 bg-white text-xs font-medium text-neutral-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    required
+                    autoFocus
+                  />
+                </div>
+              )}
             </div>
           )}
 

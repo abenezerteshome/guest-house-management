@@ -1,8 +1,9 @@
-const STORAGE_KEY = 'haven_house_cleaning_rooms'
+const STORAGE_KEY = 'family_guest_house_cleaning_rooms'
+const LEGACY_STORAGE_KEY = 'haven_house_cleaning_rooms'
 
 export function getCleaningRooms(): Record<number, number> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)
     if (!raw) return {}
     const parsed = JSON.parse(raw) as Record<string, number>
     const now = Date.now()

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
+import { Input } from '../common/Input'
 import type { Stay } from '../../types/api'
 import { checkOutStay, getStayCharges, getStayPayments } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
@@ -23,9 +24,10 @@ interface CheckOutModalProps {
   guestName?: string
   roomNumber?: string
   onSuccess: (checkedOutStay?: Stay | null) => void
+  onOpenVoidModal?: (stay: Stay) => void
 }
 
-type ReceivedViaMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER'
+type ReceivedViaMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'OTHER'
 
 export function CheckOutModal({
   isOpen,
@@ -34,6 +36,7 @@ export function CheckOutModal({
   guestName,
   roomNumber,
   onSuccess,
+  onOpenVoidModal,
 }: CheckOutModalProps) {
   const [extensionCredit, setExtensionCredit] = useState<number>(0)
   const [extensionDays, setExtensionDays] = useState<number>(0)
@@ -42,6 +45,7 @@ export function CheckOutModal({
   const [penaltyRate, setPenaltyRate] = useState<number>(600)
   const [applyPenalty, setApplyPenalty] = useState<boolean>(false)
   const [receivedVia, setReceivedVia] = useState<ReceivedViaMethod>('CASH')
+  const [bankName, setBankName] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -61,6 +65,7 @@ export function CheckOutModal({
     setError('')
     setApplyPenalty(false)
     setReceivedVia('CASH')
+    setBankName('')
 
     Promise.all([
       getStayCharges(stay.id),
@@ -68,16 +73,14 @@ export function CheckOutModal({
       getSettings().catch(() => null),
     ])
       .then(([charges, payments, settings]) => {
-        let rate = 600
-        let dHour = 4
-        let dMinute = 0
         if (settings) {
-          dHour = settings.checkout_deadline_hour
-          dMinute = settings.checkout_deadline_minute
-          rate = Number(settings.late_checkout_penalty)
-          setDeadlineHour(dHour)
-          setDeadlineMinute(dMinute)
-          setPenaltyRate(rate)
+          setDeadlineHour(settings.checkout_deadline_hour)
+          setDeadlineMinute(settings.checkout_deadline_minute)
+          setPenaltyRate(Number(settings.late_checkout_penalty))
+        } else {
+          setDeadlineHour(4)
+          setDeadlineMinute(0)
+          setPenaltyRate(600)
         }
 
         // Extension credit calculation
@@ -142,6 +145,10 @@ export function CheckOutModal({
 
   async function handleConfirmCheckout() {
     if (!stay) return
+    if (totalToCollect > 0 && receivedVia === 'OTHER' && !bankName.trim()) {
+      setError('Please enter the name of the bank.')
+      return
+    }
     setError('')
     setSubmitting(true)
     try {
@@ -149,11 +156,15 @@ export function CheckOutModal({
       await checkOutStay(stay.id, customPenalty)
 
       if (totalToCollect > 0) {
+        const paymentRef =
+          receivedVia === 'OTHER'
+            ? `Checkout settlement (Other: ${bankName.trim()})`
+            : `Checkout settlement (${receivedVia})`
         await recordManualPayment({
           stay_id: stay.id,
           amount: totalToCollect,
           payment_method: receivedVia,
-          reference: `Checkout settlement (${receivedVia})`,
+          reference: paymentRef,
         })
       }
 
@@ -288,9 +299,36 @@ export function CheckOutModal({
               <option value="TELEBIRR">Telebirr</option>
               <option value="CBE_BIRR">CBE Birr</option>
               <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="OTHER">Other</option>
             </select>
+            {receivedVia === 'OTHER' && (
+              <div>
+                <label htmlFor="checkout-bank-name" className="block text-xs font-semibold text-neutral-700 mb-1">
+                  Bank Name *
+                </label>
+                <Input
+                  id="checkout-bank-name"
+                  placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  disabled={submitting}
+                  required
+                  autoFocus
+                />
+              </div>
+            )}
             <p className="text-[11px] text-neutral-500">
-              This checkout collection will be recorded via {receivedVia === 'CBE_BIRR' ? 'CBE Birr' : receivedVia === 'BANK_TRANSFER' ? 'Bank Transfer' : receivedVia === 'TELEBIRR' ? 'Telebirr' : 'Cash'}.
+              This checkout collection will be recorded via {
+                receivedVia === 'CBE_BIRR'
+                  ? 'CBE Birr'
+                  : receivedVia === 'BANK_TRANSFER'
+                  ? 'Bank Transfer'
+                  : receivedVia === 'TELEBIRR'
+                  ? 'Telebirr'
+                  : receivedVia === 'OTHER'
+                  ? (bankName.trim() || 'Other Bank')
+                  : 'Cash'
+              }.
             </p>
           </div>
         )}
@@ -311,20 +349,37 @@ export function CheckOutModal({
         )}
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#F0F0F0]">
-          <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button
-            variant={totalToCollect > 0 ? 'danger' : 'primary'}
-            size="md"
-            onClick={handleConfirmCheckout}
-            loading={submitting}
-          >
-            {totalToCollect > 0
-              ? `Collect ETB ${totalToCollect.toLocaleString()} & Check Out`
-              : 'Check Out & Free Room'}
-          </Button>
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#F0F0F0]">
+          {onOpenVoidModal && stay ? (
+            <button
+              type="button"
+              onClick={() => {
+                onClose()
+                onOpenVoidModal(stay)
+              }}
+              className="text-xs text-rose-600 hover:text-rose-800 font-semibold hover:underline"
+            >
+              Void Check-In instead
+            </button>
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="md" onClick={onClose} disabled={submitting}>
+              Cancel
+            </Button>
+            <Button
+              variant={totalToCollect > 0 ? 'danger' : 'primary'}
+              size="md"
+              onClick={handleConfirmCheckout}
+              loading={submitting}
+            >
+              {totalToCollect > 0
+                ? `Collect ETB ${totalToCollect.toLocaleString()} & Check Out`
+                : 'Check Out & Free Room'}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>

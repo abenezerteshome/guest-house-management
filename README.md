@@ -1,4 +1,4 @@
-# Haven House Guest House Management System
+# Family Guest House Management System
 
 This is an internal staff system with exactly two actors: `ADMIN` and `RECEPTION`.
 Guests are database records and do not have accounts or login access. The system

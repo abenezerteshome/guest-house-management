@@ -5,10 +5,13 @@ import {
   Save,
   CheckCircle2,
   AlertCircle,
+  KeyRound,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { getSettings, updateSettings } from '../../api/settings'
+import { listUsers } from '../../api/users'
+import { ChangePasswordModal } from '../../components/modals/ChangePasswordModal'
 import { useAuth } from '../../hooks/useAuth'
 import type { SettingsData } from '../../types/api'
 
@@ -25,6 +28,8 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [staff, setStaff] = useState<import('../../types/api').User[]>([])
+  const [passwordUser, setPasswordUser] = useState<import('../../types/api').User | null>(null)
 
   useEffect(() => {
     getSettings()
@@ -40,6 +45,10 @@ export function SettingsPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (isAdmin) listUsers().then(setStaff).catch(() => setErrorMsg('Could not load staff accounts.'))
+  }, [isAdmin])
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
@@ -242,6 +251,36 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
+          <div className="flex items-center gap-3 border-b border-neutral-200 pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF0F2] text-[#FF385C]"><KeyRound className="w-5 h-5" /></div>
+            <div>
+              <h3 className="text-base font-bold text-neutral-900">Staff Passwords</h3>
+              <p className="text-xs text-neutral-500">Set a new password when a receptionist needs help accessing the desk.</p>
+            </div>
+          </div>
+          <div className="divide-y divide-neutral-100">
+            {staff.map((staffUser) => (
+              <div key={staffUser.id} className="flex items-center justify-between gap-4 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-neutral-900">{staffUser.full_name}</p>
+                  <p className="text-xs text-neutral-500">@{staffUser.username} · {staffUser.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}</p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" className="shrink-0 gap-1.5" onClick={() => setPasswordUser(staffUser)}>
+                  <KeyRound className="h-3.5 w-3.5" />
+                  Set password
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {passwordUser && (
+        <ChangePasswordModal user={passwordUser} adminReset onClose={() => setPasswordUser(null)} />
+      )}
     </div>
   )
 }

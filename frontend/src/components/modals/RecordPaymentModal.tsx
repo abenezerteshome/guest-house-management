@@ -24,7 +24,7 @@ interface RecordPaymentModalProps {
   onSuccess: () => void
 }
 
-type PaymentMethodType = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT'
+type PaymentMethodType = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT' | 'OTHER'
 
 export function RecordPaymentModal({
   isOpen,
@@ -36,6 +36,7 @@ export function RecordPaymentModal({
 }: RecordPaymentModalProps) {
   const [summary, setSummary] = useState<FinancialSummary | null>(null)
   const [method, setMethod] = useState<PaymentMethodType>('CASH')
+  const [bankName, setBankName] = useState<string>('')
   const [amount, setAmount] = useState<string>('')
   const [reference, setReference] = useState<string>('')
   const [loading, setLoading] = useState(false)
@@ -45,6 +46,7 @@ export function RecordPaymentModal({
     if (isOpen && stayId) {
       setLoading(true)
       setError('')
+      setBankName('')
       getStayFinancialSummary(stayId)
         .then((res) => {
           setSummary(res)
@@ -87,15 +89,27 @@ export function RecordPaymentModal({
       return
     }
 
+    if (method === 'OTHER' && !bankName.trim()) {
+      setError('Please enter the name of the bank.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
     try {
+      const finalReference =
+        method === 'OTHER'
+          ? reference.trim()
+            ? `${bankName.trim()} - ${reference.trim()}`
+            : `Other Bank: ${bankName.trim()}`
+          : reference.trim() || undefined
+
       await recordManualPayment({
         stay_id: stayId,
         amount: numAmount.toFixed(2),
         payment_method: method,
-        reference: reference.trim() || undefined,
+        reference: finalReference,
       })
 
       onSuccess()
@@ -185,6 +199,12 @@ export function RecordPaymentModal({
                 icon: Building2,
               },
               {
+                id: 'OTHER',
+                label: 'Other',
+                desc: 'Other bank or provider',
+                icon: Building2,
+              },
+              {
                 id: 'CREDIT',
                 label: 'Credit / Ledger',
                 desc: 'Unsettled guest credit',
@@ -223,6 +243,23 @@ export function RecordPaymentModal({
             })}
           </div>
         </div>
+
+        {/* Bank Name Input if OTHER */}
+        {method === 'OTHER' && (
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+              Bank Name *
+            </label>
+            <Input
+              placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+              disabled={loading}
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+        )}
 
         {/* Amount Input */}
         <div>

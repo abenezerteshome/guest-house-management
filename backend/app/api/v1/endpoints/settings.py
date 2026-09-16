@@ -20,7 +20,7 @@ async def read_settings() -> SettingsRead:
 		checkout_deadline_hour=settings.checkout_deadline_hour,
 		checkout_deadline_minute=settings.checkout_deadline_minute,
 		late_checkout_penalty=settings.late_checkout_penalty,
-		property_name="Haven House",
+		property_name="Family Guest House",
 		currency="ETB",
 	)
 
@@ -48,6 +48,6 @@ async def update_settings(
 		checkout_deadline_hour=settings.checkout_deadline_hour,
 		checkout_deadline_minute=settings.checkout_deadline_minute,
 		late_checkout_penalty=settings.late_checkout_penalty,
-		property_name="Haven House",
+		property_name="Family Guest House",
 		currency="ETB",
 	)

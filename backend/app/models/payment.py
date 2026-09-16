@@ -14,6 +14,7 @@ class PaymentMethod(StrEnum):
 	CBE_BIRR = "CBE_BIRR"
 	BANK_TRANSFER = "BANK_TRANSFER"
 	CREDIT = "CREDIT"
+	OTHER = "OTHER"
 
 
 class PaymentStatus(StrEnum):
@@ -28,7 +29,7 @@ class Payment(Base):
 	__table_args__ = (
 		CheckConstraint("amount > 0", name="ck_payments_amount_positive"),
 		CheckConstraint(
-			"payment_method IN ('CASH', 'TELEBIRR', 'CBE_BIRR', 'BANK_TRANSFER', 'CREDIT')",
+			"payment_method IN ('CASH', 'TELEBIRR', 'CBE_BIRR', 'BANK_TRANSFER', 'CREDIT', 'OTHER')",
 			name="ck_payments_method",
 		),
 		CheckConstraint(

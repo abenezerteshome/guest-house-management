@@ -22,7 +22,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Haven House caught an unhandled error:', error, errorInfo)
+    console.error('Family Guest House caught an unhandled error:', error, errorInfo)
   }
 
   public override render() {
@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={() => window.location.reload()}
               >
                 <RefreshCw size={16} />
-                <span>Reload Haven House</span>
+                <span>Reload Family Guest House</span>
               </Button>
             </div>
           </div>

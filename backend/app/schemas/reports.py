@@ -75,3 +75,33 @@ class MonthlyReport(BaseModel):
 	total_credit: Decimal
 	total_penalties: Decimal
 	occupancy_rate: float
+	days: list[DaySummary] = []
+
+
+class DailyManifestItem(BaseModel):
+	id: str
+	activity_type: str  # 'CHECKED_IN', 'CHECKED_OUT', 'RESERVED'
+	guest_id: int
+	guest_name: str
+	guest_phone: str
+	guest_id_number: str | None = None
+	room_id: int
+	room_number: str
+	room_type: str | None = None
+	days_count: int
+	amount_paid: Decimal
+	expected_amount: Decimal
+	check_in_date: datetime | None = None
+	checkout_date: datetime | None = None
+	status: str
+	notes: str | None = None
+
+
+class DailyManifestReport(BaseModel):
+	target_date: str
+	total_guests_count: int
+	checked_in_count: int
+	checked_out_count: int
+	reserved_count: int
+	total_amount_paid: Decimal
+	items: list[DailyManifestItem] = []

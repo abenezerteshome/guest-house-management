@@ -19,6 +19,10 @@ class ExpenseRepository:
 	async def get_by_id(self, expense_id: int) -> Expense | None:
 		return await self.session.get(Expense, expense_id)
 
+	async def delete(self, expense: Expense) -> None:
+		await self.session.delete(expense)
+		await self.session.flush()
+
 	async def list(
 		self,
 		category: str | None = None,

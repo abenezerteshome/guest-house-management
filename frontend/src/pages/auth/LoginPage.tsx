@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
+import { CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/common/Button'
 import { Modal } from '../../components/common/Modal'
+import { LoginChangePasswordModal } from '../../components/modals/LoginChangePasswordModal'
 
 export function LoginPage() {
   const { login, user, isAuthenticated, logout } = useAuth()
@@ -12,6 +13,8 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -52,10 +55,10 @@ export function LoginPage() {
           </div>
           <div>
             <span className="block text-base font-bold text-[#222222] tracking-tight leading-tight">
-              Haven House
+              Family Guest House
             </span>
             <span className="block text-[11px] font-medium text-[#717171]">
-              Guest House Management System
+              Management System
             </span>
           </div>
         </div>
@@ -161,6 +164,16 @@ export function LoginPage() {
                       >
                         Password
                       </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setChangePasswordOpen(true)
+                          setSuccessMessage(null)
+                        }}
+                        className="text-xs font-semibold text-[#FF385C] hover:text-[#E00B41] transition-colors cursor-pointer"
+                      >
+                        Change or reset?
+                      </button>
                     </div>
                     <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] hover:border-[#B0B0B0] focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222] bg-white px-3.5 transition-all">
                       <LockKeyhole size={17} className="text-[#717171] shrink-0 mr-2.5" />
@@ -184,6 +197,17 @@ export function LoginPage() {
                       </button>
                     </div>
                   </div>
+
+                  {/* Success Message */}
+                  {successMessage && (
+                    <div
+                      role="status"
+                      className="p-3.5 rounded-xl bg-[#EBF9EB] border border-[#C6E7C6] text-xs text-[#008A05] leading-relaxed flex items-start gap-2.5"
+                    >
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                      <span>{successMessage}</span>
+                    </div>
+                  )}
 
                   {/* Error Message */}
                   {error && (
@@ -214,7 +238,7 @@ export function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#F0F0F0] text-center">
               <span className="text-xs text-[#717171] flex items-center justify-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-                Staff access only · Haven Guest House Management System
+                Staff access only · Family Guest House Management System
               </span>
             </div>
           </div>
@@ -224,7 +248,7 @@ export function LoginPage() {
       {/* Footer */}
       <footer className="w-full py-6 px-6 text-center text-xs text-[#717171] border-t border-[#EEEEEE]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>© {new Date().getFullYear()} Haven House. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} Family Guest House. All rights reserved.</span>
           <div className="flex items-center gap-4 text-xs text-[#717171]">
             <span>Privacy</span>
             <span>·</span>
@@ -239,28 +263,42 @@ export function LoginPage() {
       <Modal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
-        title="Haven House Staff Support"
-        description="Assistance with account access and operational desk procedures."
+        title="Need Sign In Help?"
+        description="Here is how to get access to your account."
       >
-        <div className="space-y-4 text-sm text-[#222222]">
-          <div className="p-3.5 rounded-xl bg-[#F7F7F7] border border-[#DDDDDD]">
-            <strong className="block text-xs font-bold uppercase tracking-wider text-[#717171] mb-1">
-              Account Credentials
-            </strong>
-            <p className="text-xs text-[#717171] leading-relaxed">
-              Standard credentials are provided to designated staff members by the Guest House Administrator. If you have forgotten your password or need a role change, contact your general manager.
-            </p>
-          </div>
-          <div className="p-3.5 rounded-xl bg-[#F7F7F7] border border-[#DDDDDD]">
-            <strong className="block text-xs font-bold uppercase tracking-wider text-[#717171] mb-1">
-              Server Connectivity
-            </strong>
-            <p className="text-xs text-[#717171] leading-relaxed">
-              Ensure the Haven House backend service is active and reachable at <code className="text-[#FF385C] bg-white px-1.5 py-0.5 rounded border border-[#DDDDDD]">http://localhost:8000</code>.
+        <div className="space-y-4 text-xs text-[#717171] leading-relaxed">
+          <p>
+            <strong className="text-[#222222]">Default Accounts:</strong>
+            <br />
+            • Administrator: username <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">admin</code>
+            <br />
+            • Reception Desk: username <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">reception</code>
+          </p>
+          <p>
+            <strong className="text-[#222222]">Forgotten Passwords:</strong>
+            <br />
+            Click <strong>"Change or reset?"</strong> on the login screen to update your password with your current password or request an Administrator Shift Override.
+          </p>
+          <div className="pt-2 border-t border-[#F0F0F0]">
+            <p className="text-[11px] text-[#999999]">
+              Family Guest House Front Desk &bull; Internal System
             </p>
           </div>
         </div>
       </Modal>
+
+      {/* Change / Reset Password Modal */}
+      <LoginChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        initialUsername={username}
+        onSuccess={(msg, updatedUsername) => {
+          setSuccessMessage(msg)
+          if (updatedUsername) setUsername(updatedUsername)
+          setPassword('')
+          setError('')
+        }}
+      />
     </div>
   )
 }

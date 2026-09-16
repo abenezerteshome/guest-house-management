@@ -93,6 +93,7 @@ async def create_manual_payment(
 		PaymentMethod.CBE_BIRR,
 		PaymentMethod.BANK_TRANSFER,
 		PaymentMethod.CREDIT,
+		PaymentMethod.OTHER,
 	}:
 		raise FinancialConflictError("Unsupported manual payment method")
 	if amount <= 0:

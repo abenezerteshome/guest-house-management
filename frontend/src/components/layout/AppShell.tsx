@@ -10,12 +10,14 @@ import {
   LogOut,
   Menu,
   Settings,
+  KeyRound,
   Users,
   Wallet,
   X,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Avatar } from '../common/Avatar'
+import { ChangePasswordModal } from '../modals/ChangePasswordModal'
 
 interface NavItem {
   label: string
@@ -58,6 +60,7 @@ export function AppShell() {
   const { user, logout } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
@@ -122,10 +125,10 @@ export function AppShell() {
               </div>
               <div>
                 <span className="block text-base font-bold text-[#222222] tracking-tight leading-tight">
-                  Haven House
+                  Family Guest House
                 </span>
                 <span className="block text-[11px] font-medium text-[#717171]">
-                  Guest House Management
+                  Management System
                 </span>
               </div>
             </div>
@@ -231,7 +234,7 @@ export function AppShell() {
             </button>
             <div className="flex items-center gap-2 text-xs text-[#717171]">
               <span className="font-bold text-sm text-[#222222]">
-                {currentItem?.label || 'Haven House Guest House'}
+                {currentItem?.label || 'Family Guest House'}
               </span>
               <span className="text-[#CCCCCC]">/</span>
               <span>
@@ -295,6 +298,17 @@ export function AppShell() {
                       <span>Guest House Settings</span>
                     </Link>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPasswordModalOpen(true)
+                      setUserMenuOpen(false)
+                    }}
+                    className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[#222222] transition hover:bg-[#F7F7F7]"
+                  >
+                    <KeyRound size={14} className="text-[#717171]" />
+                    <span>Change Password</span>
+                  </button>
                   <div className="border-t border-[#F0F0F0] my-1" />
                   <button
                     type="button"
@@ -318,6 +332,9 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      {passwordModalOpen && user && (
+        <ChangePasswordModal user={user} onClose={() => setPasswordModalOpen(false)} />
+      )}
     </div>
   )
 }

@@ -6,7 +6,7 @@ class SettingsRead(BaseModel):
 	checkout_deadline_hour: int
 	checkout_deadline_minute: int
 	late_checkout_penalty: Decimal
-	property_name: str = "Haven House"
+	property_name: str = "Family Guest House"
 	currency: str = "ETB"
 
 

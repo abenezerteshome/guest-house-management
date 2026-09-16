@@ -18,6 +18,15 @@ class StayCheckOut(BaseModel):
 	actual_checkout_at: datetime | None = None
 
 
+class VoidCheckInRequest(BaseModel):
+	reason: str = Field(..., min_length=2, description="Reason for voiding check-in")
+	notes: str | None = None
+	room_condition: str = Field(default="AVAILABLE", description="'AVAILABLE' or 'CLEANING'")
+	refund_amount: Decimal | None = None
+	refund_method: str | None = None
+	refund_bank_name: str | None = None
+
+
 class StayRead(BaseModel):
 	model_config = ConfigDict(from_attributes=True)
 
