@@ -5,6 +5,9 @@ import { Button } from '../../components/common/Button'
 import { Modal } from '../../components/common/Modal'
 import { LoginChangePasswordModal } from '../../components/modals/LoginChangePasswordModal'
 
+const DEFAULT_GOOGLE_CLIENT_ID =
+  '103591637790-8abooait8kaehgn1erto293u4mh0u9rb.apps.googleusercontent.com'
+
 export function LoginPage() {
   const { login, loginWithGoogle, user, isAuthenticated, logout } = useAuth()
   const [username, setUsername] = useState('')
@@ -19,7 +22,7 @@ export function LoginPage() {
   const googleBtnRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
     if (!clientId) return
 
     let intervalId: number | undefined
@@ -79,7 +82,7 @@ export function LoginPage() {
 
   async function handleGoogleClick() {
     setError('')
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID
     if (!clientId) {
       setError(
         'Google OAuth Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.'
@@ -323,7 +326,7 @@ export function LoginPage() {
                   {/* Administrator Google SSO */}
                   <div className="space-y-2">
                     <div className="flex justify-center w-full min-h-[44px]">
-                      {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                      {import.meta.env.VITE_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID ? (
                         <div ref={googleBtnRef} className="flex justify-center w-full" />
                       ) : (
                         <button
