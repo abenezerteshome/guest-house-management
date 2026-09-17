@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Eye, EyeOff, HelpCircle, LockKeyhole, ShieldCheck, UserRound } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../../components/common/Button'
@@ -6,15 +6,92 @@ import { Modal } from '../../components/common/Modal'
 import { LoginChangePasswordModal } from '../../components/modals/LoginChangePasswordModal'
 
 export function LoginPage() {
-  const { login, user, isAuthenticated, logout } = useAuth()
+  const { login, loginWithGoogle, user, isAuthenticated, logout } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [googleSubmitting, setGoogleSubmitting] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) return
+
+    let intervalId: number | undefined
+    let initialized = false
+
+    function initGsi() {
+      if (initialized) return
+      if (window.google?.accounts?.id && googleBtnRef.current) {
+        initialized = true
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async (response: { credential: string }) => {
+            if (!response.credential) return
+            setError('')
+            setGoogleSubmitting(true)
+            try {
+              await loginWithGoogle(response.credential)
+              window.location.href = '/dashboard'
+            } catch (err) {
+              setError(
+                err instanceof Error
+                  ? err.message
+                  : 'Google sign-in failed. Please verify your account.'
+              )
+            } finally {
+              setGoogleSubmitting(false)
+            }
+          },
+        })
+
+        if (googleBtnRef.current) {
+          googleBtnRef.current.innerHTML = ''
+          window.google.accounts.id.renderButton(googleBtnRef.current, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: 'continue_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: '360',
+          })
+        }
+
+        if (intervalId) clearInterval(intervalId)
+      }
+    }
+
+    initGsi()
+    if (!window.google?.accounts?.id) {
+      intervalId = window.setInterval(initGsi, 200)
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [loginWithGoogle])
+
+  async function handleGoogleClick() {
+    setError('')
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    if (!clientId) {
+      setError(
+        'Google OAuth Client ID is not configured. Please set VITE_GOOGLE_CLIENT_ID in your environment variables.'
+      )
+      return
+    }
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt()
+    } else {
+      setError('Google Identity Services is loading. Please check your internet connection and try again.')
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -228,8 +305,60 @@ export function LoginPage() {
                     loading={submitting}
                     className="w-full h-12 text-sm font-semibold rounded-xl mt-2"
                   >
-                    {submitting ? 'Signing in...' : 'Sign in'}
+                    {submitting ? 'Signing in...' : 'Sign in to Front Desk'}
                   </Button>
+
+                  {/* Divider */}
+                  <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-[#EEEEEE]" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-3 text-[11px] font-semibold text-[#717171] tracking-wider uppercase">
+                        Or Administrator SSO
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Administrator Google SSO */}
+                  <div className="space-y-2">
+                    <div className="flex justify-center w-full min-h-[44px]">
+                      {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+                        <div ref={googleBtnRef} className="flex justify-center w-full" />
+                      ) : (
+                        <button
+                          type="button"
+                          id="google-admin-login-btn"
+                          disabled={googleSubmitting}
+                          onClick={handleGoogleClick}
+                          className="w-full h-12 flex items-center justify-center gap-3 rounded-xl border border-[#DDDDDD] bg-white hover:bg-[#F9F9F9] active:bg-[#F0F0F0] text-sm font-semibold text-[#222222] shadow-xs hover:border-[#B0B0B0] transition-all cursor-pointer disabled:opacity-60"
+                        >
+                          <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                            <path
+                              fill="#4285F4"
+                              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.16 0 9.94 0 12s.45 3.84 1.25 5.42l4.03-3.15z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                            />
+                          </svg>
+                          <span>{googleSubmitting ? 'Verifying Admin...' : 'Continue with Google (Admin Only)'}</span>
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-center text-[#717171] leading-tight">
+                      Restricted to authorized administrator accounts. Front desk staff please use credentials above.
+                    </p>
+                  </div>
                 </form>
               </>
             )}

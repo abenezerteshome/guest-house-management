@@ -12,6 +12,11 @@ export async function login(username: string, password: string) {
   return data
 }
 
+export async function loginWithGoogle(credential: string) {
+  const { data } = await api.post<LoginResponse>('/auth/google', { credential })
+  return data
+}
+
 export async function getCurrentUser() {
   const { data } = await api.get<User>('/auth/me')
   return data

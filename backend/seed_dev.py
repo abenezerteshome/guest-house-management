@@ -16,27 +16,35 @@ async def seed():
         # Seed users
         admin_stmt = select(User).where(User.username == "admin")
         res = await session.execute(admin_stmt)
-        if not res.scalar_one_or_none():
+        admin = res.scalar_one_or_none()
+        if not admin:
             admin = User(
                 full_name="Administrator",
                 username="admin",
+                email="admin@guesthousemail.com",
                 password_hash=hash_password("admin-password-123"),
                 role=UserRole.ADMIN.value,
                 is_active=True,
             )
             session.add(admin)
+        elif not admin.email:
+            admin.email = "admin@guesthousemail.com"
 
         rec_stmt = select(User).where(User.username == "reception")
         res = await session.execute(rec_stmt)
-        if not res.scalar_one_or_none():
+        reception = res.scalar_one_or_none()
+        if not reception:
             reception = User(
                 full_name="Reception Staff",
                 username="reception",
+                email="reception@guesthousemail.com",
                 password_hash=hash_password("reception-password-123"),
                 role=UserRole.RECEPTION.value,
                 is_active=True,
             )
             session.add(reception)
+        elif not reception.email:
+            reception.email = "reception@guesthousemail.com"
 
         await session.commit()
 

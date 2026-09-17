@@ -65,8 +65,8 @@ async def users():
 async def reset_database() -> AsyncGenerator[None, None]:
 	try:
 		async with test_engine.begin() as connection:
-			await connection.run_sync(Base.metadata.drop_all)
-			await connection.run_sync(Base.metadata.create_all)
+			for table in reversed(Base.metadata.sorted_tables):
+				await connection.execute(text(f'TRUNCATE TABLE "{table.name}" RESTART IDENTITY CASCADE'))
 		yield
 	finally:
 		pass

@@ -13,6 +13,8 @@ class Settings(BaseSettings):
 	checkout_deadline_hour: int = Field(default=4, ge=0, le=23)
 	checkout_deadline_minute: int = Field(default=0, ge=0, le=59)
 	late_checkout_penalty: Decimal = Field(default=Decimal("600.00"), ge=0, decimal_places=2)
+	google_client_id: str = ""
+	google_client_secret: str = ""
 
 	model_config = SettingsConfigDict(
 		env_file=".env",

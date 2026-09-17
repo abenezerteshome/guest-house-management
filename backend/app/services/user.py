@@ -33,17 +33,18 @@ async def create_user(
     username: str,
     password: str,
     role: UserRole,
+    email: str | None = None,
 ) -> User:
     repository = UserRepository(session)
     if await repository.get_by_username(username) is not None:
         raise DuplicateUsernameError("Username is already in use")
-    user = build_user(full_name=full_name, username=username, password=password, role=role)
+    user = build_user(full_name=full_name, username=username, password=password, role=role, email=email)
     try:
         await repository.add(user)
         await session.commit()
     except IntegrityError as exc:
         await session.rollback()
-        raise DuplicateUsernameError("Username is already in use") from exc
+        raise DuplicateUsernameError("Username or email is already in use") from exc
     await session.refresh(user)
     return user
 
@@ -53,11 +54,14 @@ async def update_user(
     user: User,
     *,
     full_name: str | None = None,
+    email: str | None = None,
     role: UserRole | None = None,
     is_active: bool | None = None,
 ) -> User:
     if full_name is not None:
         user.full_name = full_name
+    if email is not None:
+        user.email = email
     if role is not None:
         user.role = role.value
     if is_active is not None:

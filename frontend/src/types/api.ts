@@ -6,6 +6,7 @@ export interface User {
   id: number
   full_name: string
   username: string
+  email?: string | null
   role: Role
   is_active: boolean
   created_at: string
@@ -27,6 +28,10 @@ export interface LoginResponse {
   access_token: string
   token_type: string
   user: User
+}
+
+export interface GoogleLoginPayload {
+  credential: string
 }
 
 export type RoomStatusType = 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'CLEANING'
