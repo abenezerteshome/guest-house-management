@@ -44,7 +44,10 @@ async def patch_user(
     user_id: int, payload: UserUpdate, session: AsyncSession = Depends(get_db)
 ) -> User:
     user = await get_user_or_404(user_id, session)
-    return await update_user(session, user, **payload.model_dump(exclude_unset=True))
+    try:
+        return await update_user(session, user, **payload.model_dump(exclude_unset=True))
+    except DuplicateUsernameError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/{user_id}/activate", response_model=UserRead)

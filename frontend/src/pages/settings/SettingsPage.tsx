@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   UserCheck,
   Power,
+  Pencil,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -18,8 +19,9 @@ import { getSettings, updateSettings } from '../../api/settings'
 import { listUsers, activateUser, deactivateUser } from '../../api/users'
 import { ChangePasswordModal } from '../../components/modals/ChangePasswordModal'
 import { AddUserModal } from '../../components/modals/AddUserModal'
+import { EditUserModal } from '../../components/modals/EditUserModal'
 import { useAuth } from '../../hooks/useAuth'
-import type { SettingsData } from '../../types/api'
+import type { SettingsData, User } from '../../types/api'
 
 export function SettingsPage() {
   const { user } = useAuth()
@@ -34,8 +36,9 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [successMsg, setSuccessMsg] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
-  const [staff, setStaff] = useState<import('../../types/api').User[]>([])
-  const [passwordUser, setPasswordUser] = useState<import('../../types/api').User | null>(null)
+  const [staff, setStaff] = useState<User[]>([])
+  const [passwordUser, setPasswordUser] = useState<User | null>(null)
+  const [editUser, setEditUser] = useState<User | null>(null)
   const [addUserOpen, setAddUserOpen] = useState(false)
 
   async function handleToggleActive(targetUser: import('../../types/api').User) {
@@ -354,6 +357,17 @@ export function SettingsPage() {
                   <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
                     <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs text-neutral-700 hover:bg-neutral-50 hover:border-neutral-300"
+                      onClick={() => setEditUser(staffUser)}
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-neutral-500" />
+                      Edit
+                    </Button>
+
+                    <Button
+                      type="button"
                       variant="secondary"
                       size="sm"
                       className="gap-1.5 text-xs"
@@ -389,6 +403,19 @@ export function SettingsPage() {
 
       {passwordUser && (
         <ChangePasswordModal user={passwordUser} adminReset onClose={() => setPasswordUser(null)} />
+      )}
+
+      {editUser && (
+        <EditUserModal
+          isOpen={Boolean(editUser)}
+          user={editUser}
+          onClose={() => setEditUser(null)}
+          onSuccess={(updatedUser) => {
+            setStaff((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)))
+            setSuccessMsg(`Staff account '@${updatedUser.username}' updated successfully!`)
+            setTimeout(() => setSuccessMsg(''), 4000)
+          }}
+        />
       )}
 
       <AddUserModal

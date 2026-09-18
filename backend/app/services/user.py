@@ -54,20 +54,38 @@ async def update_user(
     user: User,
     *,
     full_name: str | None = None,
+    username: str | None = None,
     email: str | None = None,
     role: UserRole | None = None,
     is_active: bool | None = None,
 ) -> User:
+    repository = UserRepository(session)
+    if username is not None:
+        clean_username = username.strip().lower()
+        if clean_username != user.username.lower():
+            existing = await repository.get_by_username(clean_username)
+            if existing is not None and existing.id != user.id:
+                raise DuplicateUsernameError("Username is already in use")
+            user.username = clean_username
     if full_name is not None:
-        user.full_name = full_name
+        user.full_name = full_name.strip()
     if email is not None:
-        user.email = email
+        clean_email = email.strip() or None
+        if clean_email is not None and (user.email is None or clean_email.lower() != user.email.lower()):
+            existing_email = await repository.get_by_email(clean_email)
+            if existing_email is not None and existing_email.id != user.id:
+                raise DuplicateUsernameError("Email is already in use by another user")
+        user.email = clean_email
     if role is not None:
         user.role = role.value
     if is_active is not None:
         user.is_active = is_active
-    await session.commit()
-    await session.refresh(user)
+    try:
+        await session.commit()
+        await session.refresh(user)
+    except IntegrityError as exc:
+        await session.rollback()
+        raise DuplicateUsernameError("Username or email is already in use") from exc
     return user
 
 

@@ -21,6 +21,7 @@ export async function updateUser(
   userId: number,
   payload: Partial<{
     full_name: string
+    username: string
     email: string | null
     role: Role
     is_active: boolean
