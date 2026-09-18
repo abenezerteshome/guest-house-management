@@ -15,6 +15,8 @@ async def authenticate_user(
 	identifier = username.strip().lower()
 	repo = UserRepository(session)
 	user = await repo.get_by_username(identifier)
+	if user is None and "@" in identifier:
+		user = await repo.get_by_email(identifier)
 	if user is None:
 		if "@" not in identifier:
 			user = await repo.get_by_username(f"{identifier}@guesthousemail.com")
