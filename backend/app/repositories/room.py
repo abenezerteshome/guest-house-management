@@ -18,13 +18,22 @@ class RoomRepository:
 		return result.scalar_one_or_none()
 
 	async def list(self, *, status: str | None = None, is_active: bool | None = None) -> list[Room]:
-		query = select(Room).order_by(Room.room_number)
+		query = select(Room)
 		if status is not None:
 			query = query.where(Room.status == status)
 		if is_active is not None:
 			query = query.where(Room.is_active == is_active)
 		result = await self.session.execute(query)
-		return list(result.scalars().all())
+		rooms = list(result.scalars().all())
+
+		import re
+		def room_sort_key(r: Room) -> tuple[int, str]:
+			m = re.search(r'\d+', r.room_number or '')
+			num = int(m.group(0)) if m else 999999
+			return (num, r.room_number or '')
+
+		rooms.sort(key=room_sort_key)
+		return rooms
 
 	async def add(self, room: Room) -> Room:
 		self.session.add(room)

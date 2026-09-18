@@ -11,6 +11,7 @@ import { createReservation } from '../../api/reservations'
 import { checkInReservation } from '../../api/stays'
 import { recordManualPayment } from '../../api/payments'
 import { getApiError } from '../../api/client'
+import { sortRoomsAscending } from '../../utils/roomUtils'
 
 interface CheckInModalProps {
   isOpen: boolean
@@ -54,9 +55,7 @@ export function CheckInModal({
         list.push(selected)
       }
     }
-    return list.sort((a, b) =>
-      a.room_number.localeCompare(b.room_number, undefined, { numeric: true })
-    )
+    return sortRoomsAscending(list)
   }, [availableRooms, allRooms, selectedRoomId, existingReservation])
 
   const [roomId, setRoomId] = useState<number>(

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Plus, CalendarPlus, LogIn, LogOut, UserCheck, Undo2 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -16,6 +16,7 @@ import { getRooms } from '../../api/rooms'
 import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { useAuth } from '../../hooks/useAuth'
+import { sortRoomsAscending } from '../../utils/roomUtils'
 import type { Room, Stay, Reservation } from '../../types/api'
 
 export function RoomsPage() {
@@ -65,19 +66,22 @@ export function RoomsPage() {
     fetchData()
   }, [fetchData])
 
-  const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
-  const occupiedRooms = rooms.filter((r) => r.status === 'OCCUPIED')
-  const expectedRooms = rooms.filter((r) => r.status === 'EXPECTED')
+  const availableRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'AVAILABLE')), [rooms])
+  const occupiedRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'OCCUPIED')), [rooms])
+  const expectedRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'EXPECTED')), [rooms])
 
-  const filteredRooms = rooms.filter((r) => {
-    const matchesSearch =
-      r.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.room_type.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      r.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const filteredRooms = useMemo(() => {
+    const list = rooms.filter((r) => {
+      const matchesSearch =
+        r.room_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.room_type.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        r.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+    return sortRoomsAscending(list)
+  }, [rooms, searchTerm, statusFilter])
 
   function handleRoomCheckIn(roomId: number) {
     const matchedRes =

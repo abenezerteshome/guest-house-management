@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { getStayFinancialSummary, getStayPayments, getStayCharges } from '../../api/stays'
 import { clearRoomCleaning } from '../../utils/roomCleaning'
+import { sortRoomsAscending } from '../../utils/roomUtils'
 import type { Room, Stay, Reservation, Charge } from '../../types/api'
 import { Modal } from '../common/Modal'
 
@@ -555,13 +556,9 @@ export function LogbookSheet({
     return toLocalDateStr(new Date())
   }, [])
 
-  // Sort rooms numerically
+  // Sort rooms numerically ascending
   const filteredRooms = useMemo(() => {
-    return [...rooms].sort((a, b) => {
-      const numA = parseInt(a.room_number) || 0
-      const numB = parseInt(b.room_number) || 0
-      return numA - numB
-    })
+    return sortRoomsAscending(rooms)
   }, [rooms])
 
   // Helper to test if date falls within stay interval

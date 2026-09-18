@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Calendar, AlertCircle, Building2 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
 import { toLocalDatetimeInput, todayLocalDateString } from '../../utils/dateUtils'
+import { sortRoomsAscending } from '../../utils/roomUtils'
 import type { Room, Guest } from '../../types/api'
 import { getGuests, createGuest } from '../../api/guests'
 import { createReservation } from '../../api/reservations'
@@ -42,7 +43,8 @@ export function ReservationModal({
   const [phone, setPhone] = useState('')
   const [nationality, setNationality] = useState('Ethiopian')
 
-  const [roomId, setRoomId] = useState<number>(selectedRoomId || availableRooms[0]?.id || 0)
+  const sortedAvailableRooms = useMemo(() => sortRoomsAscending(availableRooms), [availableRooms])
+  const [roomId, setRoomId] = useState<number>(selectedRoomId || sortedAvailableRooms[0]?.id || 0)
   const [arrivalDate, setArrivalDate] = useState(() => {
     const now = new Date()
     now.setHours(14, 0, 0, 0)
@@ -58,12 +60,12 @@ export function ReservationModal({
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (selectedRoomId && availableRooms.some((r) => r.id === selectedRoomId)) {
+    if (selectedRoomId && sortedAvailableRooms.some((r) => r.id === selectedRoomId)) {
       setRoomId(selectedRoomId)
-    } else if (availableRooms.length > 0 && (!roomId || !availableRooms.some((r) => r.id === roomId))) {
-      setRoomId(availableRooms[0].id)
+    } else if (sortedAvailableRooms.length > 0 && (!roomId || !sortedAvailableRooms.some((r) => r.id === roomId))) {
+      setRoomId(sortedAvailableRooms[0].id)
     }
-  }, [selectedRoomId, availableRooms, roomId, isOpen])
+  }, [selectedRoomId, sortedAvailableRooms, roomId, isOpen])
 
   // Fetch all guests on open to enable instant auto-fill and search
   useEffect(() => {
@@ -255,7 +257,7 @@ export function ReservationModal({
               required
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             >
-              {availableRooms.map((room) => (
+              {sortedAvailableRooms.map((room) => (
                 <option key={room.id} value={room.id}>
                   Room {room.room_number} ({room.room_type} - {Number(room.price).toLocaleString()} ETB)
                 </option>
