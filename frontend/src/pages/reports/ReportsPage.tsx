@@ -36,7 +36,7 @@ type StatementMetric =
   | 'ALL'
 
 export function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<'daily' | 'income' | 'expenses' | 'weekly' | 'monthly'>('daily')
+  const [activeTab, setActiveTab] = useState<'daily' | 'income' | 'expenses' | 'weekly' | 'monthly'>('monthly')
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [_loading, setLoading] = useState(true)
 
@@ -156,11 +156,11 @@ export function ReportsPage() {
       {/* Navigation Tabs */}
       <div className="flex border-b border-neutral-200 space-x-1">
         {[
+          { id: 'monthly', label: 'Total Statement', icon: FileSpreadsheet },
           { id: 'daily', label: 'Daily Flash Report', icon: Calendar },
+          { id: 'weekly', label: 'Weekly Summary', icon: BarChart3 },
           { id: 'income', label: 'Income by Payment Method', icon: CircleDollarSign },
           { id: 'expenses', label: 'Expense Distribution', icon: TrendingDown },
-          { id: 'weekly', label: 'Weekly Summary', icon: BarChart3 },
-          { id: 'monthly', label: 'Total Statement', icon: FileSpreadsheet },
         ].map((tab) => {
           const Icon = tab.icon
           const active = activeTab === tab.id
