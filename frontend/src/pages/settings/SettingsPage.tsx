@@ -6,12 +6,18 @@ import {
   CheckCircle2,
   AlertCircle,
   KeyRound,
+  UserPlus,
+  Users,
+  ShieldCheck,
+  UserCheck,
+  Power,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { getSettings, updateSettings } from '../../api/settings'
-import { listUsers } from '../../api/users'
+import { listUsers, activateUser, deactivateUser } from '../../api/users'
 import { ChangePasswordModal } from '../../components/modals/ChangePasswordModal'
+import { AddUserModal } from '../../components/modals/AddUserModal'
 import { useAuth } from '../../hooks/useAuth'
 import type { SettingsData } from '../../types/api'
 
@@ -30,6 +36,24 @@ export function SettingsPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [staff, setStaff] = useState<import('../../types/api').User[]>([])
   const [passwordUser, setPasswordUser] = useState<import('../../types/api').User | null>(null)
+  const [addUserOpen, setAddUserOpen] = useState(false)
+
+  async function handleToggleActive(targetUser: import('../../types/api').User) {
+    if (targetUser.id === user?.id) {
+      setErrorMsg('You cannot deactivate your own active session.')
+      return
+    }
+    try {
+      const updated = targetUser.is_active
+        ? await deactivateUser(targetUser.id)
+        : await activateUser(targetUser.id)
+      setStaff((prev) => prev.map((u) => (u.id === updated.id ? updated : u)))
+      setSuccessMsg(`User @${updated.username} is now ${updated.is_active ? 'Active' : 'Disabled'}.`)
+      setTimeout(() => setSuccessMsg(''), 4000)
+    } catch {
+      setErrorMsg('Failed to update user status.')
+    }
+  }
 
   useEffect(() => {
     getSettings()
@@ -253,27 +277,112 @@ export function SettingsPage() {
       </div>
 
       {isAdmin && (
-        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-4">
-          <div className="flex items-center gap-3 border-b border-neutral-200 pb-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF0F2] text-[#FF385C]"><KeyRound className="w-5 h-5" /></div>
-            <div>
-              <h3 className="text-base font-bold text-neutral-900">Staff Passwords</h3>
-              <p className="text-xs text-neutral-500">Set a new password when a receptionist needs help accessing the desk.</p>
-            </div>
-          </div>
-          <div className="divide-y divide-neutral-100">
-            {staff.map((staffUser) => (
-              <div key={staffUser.id} className="flex items-center justify-between gap-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-neutral-900">{staffUser.full_name}</p>
-                  <p className="text-xs text-neutral-500">@{staffUser.username} · {staffUser.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}</p>
-                </div>
-                <Button type="button" variant="secondary" size="sm" className="shrink-0 gap-1.5" onClick={() => setPasswordUser(staffUser)}>
-                  <KeyRound className="h-3.5 w-3.5" />
-                  Set password
-                </Button>
+        <section className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF0F2] text-[#FF385C]">
+                <Users className="w-5 h-5" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-base font-bold text-neutral-900">Staff & Access Management</h3>
+                <p className="text-xs text-neutral-500">
+                  Manage employee login credentials, assigned roles, and access status.
+                </p>
+              </div>
+            </div>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              className="gap-2 shrink-0 self-start sm:self-auto"
+              onClick={() => setAddUserOpen(true)}
+            >
+              <UserPlus className="w-4 h-4" />
+              Add New User
+            </Button>
+          </div>
+
+          <div className="divide-y divide-neutral-100">
+            {staff.map((staffUser) => {
+              const isCurrentSession = staffUser.id === user?.id
+              const isAdminRole = staffUser.role === 'ADMIN'
+
+              return (
+                <div key={staffUser.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                        isAdminRole ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-700'
+                      }`}
+                    >
+                      {staffUser.full_name.slice(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="truncate text-sm font-bold text-neutral-900">{staffUser.full_name}</p>
+                        {isCurrentSession && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-neutral-100 text-neutral-600 border border-neutral-200">
+                            You
+                          </span>
+                        )}
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            isAdminRole
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-sky-50 text-sky-700 border-sky-200'
+                          }`}
+                        >
+                          {isAdminRole ? <ShieldCheck className="w-3 h-3" /> : <UserCheck className="w-3 h-3" />}
+                          {isAdminRole ? 'Administrator' : 'Reception Desk'}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            staffUser.is_active
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-neutral-100 text-neutral-500 border border-neutral-200'
+                          }`}
+                        >
+                          {staffUser.is_active ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        @{staffUser.username} {staffUser.email ? `· ${staffUser.email}` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => setPasswordUser(staffUser)}
+                    >
+                      <KeyRound className="h-3.5 w-3.5" />
+                      Set password
+                    </Button>
+
+                    {!isCurrentSession && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={`gap-1.5 text-xs ${
+                          staffUser.is_active
+                            ? 'text-neutral-600 hover:text-rose-600 hover:border-rose-300'
+                            : 'text-emerald-700 hover:bg-emerald-50 hover:border-emerald-300'
+                        }`}
+                        onClick={() => handleToggleActive(staffUser)}
+                      >
+                        <Power className="h-3.5 w-3.5" />
+                        {staffUser.is_active ? 'Disable' : 'Enable'}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </section>
       )}
@@ -281,6 +390,16 @@ export function SettingsPage() {
       {passwordUser && (
         <ChangePasswordModal user={passwordUser} adminReset onClose={() => setPasswordUser(null)} />
       )}
+
+      <AddUserModal
+        isOpen={addUserOpen}
+        onClose={() => setAddUserOpen(false)}
+        onSuccess={(newUser) => {
+          setStaff((prev) => [newUser, ...prev])
+          setSuccessMsg(`Staff account '@${newUser.username}' created successfully!`)
+          setTimeout(() => setSuccessMsg(''), 4000)
+        }}
+      />
     </div>
   )
 }
