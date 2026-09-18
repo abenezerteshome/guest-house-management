@@ -59,15 +59,17 @@ export function GuestsPage() {
 
   const availableRooms = rooms.filter((r) => r.status === 'AVAILABLE')
 
-  const filteredGuests = guests.filter((g) => {
-    const q = search.toLowerCase()
-    return (
-      g.full_name.toLowerCase().includes(q) ||
-      g.phone.toLowerCase().includes(q) ||
-      g.id_number.toLowerCase().includes(q) ||
-      (g.nationality || '').toLowerCase().includes(q)
-    )
-  })
+  const filteredGuests = guests
+    .filter((g) => {
+      const q = search.toLowerCase()
+      return (
+        g.full_name.toLowerCase().includes(q) ||
+        g.phone.toLowerCase().includes(q) ||
+        g.id_number.toLowerCase().includes(q) ||
+        (g.nationality || '').toLowerCase().includes(q)
+      )
+    })
+    .sort((a, b) => a.id - b.id)
 
   async function handleCreateGuest(e: React.FormEvent) {
     e.preventDefault()

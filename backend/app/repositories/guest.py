@@ -12,7 +12,7 @@ class GuestRepository:
 		return await self.session.get(Guest, guest_id)
 
 	async def list(self, *, search: str | None = None) -> list[Guest]:
-		query = select(Guest).order_by(Guest.full_name, Guest.id)
+		query = select(Guest).order_by(Guest.id.asc())
 		if search:
 			pattern = f"%{search}%"
 			query = query.where(
