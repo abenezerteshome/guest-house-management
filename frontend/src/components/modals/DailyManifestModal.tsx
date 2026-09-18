@@ -14,7 +14,6 @@ import {
   Phone,
   FileSpreadsheet,
   BedDouble,
-  ShieldCheck,
 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
@@ -37,9 +36,9 @@ export function DailyManifestModal({
 }: DailyManifestModalProps) {
   const { user } = useAuth()
   const isReception = user?.role === 'RECEPTION'
-  const [manifestType, setManifestType] = useState<'POLICE' | 'AUDIT'>('POLICE')
-  const effectiveType = isReception ? 'POLICE' : manifestType
-  const showFinancials = effectiveType === 'AUDIT'
+  const [manifestType, setManifestType] = useState<'STANDARD' | 'FINANCIAL'>('STANDARD')
+  const effectiveType = isReception ? 'STANDARD' : manifestType
+  const showFinancials = effectiveType === 'FINANCIAL'
 
   const [targetDate, setTargetDate] = useState<string>(() => {
     return initialDate || new Date().toISOString().slice(0, 10)
@@ -116,7 +115,7 @@ export function DailyManifestModal({
   }
 
   const handlePrint = () => {
-    const isPolice = effectiveType === 'POLICE'
+    const isStandard = effectiveType === 'STANDARD'
     const totalExpected = filteredItems.reduce(
       (sum, item) => sum + (parseFloat(String(item.expected_amount)) || 0),
       0
@@ -167,7 +166,7 @@ export function DailyManifestModal({
 
         const paidNum = parseFloat(String(item.amount_paid)) || 0
 
-        if (isPolice) {
+        if (isStandard) {
           return `
             <tr style="border-bottom: 1px solid #e5e7eb; ${idx % 2 === 1 ? 'background-color: #f9fafb;' : 'background-color: #ffffff;'}">
               <td style="padding: 7px 8px; font-size: 11px; vertical-align: middle; text-align: center; font-weight: 700; color: #4b5563;">
@@ -253,7 +252,7 @@ export function DailyManifestModal({
       <html>
         <head>
           <meta charset="utf-8">
-          <title>${isPolice ? 'Official Guest Manifest (Police Copy)' : 'Daily Manifest'} - ${targetDate}</title>
+          <title>${isStandard ? 'Daily Guest Manifest' : 'Daily Manifest'} - ${targetDate}</title>
           <style>
             @page {
               size: A4 portrait;
@@ -290,10 +289,10 @@ export function DailyManifestModal({
               <div>
                 <h1 style="margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 0.8px; color: #111827;">FAMILY GUEST HOUSE</h1>
                 <p style="margin: 3px 0 0; font-size: 13px; font-weight: 800; color: #1f2937;">
-                  ${isPolice ? 'OFFICIAL DAILY GUEST MANIFEST' : 'Daily Guest Activity & Shift Audit Report'}
+                  ${isStandard ? 'DAILY GUEST MANIFEST' : 'Daily Guest Activity & Shift Audit Report'}
                 </p>
                 <p style="margin: 2px 0 0; font-size: 10px; color: #4b5563;">
-                  ${isPolice ? 'Official Guest Register for Police & Regulatory Authorities &bull; Confidential Stay Record' : 'Official Logbook Record of Guest Check-Ins, Check-Outs & Occupancy'}
+                  ${isStandard ? 'Official Company Guest Logbook Record & Stay Schedule' : 'Official Logbook Record of Guest Check-Ins, Check-Outs & Occupancy'}
                 </p>
               </div>
               <div style="text-align: right; font-size: 11px; color: #374151;">
@@ -305,7 +304,7 @@ export function DailyManifestModal({
 
             <!-- KPI Cards Bar -->
             ${
-              isPolice
+              isStandard
                 ? `
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 12px; text-align: center;">
               <div style="padding: 6px 4px; border: 1px solid #d1d5db; border-radius: 6px; background: #f9fafb;">
@@ -366,7 +365,7 @@ export function DailyManifestModal({
             <table style="width: 100%; border-collapse: collapse; border: 1px solid #d1d5db; border-radius: 6px;">
               <thead>
                 ${
-                  isPolice
+                  isStandard
                     ? `
                 <tr style="background: #f3f4f6; border-bottom: 2px solid #d1d5db; font-size: 10px; font-weight: 800; text-transform: uppercase; color: #374151;">
                   <th style="padding: 8px 6px; text-align: center; width: 30px;">#</th>
@@ -394,11 +393,11 @@ export function DailyManifestModal({
                 }
               </thead>
               <tbody>
-                ${rowsHtml.length > 0 ? rowsHtml : `<tr><td colspan="${isPolice ? 9 : 7}" style="text-align: center; padding: 24px; color: #6b7280; font-size: 12px;">No guest activities recorded for this date.</td></tr>`}
+                ${rowsHtml.length > 0 ? rowsHtml : `<tr><td colspan="${isStandard ? 9 : 7}" style="text-align: center; padding: 24px; color: #6b7280; font-size: 12px;">No guest activities recorded for this date.</td></tr>`}
               </tbody>
               <tfoot>
                 ${
-                  isPolice
+                  isStandard
                     ? `
                 <tr style="background: #f9fafb; border-top: 2px solid #111827; font-weight: 800; font-size: 11px;">
                   <td colspan="7" style="padding: 10px 12px; text-transform: uppercase; letter-spacing: 0.5px;">Total Verified Guest Entries:</td>
@@ -420,22 +419,22 @@ export function DailyManifestModal({
 
           <!-- Signatures Section -->
           ${
-            isPolice
+            isStandard
               ? `
           <div style="display: flex; justify-content: space-between; margin-top: 36px; padding-top: 16px; border-top: 1px dashed #9ca3af; font-size: 11px; color: #4b5563;">
             <div style="width: 250px; text-align: center;">
               <div style="border-bottom: 1px solid #111827; height: 35px; margin-bottom: 6px;"></div>
-              <div><strong>Prepared & Submitted By (Receptionist)</strong></div>
+              <div><strong>Prepared By (Receptionist)</strong></div>
               <div style="font-size: 10px; color: #6b7280;">Name: ${user?.full_name || user?.username || 'Duty Receptionist'} &bull; Sign & Date</div>
             </div>
             <div style="width: 250px; text-align: center;">
               <div style="border-bottom: 1px solid #111827; height: 35px; margin-bottom: 6px;"></div>
-              <div><strong>Police / Tourism Authority Receiving Officer</strong></div>
-              <div style="font-size: 10px; color: #6b7280;">Officer Name, Signature & Official Stamp</div>
+              <div><strong>Verified By (Management)</strong></div>
+              <div style="font-size: 10px; color: #6b7280;">Manager Name, Signature & Date</div>
             </div>
           </div>
           <div style="margin-top: 24px; text-align: center; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 6px;">
-            Official Law Enforcement & Tourism Regulatory Guest Register &bull; Family Guest House &bull; Page 1 of 1
+            Family Guest House &bull; Official Daily Guest Logbook Record &bull; Page 1 of 1
           </div>
           `
               : `
@@ -474,8 +473,8 @@ export function DailyManifestModal({
 
   const exportCSV = () => {
     if (!filteredItems.length) return
-    const isPolice = effectiveType === 'POLICE'
-    const headers = isPolice
+    const isStandard = effectiveType === 'STANDARD'
+    const headers = isStandard
       ? [
           'Activity',
           'Guest Name',
@@ -506,7 +505,7 @@ export function DailyManifestModal({
         ]
 
     const rows = filteredItems.map((item) =>
-      isPolice
+      isStandard
         ? [
             `"${item.activity_type}"`,
             `"${item.guest_name.replace(/"/g, '""')}"`,
@@ -543,12 +542,7 @@ export function DailyManifestModal({
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement('a')
     link.setAttribute('href', encodedUri)
-    link.setAttribute(
-      'download',
-      isPolice
-        ? `Daily_Guest_Manifest_Police_${targetDate}.csv`
-        : `Daily_Guest_Manifest_Audit_${targetDate}.csv`
-    )
+    link.setAttribute('download', `Daily_Guest_Manifest_${targetDate}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -646,13 +640,13 @@ export function DailyManifestModal({
         isOpen={isOpen}
         onClose={onClose}
         title={
-          effectiveType === 'POLICE'
-            ? 'Official Daily Guest Manifest (Police / Regulatory Copy)'
+          effectiveType === 'STANDARD'
+            ? 'Daily Guest Manifest'
             : "Today's Guest Activity & Shift Audit Report"
         }
         description={
-          effectiveType === 'POLICE'
-            ? 'Official register of guest names, phone, ID/passport numbers, and stay duration for police & tourism authorities. Free of room prices and financial figures.'
+          effectiveType === 'STANDARD'
+            ? 'Official company register of guest names, phone numbers, and stay duration.'
             : 'Daily overview of checked in, checked out, and reserved guests with stay durations and payment tracking.'
         }
         size="5xl"
@@ -684,7 +678,7 @@ export function DailyManifestModal({
                 className="gap-1.5 bg-stone-900 hover:bg-stone-800 text-white font-medium shadow-sm"
               >
                 <Printer size={15} />
-                {effectiveType === 'POLICE' ? 'Print Police Manifest' : 'Print Audit Manifest'}
+                {effectiveType === 'STANDARD' ? 'Print Daily Manifest' : 'Print Audit Manifest'}
               </Button>
             </div>
           </div>
@@ -699,13 +693,13 @@ export function DailyManifestModal({
                   Family Guest House
                 </h1>
                 <p className="text-sm font-bold text-stone-700">
-                  {effectiveType === 'POLICE'
+                  {effectiveType === 'STANDARD'
                     ? 'OFFICIAL DAILY GUEST MANIFEST'
                     : 'Daily Guest Manifest & Shift Audit Report'}
                 </p>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  {effectiveType === 'POLICE'
-                    ? 'Official Logbook Copy for Police & Tourism Regulatory Authorities • Confidential Guest Register'
+                  {effectiveType === 'STANDARD'
+                    ? 'Official Company Guest Logbook Record & Stay Schedule'
                     : 'Official Logbook Record of Guest Check-Ins, Check-Outs & Reservations'}
                 </p>
               </div>
@@ -716,7 +710,7 @@ export function DailyManifestModal({
               </div>
             </div>
 
-            {effectiveType === 'POLICE' ? (
+            {effectiveType === 'STANDARD' ? (
               <div className="grid grid-cols-5 gap-2 mt-4 pt-3 border-t border-stone-200 text-center">
                 <div className="p-2 border border-stone-300 rounded bg-stone-50">
                   <p className="text-[10px] uppercase font-bold text-stone-500">Total Manifest</p>
@@ -800,33 +794,28 @@ export function DailyManifestModal({
                 <div className="flex items-center bg-stone-200/80 p-0.5 rounded-lg text-xs font-semibold ml-2">
                   <button
                     type="button"
-                    onClick={() => setManifestType('POLICE')}
+                    onClick={() => setManifestType('STANDARD')}
                     className={`px-2.5 py-1 rounded-md transition ${
-                      manifestType === 'POLICE'
+                      manifestType === 'STANDARD'
                         ? 'bg-white text-stone-900 shadow-xs font-bold'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
-                    Police Copy (No Financials)
+                    Guest Details (Standard)
                   </button>
                   <button
                     type="button"
-                    onClick={() => setManifestType('AUDIT')}
+                    onClick={() => setManifestType('FINANCIAL')}
                     className={`px-2.5 py-1 rounded-md transition ${
-                      manifestType === 'AUDIT'
+                      manifestType === 'FINANCIAL'
                         ? 'bg-white text-stone-900 shadow-xs font-bold'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
-                    Audit Copy (With Financials)
+                    Financial Audit
                   </button>
                 </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-[11px] font-semibold ml-2">
-                  <ShieldCheck size={13} className="text-blue-600" />
-                  <span>Police & Regulatory Mode (Non-Financial)</span>
-                </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -1183,11 +1172,11 @@ export function DailyManifestModal({
 
           {/* PRINT-ONLY SIGNATURE BLOCK & AUDIT VERIFICATION */}
           <div className="print-only pt-8 mt-8 border-t-2 border-stone-800">
-            {effectiveType === 'POLICE' ? (
+            {effectiveType === 'STANDARD' ? (
               <>
                 <div className="grid grid-cols-2 gap-12 text-xs">
                   <div className="space-y-4">
-                    <p className="font-bold text-stone-900 uppercase">Prepared & Submitted By (Receptionist):</p>
+                    <p className="font-bold text-stone-900 uppercase">Prepared By (Receptionist):</p>
                     <div className="pt-8 border-b border-stone-400"></div>
                     <div className="flex justify-between text-[11px] text-stone-600">
                       <span>Name: {user?.full_name || user?.username || 'Duty Receptionist'}</span>
@@ -1197,18 +1186,18 @@ export function DailyManifestModal({
                   </div>
 
                   <div className="space-y-4">
-                    <p className="font-bold text-stone-900 uppercase">Police / Tourism Authority Receiving Officer:</p>
+                    <p className="font-bold text-stone-900 uppercase">Verified By (Management):</p>
                     <div className="pt-8 border-b border-stone-400"></div>
                     <div className="flex justify-between text-[11px] text-stone-600">
-                      <span>Officer Name</span>
+                      <span>Manager Name</span>
                       <span>Signature</span>
-                      <span>Official Stamp</span>
+                      <span>Date</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-8 text-center text-[10px] text-stone-500 border-t border-stone-200 pt-2">
-                  Official Law Enforcement & Tourism Regulatory Guest Register &bull; Family Guest House &bull; Page 1 of 1
+                  Family Guest House &bull; Official Daily Guest Logbook Record &bull; Page 1 of 1
                 </div>
               </>
             ) : (
