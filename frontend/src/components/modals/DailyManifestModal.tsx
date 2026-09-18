@@ -841,7 +841,7 @@ export function DailyManifestModal({
           </div>
 
           {/* SCREEN KPI SUMMARY CARDS */}
-          <div className="no-print grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="no-print grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Checked In</span>
@@ -868,6 +868,19 @@ export function DailyManifestModal({
               </div>
             </div>
 
+            <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/50 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">In-House Guests</span>
+                <span className="p-1 rounded-md bg-purple-100 text-purple-700">
+                  <BedDouble size={15} />
+                </span>
+              </div>
+              <div className="mt-2">
+                <p className="text-2xl font-bold text-purple-950">{report?.occupied_count || 0}</p>
+                <p className="text-[10px] text-purple-700 font-medium mt-0.5">Active rooms occupied</p>
+              </div>
+            </div>
+
             <div className="p-3.5 rounded-xl border border-amber-200 bg-amber-50/50 flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Reserved</span>
@@ -881,35 +894,20 @@ export function DailyManifestModal({
               </div>
             </div>
 
-            {showFinancials ? (
-              <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/50 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Total Collected</span>
-                  <span className="p-1 rounded-md bg-rose-100 text-rose-700">
-                    <CreditCard size={15} />
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <p className="text-lg sm:text-xl font-extrabold text-rose-950 truncate">
-                    {formatCurrency(report?.total_amount_paid || 0)}
-                  </p>
-                  <p className="text-[10px] text-rose-700 font-medium mt-0.5">Paid on today's stays</p>
-                </div>
+            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50/50 flex flex-col justify-between col-span-2 sm:col-span-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-rose-800 uppercase tracking-wider">Total Collected</span>
+                <span className="p-1 rounded-md bg-rose-100 text-rose-700">
+                  <CreditCard size={15} />
+                </span>
               </div>
-            ) : (
-              <div className="p-3.5 rounded-xl border border-purple-200 bg-purple-50/50 flex flex-col justify-between">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider">In-House Guests</span>
-                  <span className="p-1 rounded-md bg-purple-100 text-purple-700">
-                    <BedDouble size={15} />
-                  </span>
-                </div>
-                <div className="mt-2">
-                  <p className="text-2xl font-bold text-purple-950">{report?.occupied_count || 0}</p>
-                  <p className="text-[10px] text-purple-700 font-medium mt-0.5">Active rooms occupied</p>
-                </div>
+              <div className="mt-2">
+                <p className="text-lg sm:text-xl font-extrabold text-rose-950 truncate">
+                  {formatCurrency(report?.total_amount_paid || 0)}
+                </p>
+                <p className="text-[10px] text-rose-700 font-medium mt-0.5">Made on {targetDate}</p>
               </div>
-            )}
+            </div>
           </div>
 
           {/* SCREEN FILTER TABS */}

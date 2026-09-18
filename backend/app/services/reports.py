@@ -461,6 +461,8 @@ async def get_daily_manifest(
 			.where(
 				Payment.stay_id.in_(stay_ids),
 				Payment.status == PaymentStatus.SUCCESS.value,
+				Payment.created_at >= start_dt,
+				Payment.created_at <= end_dt,
 			)
 			.group_by(Payment.stay_id)
 		)
@@ -612,7 +614,14 @@ async def get_daily_manifest(
 	occupied_count = len(staying_rows)
 	reserved_count = len(res_rows)
 	total_guests_count = len(items)
-	total_amount_paid = sum(stay_payments.values(), Decimal("0.00"))
+	# Method B: Total successful payments received strictly on the target date (Cashier Drawer)
+	daily_pmt_stmt = select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
+		Payment.status == PaymentStatus.SUCCESS.value,
+		Payment.created_at >= start_dt,
+		Payment.created_at <= end_dt,
+	)
+	daily_pmt_res = await session.execute(daily_pmt_stmt)
+	total_amount_paid = Decimal(str(daily_pmt_res.scalar() or "0.00"))
 
 	return DailyManifestReport(
 		target_date=target_date.isoformat(),
