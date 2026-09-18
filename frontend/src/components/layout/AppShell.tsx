@@ -289,27 +289,29 @@ export function AppShell() {
                     </span>
                   </div>
                   {user?.role === 'ADMIN' && (
-                    <Link
-                      to="/settings"
-                      onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3.5 py-2 text-[#222222] hover:bg-[#F7F7F7] transition"
-                    >
-                      <Settings size={14} className="text-[#717171]" />
-                      <span>Guest House Settings</span>
-                    </Link>
+                    <>
+                      <Link
+                        to="/settings"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-3.5 py-2 text-[#222222] hover:bg-[#F7F7F7] transition"
+                      >
+                        <Settings size={14} className="text-[#717171]" />
+                        <span>Guest House Settings</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPasswordModalOpen(true)
+                          setUserMenuOpen(false)
+                        }}
+                        className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[#222222] transition hover:bg-[#F7F7F7]"
+                      >
+                        <KeyRound size={14} className="text-[#717171]" />
+                        <span>Change Password</span>
+                      </button>
+                      <div className="border-t border-[#F0F0F0] my-1" />
+                    </>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setPasswordModalOpen(true)
-                      setUserMenuOpen(false)
-                    }}
-                    className="flex w-full items-center gap-2 px-3.5 py-2 text-left text-[#222222] transition hover:bg-[#F7F7F7]"
-                  >
-                    <KeyRound size={14} className="text-[#717171]" />
-                    <span>Change Password</span>
-                  </button>
-                  <div className="border-t border-[#F0F0F0] my-1" />
                   <button
                     type="button"
                     onClick={() => {
