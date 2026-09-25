@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Plus, CalendarPlus, LogIn, LogOut, UserCheck, Undo2 } from 'lucide-react'
+import { Plus, CalendarPlus, LogIn, LogOut, UserCheck, Undo2, SprayCan } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -17,6 +17,7 @@ import { getStays } from '../../api/stays'
 import { getReservations } from '../../api/reservations'
 import { useAuth } from '../../hooks/useAuth'
 import { sortRoomsAscending } from '../../utils/roomUtils'
+import { getCleaningRooms, setRoomCleaning } from '../../utils/roomCleaning'
 import type { Room, Stay, Reservation } from '../../types/api'
 
 export function RoomsPage() {
@@ -28,7 +29,7 @@ export function RoomsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED'>('ALL')
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'AVAILABLE' | 'OCCUPIED' | 'EXPECTED' | 'CLEANING'>('ALL')
 
   // Modals state
   const [checkInOpen, setCheckInOpen] = useState(false)
@@ -52,7 +53,22 @@ export function RoomsPage() {
         getStays('CHECKED_IN').catch(() => []),
         getReservations('RESERVED').catch(() => []),
       ])
-      setRooms(roomsData)
+      const activeCleaning = getCleaningRooms()
+      const mergedRooms = roomsData.map((r) => {
+        const cleanExpiry = activeCleaning[r.id]
+        if (cleanExpiry && cleanExpiry > Date.now()) {
+          return {
+            ...r,
+            status: 'CLEANING' as const,
+            available_after: new Date(cleanExpiry).toISOString(),
+          }
+        }
+        if (r.status === 'CLEANING' && r.available_after) {
+          setRoomCleaning(r.id, Math.max(0, new Date(r.available_after).getTime() - Date.now()))
+        }
+        return r
+      })
+      setRooms(mergedRooms)
       setActiveStays(staysData)
       setReservations(reservationsData)
     } catch (err) {
@@ -67,8 +83,12 @@ export function RoomsPage() {
   }, [fetchData])
 
   const availableRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'AVAILABLE')), [rooms])
+  const cleaningRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'CLEANING')), [rooms])
   const occupiedRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'OCCUPIED')), [rooms])
   const expectedRooms = useMemo(() => sortRoomsAscending(rooms.filter((r) => r.status === 'EXPECTED')), [rooms])
+
+  const totalUnoccupied = availableRooms.length + cleaningRooms.length
+  const readyPct = totalUnoccupied > 0 ? Math.round((availableRooms.length / totalUnoccupied) * 100) : 100
 
   const filteredRooms = useMemo(() => {
     const list = rooms.filter((r) => {
@@ -149,19 +169,103 @@ export function RoomsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {[
-          { label: 'Total rooms', value: rooms.length, detail: 'Across the property' },
-          { label: 'Available', value: availableRooms.length, detail: 'Ready for check-in' },
-          { label: 'Occupied', value: occupiedRooms.length, detail: 'Active stays' },
-          { label: 'Arriving today', value: expectedRooms.length, detail: 'Expected guests' },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-neutral-200 bg-white px-4 py-3">
-            <span className="text-[11px] text-neutral-500">{item.label}</span>
-            <strong className="block text-xl font-bold text-neutral-900 mt-0.5">{item.value}</strong>
-            <span className="text-[10px] text-neutral-500">{item.detail}</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Total Rooms Card */}
+        <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 flex flex-col justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-neutral-500">Total rooms</span>
+            <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{rooms.length}</strong>
           </div>
-        ))}
+          <span className="text-[10px] text-neutral-400 mt-2">Across the property</span>
+        </div>
+
+        {/* Available Card (Option 3 with Progress & Cleaning Breakdown) */}
+        <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 flex flex-col justify-between space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <span className="text-[11px] font-medium text-neutral-500">Available</span>
+              <div className="flex items-baseline gap-1.5 mt-0.5">
+                <strong className="text-2xl font-bold text-neutral-900">{availableRooms.length}</strong>
+                <span className="text-[11px] font-semibold text-emerald-700">Ready now</span>
+              </div>
+            </div>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+              {readyPct}% Ready
+            </span>
+          </div>
+
+          {/* Interactive Badges */}
+          <div className="flex items-center gap-1.5 flex-wrap text-[11px]">
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === 'AVAILABLE' ? 'ALL' : 'AVAILABLE')}
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition border ${
+                statusFilter === 'AVAILABLE'
+                  ? 'bg-emerald-700 text-white border-emerald-700'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+              }`}
+              title="Click to filter ready rooms"
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'AVAILABLE' ? 'bg-white' : 'bg-emerald-500'}`} />
+              <span>{availableRooms.length} Ready</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === 'CLEANING' ? 'ALL' : 'CLEANING')}
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md font-medium transition border ${
+                statusFilter === 'CLEANING'
+                  ? 'bg-slate-700 text-white border-slate-700'
+                  : cleaningRooms.length > 0
+                  ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                  : 'bg-neutral-50 text-neutral-400 border-neutral-200 opacity-60 cursor-default'
+              }`}
+              title={cleaningRooms.length > 0 ? 'Click to filter rooms in cleaning turnaround' : 'No rooms in cleaning'}
+              disabled={cleaningRooms.length === 0}
+            >
+              <SprayCan className="w-3.5 h-3.5" />
+              <span>{cleaningRooms.length} In Cleaning</span>
+            </button>
+          </div>
+
+          {/* Visual Progress Bar */}
+          <div className="space-y-1">
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+              <div
+                className="bg-emerald-500 h-full transition-all duration-300"
+                style={{ width: `${readyPct}%` }}
+                title={`${availableRooms.length} ready (${readyPct}%)`}
+              />
+              <div
+                className="bg-slate-300 h-full transition-all duration-300"
+                style={{ width: `${100 - readyPct}%` }}
+                title={`${cleaningRooms.length} in cleaning (${100 - readyPct}%)`}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-neutral-400">
+              <span>{totalUnoccupied} unrented</span>
+              <span>{cleaningRooms.length} in cleaning</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Occupied Card */}
+        <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 flex flex-col justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-neutral-500">Occupied</span>
+            <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{occupiedRooms.length}</strong>
+          </div>
+          <span className="text-[10px] text-neutral-400 mt-2">Active stays</span>
+        </div>
+
+        {/* Arriving Today Card */}
+        <div className="rounded-xl border border-neutral-200 bg-white px-4 py-3 flex flex-col justify-between">
+          <div>
+            <span className="text-[11px] font-medium text-neutral-500">Arriving today</span>
+            <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{expectedRooms.length}</strong>
+          </div>
+          <span className="text-[10px] text-neutral-400 mt-2">Expected guests</span>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -176,6 +280,7 @@ export function RoomsPage() {
           {[
             { id: 'ALL' as const, label: 'All rooms', count: rooms.length },
             { id: 'AVAILABLE' as const, label: 'Available', count: availableRooms.length },
+            { id: 'CLEANING' as const, label: 'Cleaning', count: cleaningRooms.length },
             { id: 'OCCUPIED' as const, label: 'Occupied', count: occupiedRooms.length },
             { id: 'EXPECTED' as const, label: 'Arriving', count: expectedRooms.length },
           ].map((filter) => (
