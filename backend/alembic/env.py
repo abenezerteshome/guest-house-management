@@ -9,7 +9,12 @@ from app.models import User
 
 
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("+asyncpg", ""))
+sync_db_url = get_settings().database_url
+if sync_db_url.startswith("postgresql+asyncpg://"):
+	sync_db_url = sync_db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
+elif sync_db_url.startswith("postgresql://"):
+	sync_db_url = sync_db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+config.set_main_option("sqlalchemy.url", sync_db_url)
 if config.config_file_name is not None:
 	fileConfig(config.config_file_name)
 
