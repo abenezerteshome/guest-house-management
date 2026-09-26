@@ -32,7 +32,9 @@ def _to_utc_range(d: date) -> tuple[datetime, datetime]:
 	return start, end
 
 
-async def get_daily_report(session: AsyncSession, target_date: date | None = None) -> DailyReport:
+async def get_daily_report(
+	session: AsyncSession, target_date: date | None = None, property_id: int | None = None
+) -> DailyReport:
 	if target_date is None:
 		target_date = datetime.now(timezone.utc).date()
 	start_dt, end_dt = _to_utc_range(target_date)
@@ -43,6 +45,8 @@ async def get_daily_report(session: AsyncSession, target_date: date | None = Non
 		Payment.created_at >= start_dt,
 		Payment.created_at <= end_dt,
 	)
+	if property_id is not None:
+		income_stmt = income_stmt.where(Payment.property_id == property_id)
 	income_res = await session.execute(income_stmt)
 	todays_income = Decimal(str(income_res.scalar() or "0.00"))
 
@@ -51,11 +55,16 @@ async def get_daily_report(session: AsyncSession, target_date: date | None = Non
 		Expense.expense_date >= start_dt,
 		Expense.expense_date <= end_dt,
 	)
+	if property_id is not None:
+		expense_stmt = expense_stmt.where(Expense.property_id == property_id)
 	expense_res = await session.execute(expense_stmt)
 	todays_expenses = Decimal(str(expense_res.scalar() or "0.00"))
 
 	# 3. Room Status Counts
-	rooms_stmt = select(Room.status, func.count(Room.id)).where(Room.is_active.is_(True)).group_by(Room.status)
+	rooms_stmt = select(Room.status, func.count(Room.id)).where(Room.is_active.is_(True))
+	if property_id is not None:
+		rooms_stmt = rooms_stmt.where(Room.property_id == property_id)
+	rooms_stmt = rooms_stmt.group_by(Room.status)
 	rooms_res = await session.execute(rooms_stmt)
 	room_counts = {r[0]: r[1] for r in rooms_res.all()}
 
@@ -64,6 +73,8 @@ async def get_daily_report(session: AsyncSession, target_date: date | None = Non
 		Stay.check_in_at >= start_dt,
 		Stay.check_in_at <= end_dt,
 	)
+	if property_id is not None:
+		checkin_stmt = checkin_stmt.where(Stay.property_id == property_id)
 	checkins = (await session.execute(checkin_stmt)).scalar() or 0
 
 	checkout_stmt = select(func.count(Stay.id)).where(
@@ -71,6 +82,8 @@ async def get_daily_report(session: AsyncSession, target_date: date | None = Non
 		Stay.actual_checkout_at >= start_dt,
 		Stay.actual_checkout_at <= end_dt,
 	)
+	if property_id is not None:
+		checkout_stmt = checkout_stmt.where(Stay.property_id == property_id)
 	checkouts = (await session.execute(checkout_stmt)).scalar() or 0
 
 	# 5. Penalties Total
@@ -81,10 +94,14 @@ async def get_daily_report(session: AsyncSession, target_date: date | None = Non
 		Charge.charged_at >= start_dt,
 		Charge.charged_at <= end_dt,
 	)
+	if property_id is not None:
+		penalties_stmt = penalties_stmt.where(Charge.property_id == property_id)
 	penalties_total = Decimal(str((await session.execute(penalties_stmt)).scalar() or "0.00"))
 
 	# 6. Outstanding Credit (Total due - Total paid for active stays)
 	active_stays_stmt = select(Stay.id).where(Stay.status == StayStatus.CHECKED_IN.value)
+	if property_id is not None:
+		active_stays_stmt = active_stays_stmt.where(Stay.property_id == property_id)
 	active_stay_ids = (await session.execute(active_stays_stmt)).scalars().all()
 
 	outstanding_credit = Decimal("0.00")
@@ -120,6 +137,7 @@ async def get_income_analysis(
 	period: str = "this_month",
 	start_date: datetime | None = None,
 	end_date: datetime | None = None,
+	property_id: int | None = None,
 ) -> IncomeAnalysisReport:
 	now = datetime.now(timezone.utc)
 	if start_date is None or end_date is None:
@@ -141,8 +159,10 @@ async def get_income_analysis(
 			Payment.created_at >= start_date,
 			Payment.created_at <= end_date,
 		)
-		.group_by(Payment.payment_method)
 	)
+	if property_id is not None:
+		stmt = stmt.where(Payment.property_id == property_id)
+	stmt = stmt.group_by(Payment.payment_method)
 	rows = (await session.execute(stmt)).all()
 	amounts_by_method = {r[0]: (Decimal(str(r[1])), r[2]) for r in rows}
 
@@ -176,6 +196,7 @@ async def get_expenses_analysis(
 	period: str = "this_month",
 	start_date: datetime | None = None,
 	end_date: datetime | None = None,
+	property_id: int | None = None,
 ) -> ExpenseAnalysisReport:
 	now = datetime.now(timezone.utc)
 	if start_date is None or end_date is None:
@@ -196,9 +217,10 @@ async def get_expenses_analysis(
 			Expense.expense_date >= start_date,
 			Expense.expense_date <= end_date,
 		)
-		.group_by(Expense.category)
-		.order_by(func.sum(Expense.amount).desc())
 	)
+	if property_id is not None:
+		stmt = stmt.where(Expense.property_id == property_id)
+	stmt = stmt.group_by(Expense.category).order_by(func.sum(Expense.amount).desc())
 	rows = (await session.execute(stmt)).all()
 	total_expenses = sum((Decimal(str(r[1])) for r in rows), Decimal("0.00"))
 
@@ -217,7 +239,9 @@ async def get_expenses_analysis(
 	)
 
 
-async def get_weekly_report(session: AsyncSession, target_date: date | None = None) -> WeeklyReport:
+async def get_weekly_report(
+	session: AsyncSession, target_date: date | None = None, property_id: int | None = None
+) -> WeeklyReport:
 	if target_date is None:
 		target_date = datetime.now(timezone.utc).date()
 	# Last 7 days including target_date
@@ -234,10 +258,16 @@ async def get_weekly_report(session: AsyncSession, target_date: date | None = No
 			Payment.created_at >= s_dt,
 			Payment.created_at <= e_dt,
 		)
+		if property_id is not None:
+			inc_stmt = inc_stmt.where(Payment.property_id == property_id)
+
 		exp_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
 			Expense.expense_date >= s_dt,
 			Expense.expense_date <= e_dt,
 		)
+		if property_id is not None:
+			exp_stmt = exp_stmt.where(Expense.property_id == property_id)
+
 		inc = Decimal(str((await session.execute(inc_stmt)).scalar() or "0.00"))
 		exp = Decimal(str((await session.execute(exp_stmt)).scalar() or "0.00"))
 		total_income += inc
@@ -262,7 +292,12 @@ async def get_weekly_report(session: AsyncSession, target_date: date | None = No
 	)
 
 
-async def get_monthly_report(session: AsyncSession, year: int | None = None, month: int | None = None) -> MonthlyReport:
+async def get_monthly_report(
+	session: AsyncSession,
+	year: int | None = None,
+	month: int | None = None,
+	property_id: int | None = None,
+) -> MonthlyReport:
 	now = datetime.now(timezone.utc)
 	is_all_time = (year == 0 or month == 0)
 
@@ -288,10 +323,16 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 		Payment.created_at >= start_dt,
 		Payment.created_at <= end_dt,
 	)
+	if property_id is not None:
+		inc_stmt = inc_stmt.where(Payment.property_id == property_id)
+
 	exp_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
 		Expense.expense_date >= start_dt,
 		Expense.expense_date <= end_dt,
 	)
+	if property_id is not None:
+		exp_stmt = exp_stmt.where(Expense.property_id == property_id)
+
 	total_income = Decimal(str((await session.execute(inc_stmt)).scalar() or "0.00"))
 	total_expenses = Decimal(str((await session.execute(exp_stmt)).scalar() or "0.00"))
 
@@ -300,6 +341,8 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 		Stay.check_in_at <= end_dt,
 		Stay.expected_checkout >= start_dt,
 	)
+	if property_id is not None:
+		guests_stmt = guests_stmt.where(Stay.property_id == property_id)
 	total_guests = (await session.execute(guests_stmt)).scalar() or 0
 
 	# Penalties
@@ -308,14 +351,22 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 		Charge.charged_at >= start_dt,
 		Charge.charged_at <= end_dt,
 	)
+	if property_id is not None:
+		pen_stmt = pen_stmt.where(Charge.property_id == property_id)
 	total_penalties = Decimal(str((await session.execute(pen_stmt)).scalar() or "0.00"))
 
 	# Total rooms
-	total_rooms = (await session.execute(select(func.count(Room.id)).where(Room.is_active.is_(True)))).scalar() or 1
+	rooms_cnt_stmt = select(func.count(Room.id)).where(Room.is_active.is_(True))
+	if property_id is not None:
+		rooms_cnt_stmt = rooms_cnt_stmt.where(Room.property_id == property_id)
+	total_rooms = (await session.execute(rooms_cnt_stmt)).scalar() or 1
+
 	occupied_nights_stmt = select(func.count(Stay.id)).where(
 		Stay.check_in_at <= end_dt,
 		Stay.expected_checkout >= start_dt,
 	)
+	if property_id is not None:
+		occupied_nights_stmt = occupied_nights_stmt.where(Stay.property_id == property_id)
 	occupied_stays = (await session.execute(occupied_nights_stmt)).scalar() or 0
 	occupancy_rate = min(100.0, round(float(occupied_stays / (total_rooms * num_days)) * 100, 1))
 
@@ -329,8 +380,11 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 			Payment.created_at >= start_dt,
 			Payment.created_at <= end_dt,
 		)
-		.group_by(func.date(Payment.created_at))
 	)
+	if property_id is not None:
+		daily_inc_stmt = daily_inc_stmt.where(Payment.property_id == property_id)
+	daily_inc_stmt = daily_inc_stmt.group_by(func.date(Payment.created_at))
+
 	inc_rows = (await session.execute(daily_inc_stmt)).all()
 	inc_by_date = {str(r[0]): Decimal(str(r[1])) for r in inc_rows}
 
@@ -340,8 +394,11 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 			Expense.expense_date >= start_dt,
 			Expense.expense_date <= end_dt,
 		)
-		.group_by(func.date(Expense.expense_date))
 	)
+	if property_id is not None:
+		daily_exp_stmt = daily_exp_stmt.where(Expense.property_id == property_id)
+	daily_exp_stmt = daily_exp_stmt.group_by(func.date(Expense.expense_date))
+
 	exp_rows = (await session.execute(daily_exp_stmt)).all()
 	exp_by_date = {str(r[0]): Decimal(str(r[1])) for r in exp_rows}
 
@@ -392,7 +449,7 @@ async def get_monthly_report(session: AsyncSession, year: int | None = None, mon
 
 
 async def get_daily_manifest(
-	session: AsyncSession, target_date: date | None = None
+	session: AsyncSession, target_date: date | None = None, property_id: int | None = None
 ) -> DailyManifestReport:
 	if target_date is None:
 		target_date = datetime.now(timezone.utc).date()
@@ -410,8 +467,10 @@ async def get_daily_manifest(
 			Stay.check_in_at >= start_dt,
 			Stay.check_in_at <= end_dt,
 		)
-		.order_by(Stay.check_in_at.desc())
 	)
+	if property_id is not None:
+		checkin_stmt = checkin_stmt.where(Stay.property_id == property_id)
+	checkin_stmt = checkin_stmt.order_by(Stay.check_in_at.desc())
 	checkin_rows = (await session.execute(checkin_stmt)).all()
 
 	# 2. Stays that checked out today
@@ -425,8 +484,10 @@ async def get_daily_manifest(
 			Stay.actual_checkout_at >= start_dt,
 			Stay.actual_checkout_at <= end_dt,
 		)
-		.order_by(Stay.actual_checkout_at.desc())
 	)
+	if property_id is not None:
+		checkout_stmt = checkout_stmt.where(Stay.property_id == property_id)
+	checkout_stmt = checkout_stmt.order_by(Stay.actual_checkout_at.desc())
 	checkout_rows = (await session.execute(checkout_stmt)).all()
 
 	# 3. Active in-house stays during target date (checked in prior to today, and staying across today)
@@ -442,8 +503,10 @@ async def get_daily_manifest(
 				Stay.actual_checkout_at > end_dt,
 			),
 		)
-		.order_by(Room.room_number.asc())
 	)
+	if property_id is not None:
+		staying_stmt = staying_stmt.where(Stay.property_id == property_id)
+	staying_stmt = staying_stmt.order_by(Room.room_number.asc())
 	staying_rows = (await session.execute(staying_stmt)).all()
 
 	# Query payments and charges for all retrieved stays
@@ -576,8 +639,10 @@ async def get_daily_manifest(
 			Reservation.status == ReservationStatus.RESERVED.value,
 			Reservation.expected_arrival <= end_dt,
 		)
-		.order_by(Reservation.expected_arrival.asc())
 	)
+	if property_id is not None:
+		res_stmt = res_stmt.where(Reservation.property_id == property_id)
+	res_stmt = res_stmt.order_by(Reservation.expected_arrival.asc())
 	res_rows = (await session.execute(res_stmt)).all()
 
 	for res, guest, room in res_rows:
@@ -620,6 +685,8 @@ async def get_daily_manifest(
 		Payment.created_at >= start_dt,
 		Payment.created_at <= end_dt,
 	)
+	if property_id is not None:
+		daily_pmt_stmt = daily_pmt_stmt.where(Payment.property_id == property_id)
 	daily_pmt_res = await session.execute(daily_pmt_stmt)
 	total_amount_paid = Decimal(str(daily_pmt_res.scalar() or "0.00"))
 

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -6,6 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_super_admin
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
+from app.models.expense import Expense
+from app.models.payment import Payment, PaymentStatus
 from app.models.property import Property
 from app.models.room import Room
 from app.models.stay import Stay, StayStatus
@@ -30,12 +34,29 @@ async def get_super_admin_stats(session: AsyncSession = Depends(get_db)) -> Supe
 	total_rooms = (await session.execute(select(func.count(Room.id)))).scalar_one() or 0
 	total_stays = (await session.execute(select(func.count(Stay.id)))).scalar_one() or 0
 
+	total_rev = (
+		await session.execute(
+			select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
+				Payment.status == PaymentStatus.SUCCESS.value
+			)
+		)
+	).scalar_one() or Decimal("0.00")
+
+	total_exp = (
+		await session.execute(
+			select(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+		)
+	).scalar_one() or Decimal("0.00")
+
 	return SuperAdminStats(
 		total_properties=total_props,
 		active_properties=active_props,
 		suspended_properties=suspended_props,
 		total_rooms=total_rooms,
 		total_stays=total_stays,
+		total_revenue=Decimal(str(total_rev)),
+		total_expenses=Decimal(str(total_exp)),
+		total_net_income=Decimal(str(total_rev - total_exp)),
 	)
 
 
@@ -60,10 +81,30 @@ async def list_properties(session: AsyncSession = Depends(get_db)) -> list[Prope
 			await session.execute(select(func.count(User.id)).where(User.property_id == p.id))
 		).scalar_one() or 0
 
+		rev = (
+			await session.execute(
+				select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
+					Payment.property_id == p.id,
+					Payment.status == PaymentStatus.SUCCESS.value,
+				)
+			)
+		).scalar_one() or Decimal("0.00")
+
+		exp = (
+			await session.execute(
+				select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
+					Expense.property_id == p.id
+				)
+			)
+		).scalar_one() or Decimal("0.00")
+
 		data = PropertyRead.model_validate(p)
 		data.total_rooms = room_count
 		data.active_stays = stay_count
 		data.staff_count = staff_count
+		data.total_revenue = Decimal(str(rev))
+		data.total_expenses = Decimal(str(exp))
+		data.net_income = Decimal(str(rev - exp))
 		output.append(data)
 
 	return output

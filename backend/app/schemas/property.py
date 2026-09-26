@@ -53,6 +53,9 @@ class PropertyRead(BaseModel):
 	total_rooms: int = 0
 	active_stays: int = 0
 	staff_count: int = 0
+	total_revenue: Decimal = Decimal("0.00")
+	total_expenses: Decimal = Decimal("0.00")
+	net_income: Decimal = Decimal("0.00")
 	created_at: datetime
 	updated_at: datetime
 
@@ -63,3 +66,6 @@ class SuperAdminStats(BaseModel):
 	suspended_properties: int
 	total_rooms: int
 	total_stays: int
+	total_revenue: Decimal = Decimal("0.00")
+	total_expenses: Decimal = Decimal("0.00")
+	total_net_income: Decimal = Decimal("0.00")

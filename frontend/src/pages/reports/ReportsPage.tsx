@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   BarChart3,
   Calendar,
@@ -8,10 +9,13 @@ import {
   TrendingUp,
   Wallet,
   Building,
+  Building2,
   Layers,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { KpiCard } from '../../components/common/KpiCard'
+import { useAuth } from '../../context/AuthContext'
+import { getProperties } from '../../api/superAdmin'
 import {
   getDailyReport,
   getIncomeAnalysis,
@@ -25,6 +29,7 @@ import type {
   ExpenseAnalysisReport,
   WeeklyReport,
   MonthlyReport,
+  Property,
 } from '../../types/api'
 
 type StatementMetric =
@@ -36,6 +41,13 @@ type StatementMetric =
   | 'ALL'
 
 export function ReportsPage() {
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialPropId = searchParams.get('property_id') ? Number(searchParams.get('property_id')) : null
+
+  const [properties, setProperties] = useState<Property[]>([])
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(initialPropId)
+
   const [activeTab, setActiveTab] = useState<'daily' | 'income' | 'expenses' | 'weekly' | 'monthly'>('monthly')
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [_loading, setLoading] = useState(true)
@@ -52,28 +64,36 @@ export function ReportsPage() {
   const [weeklyData, setWeeklyData] = useState<WeeklyReport | null>(null)
   const [monthlyData, setMonthlyData] = useState<MonthlyReport | null>(null)
 
+  // Load properties list if user is SUPER_ADMIN
+  useEffect(() => {
+    if (user?.role === 'SUPER_ADMIN') {
+      getProperties().then(setProperties).catch(() => {})
+    }
+  }, [user?.role])
+
   const fetchReports = useCallback(async () => {
     setLoading(true)
+    const propId = user?.role === 'SUPER_ADMIN' ? selectedPropertyId : undefined
     try {
       if (activeTab === 'daily') {
-        const data = await getDailyReport(selectedDate)
+        const data = await getDailyReport(selectedDate, propId)
         setDailyData(data)
       } else if (activeTab === 'income') {
-        const data = await getIncomeAnalysis({ period: 'all' })
+        const data = await getIncomeAnalysis({ period: 'all', property_id: propId })
         setIncomeData(data)
       } else if (activeTab === 'expenses') {
-        const data = await getExpensesAnalysis({ period: 'all' })
+        const data = await getExpensesAnalysis({ period: 'all', property_id: propId })
         setExpenseData(data)
       } else if (activeTab === 'weekly') {
-        const data = await getWeeklyReport(selectedDate)
+        const data = await getWeeklyReport(selectedDate, propId)
         setWeeklyData(data)
       } else if (activeTab === 'monthly') {
         if (statementPeriod === 'all') {
-          const data = await getMonthlyReport(0, 0)
+          const data = await getMonthlyReport(0, 0, propId)
           setMonthlyData(data)
         } else {
           const [y, m] = statementMonth.split('-').map(Number)
-          const data = await getMonthlyReport(y, m)
+          const data = await getMonthlyReport(y, m, propId)
           setMonthlyData(data)
         }
       }
@@ -82,7 +102,7 @@ export function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab, selectedDate, statementPeriod, statementMonth])
+  }, [activeTab, selectedDate, statementPeriod, statementMonth, selectedPropertyId, user?.role])
 
   useEffect(() => {
     fetchReports()
@@ -103,53 +123,82 @@ export function ReportsPage() {
         title="Financial & Operations Intelligence"
         subtitle="Daily performance, revenue breakdown by payment channel, operational expense audits, and occupancy reports."
         action={
-          activeTab === 'daily' ? (
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="rounded-xl border border-neutral-200 px-3 py-1.5 text-xs text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
-            />
-          ) : activeTab === 'monthly' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-xl border border-neutral-200 bg-neutral-100 p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setStatementPeriod('month')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-                    statementPeriod === 'month'
-                      ? 'bg-white text-neutral-900 shadow-xs'
-                      : 'text-neutral-600 hover:text-neutral-900'
-                  }`}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {user?.role === 'SUPER_ADMIN' && (
+              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-neutral-200 shadow-xs">
+                <Building2 className="w-4 h-4 text-neutral-400 shrink-0" />
+                <span className="text-xs font-semibold text-neutral-600">Property:</span>
+                <select
+                  value={selectedPropertyId ?? ''}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null
+                    setSelectedPropertyId(val)
+                    if (val) {
+                      setSearchParams({ property_id: String(val) })
+                    } else {
+                      setSearchParams({})
+                    }
+                  }}
+                  className="text-xs bg-transparent font-bold text-neutral-900 focus:outline-none cursor-pointer"
                 >
-                  By Month
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStatementPeriod('all')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-                    statementPeriod === 'all'
-                      ? 'bg-white text-[#FF385C] shadow-xs font-bold'
-                      : 'text-neutral-600 hover:text-neutral-900'
-                  }`}
-                >
-                  All-Time Total
-                </button>
+                  <option value="">All Properties (Platform Wide)</option>
+                  {properties.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.code})
+                    </option>
+                  ))}
+                </select>
               </div>
+            )}
 
-              {statementPeriod === 'month' && (
-                <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-3 py-1 text-xs">
-                  <Calendar className="w-3.5 h-3.5 text-neutral-400" />
-                  <input
-                    type="month"
-                    value={statementMonth}
-                    onChange={(e) => setStatementMonth(e.target.value)}
-                    className="text-xs text-neutral-800 bg-transparent focus:outline-none font-medium cursor-pointer"
-                  />
+            {activeTab === 'daily' ? (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-xl border border-neutral-200 px-3 py-1.5 text-xs text-neutral-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
+              />
+            ) : activeTab === 'monthly' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-xl border border-neutral-200 bg-neutral-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setStatementPeriod('month')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      statementPeriod === 'month'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    By Month
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStatementPeriod('all')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      statementPeriod === 'all'
+                        ? 'bg-white text-[#FF385C] shadow-xs font-bold'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    All-Time Total
+                  </button>
                 </div>
-              )}
-            </div>
-          ) : undefined
+
+                {statementPeriod === 'month' && (
+                  <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-3 py-1 text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                    <input
+                      type="month"
+                      value={statementMonth}
+                      onChange={(e) => setStatementMonth(e.target.value)}
+                      className="text-xs text-neutral-800 bg-transparent focus:outline-none font-medium cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : undefined}
+          </div>
         }
       />
 

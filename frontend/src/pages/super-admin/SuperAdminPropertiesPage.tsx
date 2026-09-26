@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Building2,
   Plus,
@@ -15,6 +16,10 @@ import {
   ShieldCheck,
   AlertCircle,
   Clock,
+  TrendingUp,
+  Wallet,
+  BarChart3,
+  ArrowUpRight,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -139,64 +144,125 @@ export function SuperAdminPropertiesPage() {
       )}
 
       {/* Platform Metric Overview Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <Building2 className="w-5 h-5" />
+      <div className="space-y-3">
+        {/* Operational Scope Row */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="block text-xl font-bold text-neutral-900 leading-tight">
+                {stats?.total_properties ?? 0}
+              </span>
+              <span className="block text-[11px] font-medium text-neutral-500">Total Properties</span>
+            </div>
           </div>
-          <div>
-            <span className="block text-xl font-bold text-neutral-900 leading-tight">
-              {stats?.total_properties ?? 0}
-            </span>
-            <span className="block text-[11px] font-medium text-neutral-500">Total Properties</span>
+
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="block text-xl font-bold text-emerald-700 leading-tight">
+                {stats?.active_properties ?? 0}
+              </span>
+              <span className="block text-[11px] font-medium text-neutral-500">Active Clients</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <XCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="block text-xl font-bold text-rose-700 leading-tight">
+                {stats?.suspended_properties ?? 0}
+              </span>
+              <span className="block text-[11px] font-medium text-neutral-500">Suspended</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <BedDouble className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="block text-xl font-bold text-neutral-900 leading-tight">
+                {stats?.total_rooms ?? 0}
+              </span>
+              <span className="block text-[11px] font-medium text-neutral-500">Managed Rooms</span>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5 col-span-2 sm:col-span-1">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <CalendarDays className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="block text-xl font-bold text-neutral-900 leading-tight">
+                {stats?.total_stays ?? 0}
+              </span>
+              <span className="block text-[11px] font-medium text-neutral-500">Total Stays</span>
+            </div>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
+        {/* Financial Rollup Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-[11px] font-semibold text-emerald-800 uppercase tracking-wider">
+                  Platform Gross Volume
+                </span>
+                <span className="block text-xl font-extrabold text-emerald-950 leading-tight">
+                  ETB {Number(stats?.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+            <Link
+              to="/reports"
+              className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 flex items-center gap-0.5"
+            >
+              <span>Reports</span>
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <div>
-            <span className="block text-xl font-bold text-emerald-700 leading-tight">
-              {stats?.active_properties ?? 0}
-            </span>
-            <span className="block text-[11px] font-medium text-neutral-500">Active Clients</span>
-          </div>
-        </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-            <XCircle className="w-5 h-5" />
+          <div className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <Wallet className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-[11px] font-semibold text-rose-800 uppercase tracking-wider">
+                  Platform Operating Expenses
+                </span>
+                <span className="block text-xl font-extrabold text-rose-950 leading-tight">
+                  ETB {Number(stats?.total_expenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="block text-xl font-bold text-rose-700 leading-tight">
-              {stats?.suspended_properties ?? 0}
-            </span>
-            <span className="block text-[11px] font-medium text-neutral-500">Suspended</span>
-          </div>
-        </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <BedDouble className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="block text-xl font-bold text-neutral-900 leading-tight">
-              {stats?.total_rooms ?? 0}
-            </span>
-            <span className="block text-[11px] font-medium text-neutral-500">Managed Rooms</span>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center gap-3.5 col-span-2 lg:col-span-1">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-            <CalendarDays className="w-5 h-5" />
-          </div>
-          <div>
-            <span className="block text-xl font-bold text-neutral-900 leading-tight">
-              {stats?.total_reservations ?? 0}
-            </span>
-            <span className="block text-[11px] font-medium text-neutral-500">Total Bookings</span>
+          <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
+                <BarChart3 className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="block text-[11px] font-semibold text-indigo-800 uppercase tracking-wider">
+                  Platform Net Cashflow
+                </span>
+                <span className="block text-xl font-extrabold text-indigo-950 leading-tight">
+                  ETB {Number(stats?.total_net_income || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -257,6 +323,7 @@ export function SuperAdminPropertiesPage() {
                   <th className="py-3 px-4">Contact & Location</th>
                   <th className="py-3 px-4">Configuration</th>
                   <th className="py-3 px-4 text-center">Managed Scope</th>
+                  <th className="py-3 px-4">Financials</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -347,6 +414,34 @@ export function SuperAdminPropertiesPage() {
                       </div>
                     </td>
 
+                    {/* Financial Summary */}
+                    <td className="py-3.5 px-4">
+                      <div className="space-y-0.5 min-w-[130px]">
+                        <div className="flex items-center justify-between gap-2 text-xs">
+                          <span className="text-neutral-400">Rev:</span>
+                          <span className="font-semibold text-emerald-700">
+                            {prop.currency} {Number(prop.total_revenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[11px]">
+                          <span className="text-neutral-400">Exp:</span>
+                          <span className="font-medium text-rose-600">
+                            {prop.currency} {Number(prop.total_expenses || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-[11px] pt-1 border-t border-neutral-100">
+                          <span className="text-neutral-400">Net:</span>
+                          <span
+                            className={`font-bold ${
+                              Number(prop.net_income || 0) >= 0 ? 'text-emerald-700' : 'text-rose-700'
+                            }`}
+                          >
+                            {prop.currency} {Number(prop.net_income || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
                     {/* Status Badge */}
                     <td className="py-3.5 px-4 text-center">
                       {prop.is_active ? (
@@ -364,18 +459,28 @@ export function SuperAdminPropertiesPage() {
 
                     {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handlePromptToggle(prop)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-                          prop.is_active
-                            ? 'text-rose-600 hover:bg-rose-50 border border-rose-200'
-                            : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                        }`}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{prop.is_active ? 'Suspend Access' : 'Activate Access'}</span>
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/reports?property_id=${prop.id}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 hover:bg-neutral-100 transition border border-neutral-200"
+                          title="View Financial Reports"
+                        >
+                          <BarChart3 className="w-3.5 h-3.5 text-neutral-500" />
+                          <span>Reports</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handlePromptToggle(prop)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
+                            prop.is_active
+                              ? 'text-rose-600 hover:bg-rose-50 border border-rose-200'
+                              : 'text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+                          }`}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                          <span>{prop.is_active ? 'Suspend' : 'Activate'}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

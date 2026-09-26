@@ -291,6 +291,9 @@ export interface Property {
   total_users?: number
   total_rooms?: number
   total_reservations?: number
+  total_revenue?: string | number
+  total_expenses?: string | number
+  net_income?: string | number
   created_at: string
   updated_at: string
 }
@@ -326,5 +329,9 @@ export interface SuperAdminStats {
   active_properties: number
   suspended_properties: number
   total_rooms: number
-  total_reservations: number
+  total_stays: number
+  total_reservations?: number
+  total_revenue?: string | number
+  total_expenses?: string | number
+  total_net_income?: string | number
 }
