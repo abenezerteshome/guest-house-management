@@ -13,8 +13,8 @@ class ExpenseNotFoundError(Exception):
 	pass
 
 
-async def get_expense(session: AsyncSession, expense_id: int) -> Expense:
-	expense = await ExpenseRepository(session).get_by_id(expense_id)
+async def get_expense(session: AsyncSession, expense_id: int, property_id: int | None = None) -> Expense:
+	expense = await ExpenseRepository(session, property_id=property_id).get_by_id(expense_id)
 	if expense is None:
 		raise ExpenseNotFoundError("Expense not found")
 	return expense
@@ -25,9 +25,11 @@ async def create_expense(
 	data: ExpenseCreate,
 	*,
 	user_id: int,
+	property_id: int | None = None,
 ) -> Expense:
 	expense_date = data.expense_date or datetime.now(timezone.utc)
 	expense = Expense(
+		property_id=property_id,
 		category=data.category.value,
 		reason=data.reason or data.description,
 		description=data.description,
@@ -36,11 +38,12 @@ async def create_expense(
 		expense_date=expense_date,
 		recorded_by=user_id,
 	)
-	repo = ExpenseRepository(session)
+	repo = ExpenseRepository(session, property_id=property_id)
 	await repo.add(expense)
 
 	session.add(
 		AuditLog(
+			property_id=property_id,
 			user_id=user_id,
 			action="EXPENSE_CREATED",
 			entity_type="Expense",
@@ -59,8 +62,9 @@ async def update_expense(
 	data: ExpenseUpdate,
 	*,
 	user_id: int,
+	property_id: int | None = None,
 ) -> Expense:
-	expense = await get_expense(session, expense_id)
+	expense = await get_expense(session, expense_id, property_id=property_id)
 
 	if data.category is not None:
 		expense.category = data.category.value
@@ -77,6 +81,7 @@ async def update_expense(
 
 	session.add(
 		AuditLog(
+			property_id=expense.property_id,
 			user_id=user_id,
 			action="EXPENSE_UPDATED",
 			entity_type="Expense",
@@ -94,12 +99,14 @@ async def delete_expense(
 	expense_id: int,
 	*,
 	user_id: int,
+	property_id: int | None = None,
 ) -> None:
-	expense = await get_expense(session, expense_id)
-	repo = ExpenseRepository(session)
+	expense = await get_expense(session, expense_id, property_id=property_id)
+	repo = ExpenseRepository(session, property_id=property_id)
 
 	session.add(
 		AuditLog(
+			property_id=expense.property_id,
 			user_id=user_id,
 			action="EXPENSE_DELETED",
 			entity_type="Expense",
@@ -114,10 +121,11 @@ async def delete_expense(
 async def list_expenses(
 	session: AsyncSession,
 	*,
+	property_id: int | None = None,
 	category: str | None = None,
 	start_date: datetime | None = None,
 	end_date: datetime | None = None,
 ) -> list[Expense]:
-	return await ExpenseRepository(session).list(
+	return await ExpenseRepository(session, property_id=property_id).list(
 		category=category, start_date=start_date, end_date=end_date
 	)

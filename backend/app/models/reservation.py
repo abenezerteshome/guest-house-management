@@ -27,6 +27,9 @@ class Reservation(Base):
 	)
 
 	id: Mapped[int] = mapped_column(primary_key=True)
+	property_id: Mapped[int] = mapped_column(
+		ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True
+	)
 	guest_id: Mapped[int] = mapped_column(ForeignKey("guests.id"), nullable=False, index=True)
 	room_id: Mapped[int] = mapped_column(ForeignKey("rooms.id"), nullable=False, index=True)
 	status: Mapped[str] = mapped_column(

@@ -12,6 +12,7 @@ import {
   UserCheck,
   Power,
   Pencil,
+  Building2,
 } from 'lucide-react'
 import { PageHeader } from '../../components/common/PageHeader'
 import { Button } from '../../components/common/Button'
@@ -28,6 +29,10 @@ export function SettingsPage() {
   const isAdmin = user?.role === 'ADMIN'
 
   const [_settings, setSettings] = useState<SettingsData | null>(null)
+  const [propertyName, setPropertyName] = useState<string>('')
+  const [currency, setCurrency] = useState<string>('ETB')
+  const [contactPhone, setContactPhone] = useState<string>('')
+  const [address, setAddress] = useState<string>('')
   const [deadlineHour, setDeadlineHour] = useState<number>(4)
   const [deadlineMinute, setDeadlineMinute] = useState<number>(0)
   const [penalty, setPenalty] = useState<string>('600')
@@ -62,6 +67,10 @@ export function SettingsPage() {
     getSettings()
       .then((data) => {
         setSettings(data)
+        setPropertyName(data.property_name || '')
+        setCurrency(data.currency || 'ETB')
+        setContactPhone(data.contact_phone || '')
+        setAddress(data.address || '')
         setDeadlineHour(data.checkout_deadline_hour)
         setDeadlineMinute(data.checkout_deadline_minute)
         setPenalty(String(data.late_checkout_penalty))
@@ -87,6 +96,10 @@ export function SettingsPage() {
 
     try {
       const updated = await updateSettings({
+        property_name: propertyName.trim(),
+        currency: currency.trim() || 'ETB',
+        contact_phone: contactPhone.trim() || null,
+        address: address.trim() || null,
         checkout_deadline_hour: Number(deadlineHour),
         checkout_deadline_minute: Number(deadlineMinute),
         late_checkout_penalty: Number(penalty),
@@ -132,8 +145,85 @@ export function SettingsPage() {
         </div>
       )}
 
-      {/* Checkout Deadline Policy Card */}
+      {/* Settings Form */}
       <form onSubmit={handleSave} className="bg-white rounded-2xl border border-neutral-200 p-6 shadow-xs space-y-6">
+        {/* Property Profile & Info */}
+        <div className="border-b border-neutral-200 pb-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-neutral-900">Property Information</h3>
+              <p className="text-xs text-neutral-500">
+                General guest house details displayed on guest folios, receipts, and system headers.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+                Property Name *
+              </label>
+              <input
+                type="text"
+                required
+                disabled={!isAdmin || loading}
+                value={propertyName}
+                onChange={(e) => setPropertyName(e.target.value)}
+                placeholder="e.g. Family Guest House"
+                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] disabled:bg-neutral-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+                Operating Currency Code *
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={10}
+                disabled={!isAdmin || loading}
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                placeholder="e.g. ETB or USD"
+                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] disabled:bg-neutral-100 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+                Contact Phone
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin || loading}
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="+251 911 234567"
+                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] disabled:bg-neutral-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
+                Physical Address / Location
+              </label>
+              <input
+                type="text"
+                disabled={!isAdmin || loading}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Bole Subcity, Addis Ababa"
+                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C] disabled:bg-neutral-100"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Checkout Deadline Policy */}
         <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-neutral-800">

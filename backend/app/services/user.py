@@ -34,11 +34,12 @@ async def create_user(
     password: str,
     role: UserRole,
     email: str | None = None,
+    property_id: int | None = None,
 ) -> User:
     repository = UserRepository(session)
     if await repository.get_by_username(username) is not None:
         raise DuplicateUsernameError("Username is already in use")
-    user = build_user(full_name=full_name, username=username, password=password, role=role, email=email)
+    user = build_user(full_name=full_name, username=username, password=password, role=role, email=email, property_id=property_id)
     try:
         await repository.add(user)
         await session.commit()

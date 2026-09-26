@@ -50,6 +50,7 @@ async def users():
 			username="admin",
 			password="admin-password-123",
 			role=UserRole.ADMIN,
+			property_id=1,
 		)
 		reception = await create_user(
 			session,
@@ -57,6 +58,7 @@ async def users():
 			username="reception",
 			password="reception-password-123",
 			role=UserRole.RECEPTION,
+			property_id=1,
 		)
 		return admin, reception
 
@@ -67,6 +69,15 @@ async def reset_database() -> AsyncGenerator[None, None]:
 		async with test_engine.begin() as connection:
 			for table in reversed(Base.metadata.sorted_tables):
 				await connection.execute(text(f'TRUNCATE TABLE "{table.name}" RESTART IDENTITY CASCADE'))
+			await connection.execute(
+				text(
+					"INSERT INTO properties (id, name, code, currency, checkout_deadline_hour, checkout_deadline_minute, late_checkout_penalty, is_active) "
+					"VALUES (1, 'Default Property', 'MAIN', 'ETB', 4, 0, 600.00, true)"
+				)
+			)
+			await connection.execute(
+				text("SELECT setval(pg_get_serial_sequence('properties', 'id'), 1, true)")
+			)
 		yield
 	finally:
 		pass

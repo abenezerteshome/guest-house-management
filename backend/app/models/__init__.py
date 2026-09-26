@@ -3,6 +3,7 @@ from app.models.charge import Charge, ChargeType
 from app.models.expense import Expense, ExpenseCategory, ExpensePaymentMethod
 from app.models.guest import Guest
 from app.models.payment import Payment, PaymentMethod, PaymentStatus
+from app.models.property import Property
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
@@ -19,6 +20,7 @@ __all__ = [
 	"Payment",
 	"PaymentMethod",
 	"PaymentStatus",
+	"Property",
 	"Reservation",
 	"ReservationStatus",
 	"Room",

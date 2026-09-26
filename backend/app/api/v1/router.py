@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
 	rooms,
 	settings,
 	stays,
+	super_admin,
 	users,
 )
 
@@ -26,3 +27,4 @@ api_router.include_router(payments.router)
 api_router.include_router(expenses.router)
 api_router.include_router(reports.router)
 api_router.include_router(settings.router)
+api_router.include_router(super_admin.router)

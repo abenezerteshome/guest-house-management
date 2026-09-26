@@ -26,6 +26,9 @@ class Charge(Base):
 	)
 
 	id: Mapped[int] = mapped_column(primary_key=True)
+	property_id: Mapped[int] = mapped_column(
+		ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True
+	)
 	stay_id: Mapped[int] = mapped_column(ForeignKey("stays.id"), nullable=False, index=True)
 	charge_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
 	amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)

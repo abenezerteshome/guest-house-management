@@ -14,6 +14,7 @@ import {
   Users,
   Wallet,
   X,
+  Building2,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Avatar } from '../common/Avatar'
@@ -35,23 +36,30 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: 'Operations',
-    roles: ['ADMIN', 'RECEPTION'],
+    title: 'Platform',
+    roles: ['SUPER_ADMIN'],
     items: [
-      { label: 'Daily Logbook', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION'] },
-      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION'] },
+      { label: 'Properties & Tenants', to: '/super-admin/properties', icon: Building2, roles: ['SUPER_ADMIN'] },
+    ],
+  },
+  {
+    title: 'Operations',
+    roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
+    items: [
+      { label: 'Daily Logbook', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
+      { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
+      { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
+      { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
     ],
   },
   {
     title: 'Management',
-    roles: ['ADMIN'],
+    roles: ['ADMIN', 'SUPER_ADMIN'],
     items: [
-      { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN'] },
-      { label: 'Stays Archive', to: '/stays', icon: ClipboardList, roles: ['ADMIN'] },
-      { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN'] },
-      { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN'] },
+      { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'SUPER_ADMIN'] },
+      { label: 'Stays Archive', to: '/stays', icon: ClipboardList, roles: ['ADMIN', 'SUPER_ADMIN'] },
+      { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN', 'SUPER_ADMIN'] },
+      { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN', 'SUPER_ADMIN'] },
     ],
   },
 ]
@@ -125,10 +133,10 @@ export function AppShell() {
               </div>
               <div>
                 <span className="block text-base font-bold text-[#222222] tracking-tight leading-tight">
-                  Family Guest House
+                  {user?.role === 'SUPER_ADMIN' ? 'Platform Console' : (user?.property_name || 'Family Guest House')}
                 </span>
                 <span className="block text-[11px] font-medium text-[#717171]">
-                  Management System
+                  {user?.role === 'SUPER_ADMIN' ? 'Multi-Tenant SaaS' : 'Management System'}
                 </span>
               </div>
             </div>
@@ -193,14 +201,14 @@ export function AppShell() {
           <div className="p-4 border-t border-[#EEEEEE] space-y-3">
             <div className="px-3 py-2 rounded-xl bg-[#F7F7F7] border border-[#EBEBEB] flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-neutral-900 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                {user?.full_name?.charAt(0) || (user?.role === 'ADMIN' ? 'A' : 'R')}
+                {user?.full_name?.charAt(0) || (user?.role === 'SUPER_ADMIN' ? 'S' : user?.role === 'ADMIN' ? 'A' : 'R')}
               </div>
               <div className="min-w-0 flex-1">
                 <span className="block text-xs font-semibold text-[#222222] truncate">
-                  {user?.full_name || (user?.role === 'ADMIN' ? 'Administrator' : 'Reception Staff')}
+                  {user?.full_name || (user?.role === 'SUPER_ADMIN' ? 'Platform Super Admin' : user?.role === 'ADMIN' ? 'Administrator' : 'Reception Staff')}
                 </span>
                 <span className="block text-[11px] text-[#717171] truncate">
-                  {user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
+                  {user?.role === 'SUPER_ADMIN' ? 'Platform Super Admin' : user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
                 </span>
               </div>
             </div>
@@ -267,7 +275,7 @@ export function AppShell() {
                     {user?.full_name}
                   </span>
                   <span className="block text-[11px] text-[#717171] leading-tight capitalize">
-                    {user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
+                    {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : user?.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'}
                   </span>
                 </div>
                 <ChevronDown

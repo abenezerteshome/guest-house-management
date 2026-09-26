@@ -28,8 +28,9 @@ router = APIRouter(prefix="/reservations", tags=["reservations"])
 operational_user = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))
 
 
-async def get_reservation_or_404(reservation_id: int, session: AsyncSession) -> Reservation:
-	reservation = await ReservationRepository(session).get_by_id(reservation_id)
+async def get_reservation_or_404(reservation_id: int, current_user: User, session: AsyncSession) -> Reservation:
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	reservation = await ReservationRepository(session, property_id=prop_id).get_by_id(reservation_id)
 	if reservation is None:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reservation not found")
 	return reservation
@@ -43,16 +44,18 @@ def service_error(exc: Exception) -> HTTPException:
 	return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.get("", response_model=list[ReservationRead], dependencies=[Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION))])
+@router.get("", response_model=list[ReservationRead])
 async def list_reservations(
 	reservation_status: ReservationStatus | None = Query(default=None, alias="status"),
 	room_id: int | None = Query(default=None, gt=0),
 	guest_id: int | None = Query(default=None, gt=0),
 	from_date: datetime | None = None,
 	to_date: datetime | None = None,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> list[Reservation]:
-	return await ReservationRepository(session).list(
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	return await ReservationRepository(session, property_id=prop_id).list(
 		status=reservation_status.value if reservation_status else None,
 		room_id=room_id,
 		guest_id=guest_id,
@@ -61,10 +64,10 @@ async def list_reservations(
 	)
 
 
-@router.post("", response_model=ReservationRead, status_code=status.HTTP_201_CREATED, dependencies=[operational_user])
+@router.post("", response_model=ReservationRead, status_code=status.HTTP_201_CREATED)
 async def create_reservation_endpoint(
 	payload: ReservationCreate,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Reservation:
 	try:
@@ -73,19 +76,23 @@ async def create_reservation_endpoint(
 		raise service_error(exc) from exc
 
 
-@router.get("/{reservation_id}", response_model=ReservationRead, dependencies=[operational_user])
-async def get_reservation(reservation_id: int, session: AsyncSession = Depends(get_db)) -> Reservation:
-	return await get_reservation_or_404(reservation_id, session)
+@router.get("/{reservation_id}", response_model=ReservationRead)
+async def get_reservation(
+	reservation_id: int,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
+	session: AsyncSession = Depends(get_db),
+) -> Reservation:
+	return await get_reservation_or_404(reservation_id, current_user, session)
 
 
-@router.patch("/{reservation_id}", response_model=ReservationRead, dependencies=[operational_user])
+@router.patch("/{reservation_id}", response_model=ReservationRead)
 async def patch_reservation(
 	reservation_id: int,
 	payload: ReservationUpdate,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Reservation:
-	reservation = await get_reservation_or_404(reservation_id, session)
+	reservation = await get_reservation_or_404(reservation_id, current_user, session)
 	try:
 		return await update_reservation(
 			session, reservation, user_id=current_user.id, values=payload.model_dump(exclude_unset=True)
@@ -93,39 +100,39 @@ async def patch_reservation(
 	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
 		raise service_error(exc) from exc
 
-@router.post("/{reservation_id}/check-in", response_model=StayRead, dependencies=[operational_user])
+@router.post("/{reservation_id}/check-in", response_model=StayRead)
 async def check_in_reservation(
 	reservation_id: int,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Stay:
-	reservation = await get_reservation_or_404(reservation_id, session)
+	reservation = await get_reservation_or_404(reservation_id, current_user, session)
 	try:
 		return await check_in(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
 	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
 		raise service_error(exc) from exc
 
 
-@router.post("/{reservation_id}/cancel", response_model=ReservationRead, dependencies=[operational_user])
+@router.post("/{reservation_id}/cancel", response_model=ReservationRead)
 async def cancel_reservation_endpoint(
 	reservation_id: int,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Reservation:
-	reservation = await get_reservation_or_404(reservation_id, session)
+	reservation = await get_reservation_or_404(reservation_id, current_user, session)
 	try:
 		return await cancel_reservation(session, reservation, user_id=current_user.id)
 	except InvalidTransitionError as exc:
 		raise service_error(exc) from exc
 
 
-@router.post("/{reservation_id}/no-show", response_model=ReservationRead, dependencies=[operational_user])
+@router.post("/{reservation_id}/no-show", response_model=ReservationRead)
 async def no_show_reservation(
 	reservation_id: int,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Reservation:
-	reservation = await get_reservation_or_404(reservation_id, session)
+	reservation = await get_reservation_or_404(reservation_id, current_user, session)
 	try:
 		return await mark_no_show(session, reservation, user_id=current_user.id, now=datetime.now(timezone.utc))
 	except InvalidTransitionError as exc:
@@ -133,7 +140,7 @@ async def no_show_reservation(
 
 
 async def _do_delete(reservation_id: int, current_user: User, session: AsyncSession) -> None:
-	reservation = await get_reservation_or_404(reservation_id, session)
+	reservation = await get_reservation_or_404(reservation_id, current_user, session)
 	try:
 		await delete_reservation(session, reservation, user_id=current_user.id)
 	except (ResourceNotFoundError, ConflictError, InvalidTransitionError) as exc:
@@ -143,7 +150,7 @@ async def _do_delete(reservation_id: int, current_user: User, session: AsyncSess
 @router.delete("/{reservation_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reservation_endpoint(
 	reservation_id: int,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> None:
 	await _do_delete(reservation_id, current_user, session)
@@ -152,7 +159,7 @@ async def delete_reservation_endpoint(
 @router.post("/{reservation_id}/delete", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_reservation_post_endpoint(
 	reservation_id: int,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> None:
 	"""POST fallback for DELETE — works through any proxy that blocks DELETE method."""

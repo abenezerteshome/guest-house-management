@@ -10,11 +10,15 @@ ACTIVE_RESERVATION_STATUSES = (ReservationStatus.RESERVED.value, ReservationStat
 
 
 class ReservationRepository:
-	def __init__(self, session: AsyncSession) -> None:
+	def __init__(self, session: AsyncSession, property_id: int | None = None) -> None:
 		self.session = session
+		self.property_id = property_id
 
 	async def get_by_id(self, reservation_id: int) -> Reservation | None:
-		return await self.session.get(Reservation, reservation_id)
+		res = await self.session.get(Reservation, reservation_id)
+		if res and self.property_id is not None and res.property_id != self.property_id:
+			return None
+		return res
 
 	async def list(
 		self,
@@ -26,6 +30,8 @@ class ReservationRepository:
 		to_date: datetime | None = None,
 	) -> list[Reservation]:
 		query = select(Reservation).order_by(Reservation.expected_arrival, Reservation.id)
+		if self.property_id is not None:
+			query = query.where(Reservation.property_id == self.property_id)
 		if status is not None:
 			query = query.where(Reservation.status == status)
 		if room_id is not None:
@@ -55,11 +61,15 @@ class ReservationRepository:
 				Reservation.expected_checkout > arrival,
 			)
 		)
+		if self.property_id is not None:
+			query = query.where(Reservation.property_id == self.property_id)
 		if exclude_id is not None:
 			query = query.where(Reservation.id != exclude_id)
 		return (await self.session.execute(query)).scalar_one_or_none() is not None
 
 	async def add(self, reservation: Reservation) -> Reservation:
+		if self.property_id is not None and not reservation.property_id:
+			reservation.property_id = self.property_id
 		self.session.add(reservation)
 		await self.session.flush()
 		return reservation

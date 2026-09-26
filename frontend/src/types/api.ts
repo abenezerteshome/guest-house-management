@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'RECEPTION'
+export type Role = 'ADMIN' | 'RECEPTION' | 'SUPER_ADMIN'
 
 export type PaymentMethod = 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'CREDIT' | 'OTHER'
 
@@ -9,6 +9,8 @@ export interface User {
   email?: string | null
   role: Role
   is_active: boolean
+  property_id?: number | null
+  property_name?: string | null
   created_at: string
   updated_at: string
 }
@@ -223,6 +225,8 @@ export interface SettingsData {
   late_checkout_penalty: string
   property_name: string
   currency: string
+  contact_phone?: string | null
+  address?: string | null
 }
 
 export interface DailyManifestItem {
@@ -271,4 +275,56 @@ export interface AdminOverrideResetPayload {
 export interface PasswordChangeResponse {
   message: string
   username: string
+}
+
+export interface Property {
+  id: number
+  name: string
+  code: string
+  contact_phone?: string | null
+  address?: string | null
+  currency: string
+  checkout_deadline_hour: number
+  checkout_deadline_minute: number
+  late_checkout_penalty: string
+  is_active: boolean
+  total_users?: number
+  total_rooms?: number
+  total_reservations?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface PropertyCreate {
+  name: string
+  code: string
+  contact_phone?: string | null
+  address?: string | null
+  currency?: string
+  checkout_deadline_hour?: number
+  checkout_deadline_minute?: number
+  late_checkout_penalty?: string
+  admin_username: string
+  admin_full_name: string
+  admin_password: string
+  admin_email?: string | null
+}
+
+export interface PropertyUpdate {
+  name?: string
+  contact_phone?: string | null
+  address?: string | null
+  currency?: string
+  checkout_deadline_hour?: number
+  checkout_deadline_minute?: number
+  late_checkout_penalty?: string
+  is_active?: boolean
+}
+
+export interface SuperAdminStats {
+  total_properties: number
+  active_properties: number
+  suspended_properties: number
+  total_rooms: number
+  total_reservations: number
 }

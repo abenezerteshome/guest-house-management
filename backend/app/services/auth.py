@@ -34,15 +34,17 @@ def issue_access_token(user: User) -> str:
 		user_id=user.id,
 		username=user.username,
 		role=user.role,
+		property_id=user.property_id,
 	)
 
 
-def build_user(*, full_name: str, username: str, password: str, role: UserRole, email: str | None = None) -> User:
+def build_user(*, full_name: str, username: str, password: str, role: UserRole, email: str | None = None, property_id: int | None = None) -> User:
 	return User(
 		full_name=full_name,
 		username=username,
 		email=email,
 		password_hash=hash_password(password),
 		role=role.value,
+		property_id=property_id,
 		is_active=True,
 	)

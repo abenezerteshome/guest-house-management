@@ -14,6 +14,9 @@ import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { History } from 'lucide-react'
 
+import { SuperAdminPropertiesPage } from './pages/super-admin/SuperAdminPropertiesPage'
+import { useAuth } from './hooks/useAuth'
+
 const secondaryModules = {
   audit: {
     id: 'audit',
@@ -21,6 +24,14 @@ const secondaryModules = {
     description: 'A durable record of operational check-ins, check-outs, and folio updates.',
     icon: History,
   },
+}
+
+function RootRedirect() {
+  const { user } = useAuth()
+  if (user?.role === 'SUPER_ADMIN') {
+    return <Navigate to="/super-admin/properties" replace />
+  }
+  return <Navigate to="/dashboard" replace />
 }
 
 export function App() {
@@ -38,18 +49,22 @@ export function App() {
             <Route path="reservations" element={<ReservationsPage />} />
             <Route path="stays" element={<StaysPage />} />
             <Route path="expenses" element={<ExpensesPage />} />
-            <Route element={<ProtectedRoute roles={['ADMIN']} />}>
+            <Route element={<ProtectedRoute roles={['ADMIN', 'SUPER_ADMIN']} />}>
               <Route path="rooms" element={<RoomsPage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="audit-log" element={<PlaceholderPage {...secondaryModules.audit} />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
+            {/* PLATFORM SUPER ADMIN */}
+            <Route element={<ProtectedRoute roles={['SUPER_ADMIN']} />}>
+              <Route path="super-admin/properties" element={<SuperAdminPropertiesPage />} />
+            </Route>
           </Route>
         </Route>
 
-        {/* DEFAULT REDIRECT TO DASHBOARD / LOGIN */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        {/* DEFAULT REDIRECT TO DASHBOARD / LOGIN / SUPER ADMIN */}
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="*" element={<RootRedirect />} />
       </Routes>
     </ErrorBoundary>
   )

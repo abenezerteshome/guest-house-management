@@ -20,6 +20,9 @@ class Stay(Base):
 	)
 
 	id: Mapped[int] = mapped_column(primary_key=True)
+	property_id: Mapped[int] = mapped_column(
+		ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True
+	)
 	reservation_id: Mapped[int] = mapped_column(
 		ForeignKey("reservations.id"), nullable=False, unique=True, index=True
 	)

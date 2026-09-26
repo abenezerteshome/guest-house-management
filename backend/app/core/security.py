@@ -19,7 +19,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 	return pwd_context.verify(password, password_hash)
 
 
-def create_access_token(*, user_id: int, username: str, role: str) -> str:
+def create_access_token(*, user_id: int, username: str, role: str, property_id: int | None = None) -> str:
 	settings = get_settings()
 	expires_at = datetime.now(timezone.utc) + timedelta(
 		minutes=settings.access_token_expire_minutes
@@ -28,6 +28,7 @@ def create_access_token(*, user_id: int, username: str, role: str) -> str:
 		"sub": str(user_id),
 		"username": username,
 		"role": role,
+		"property_id": property_id,
 		"exp": expires_at,
 	}
 	return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)

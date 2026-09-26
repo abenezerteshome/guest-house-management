@@ -12,12 +12,14 @@ class DuplicateRoomNumberError(Exception):
 	pass
 
 
-async def create_room(session: AsyncSession, **values: object) -> Room:
-	repository = RoomRepository(session)
+async def create_room(session: AsyncSession, *, property_id: int | None = None, **values: object) -> Room:
+	repository = RoomRepository(session, property_id=property_id)
 	room_number = str(values["room_number"])
 	if await repository.get_by_number(room_number) is not None:
 		raise DuplicateRoomNumberError("Room number is already in use")
 	room_values = dict(values)
+	if property_id is not None:
+		room_values["property_id"] = property_id
 	room_values["status"] = RoomStatus(
 		room_values.get("status", RoomStatus.AVAILABLE)
 	).value
@@ -39,13 +41,14 @@ async def update_room(
 ) -> Room:
 	old_status = room.status
 	if "room_number" in values and values["room_number"] != room.room_number:
-		if await RoomRepository(session).get_by_number(str(values["room_number"])) is not None:
+		if await RoomRepository(session, property_id=room.property_id).get_by_number(str(values["room_number"])) is not None:
 			raise DuplicateRoomNumberError("Room number is already in use")
 	for field, value in values.items():
 		setattr(room, field, value)
 	if user_id is not None and "status" in values and values["status"] != old_status:
 		session.add(
 			AuditLog(
+				property_id=room.property_id,
 				user_id=user_id,
 				action="ROOM_STATUS_CHANGED",
 				entity_type="Room",

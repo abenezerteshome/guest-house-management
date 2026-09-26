@@ -34,6 +34,7 @@ class InvalidTransitionError(ReservationServiceError):
 def _audit(
 	session: AsyncSession,
 	*,
+	property_id: int | None = None,
 	user_id: int,
 	action: str,
 	entity_type: str,
@@ -42,6 +43,7 @@ def _audit(
 ) -> None:
 	session.add(
 		AuditLog(
+			property_id=property_id,
 			user_id=user_id,
 			action=action,
 			entity_type=entity_type,
@@ -80,12 +82,13 @@ async def create_reservation(
 	_, room = await _get_guest_room(session, guest_id, room_id)
 	if not room.is_active or room.status not in (RoomStatus.AVAILABLE.value, RoomStatus.CLEANING.value):
 		raise ConflictError("Room is not available for reservation")
-	repository = ReservationRepository(session)
+	repository = ReservationRepository(session, property_id=room.property_id)
 	if await repository.has_conflict(
 		room_id=room_id, arrival=expected_arrival, checkout=expected_checkout
 	):
 		raise ConflictError("Room has a conflicting reservation")
 	reservation = Reservation(
+		property_id=room.property_id,
 		guest_id=guest_id,
 		room_id=room_id,
 		expected_arrival=expected_arrival,
@@ -102,6 +105,7 @@ async def create_reservation(
 		await session.flush()
 		_audit(
 			session,
+			property_id=room.property_id,
 			user_id=user_id,
 			action="RESERVATION_CREATED",
 			entity_type="Reservation",
@@ -145,7 +149,7 @@ async def update_reservation(
 		old_room.status = RoomStatus.AVAILABLE.value
 	new_room.status = RoomStatus.EXPECTED.value
 	await session.flush()
-	_audit(session, user_id=user_id, action="RESERVATION_UPDATED", entity_type="Reservation", entity_id=reservation.id)
+	_audit(session, property_id=reservation.property_id, user_id=user_id, action="RESERVATION_UPDATED", entity_type="Reservation", entity_id=reservation.id)
 	await session.commit()
 	await session.refresh(reservation)
 	return reservation
@@ -160,7 +164,7 @@ async def _release_reservation(
 	reservation.status = status.value
 	if room is not None and room.status == RoomStatus.EXPECTED.value:
 		room.status = RoomStatus.AVAILABLE.value
-	_audit(session, user_id=user_id, action=action, entity_type="Reservation", entity_id=reservation.id)
+	_audit(session, property_id=reservation.property_id, user_id=user_id, action=action, entity_type="Reservation", entity_id=reservation.id)
 	await session.commit()
 	await session.refresh(reservation)
 	return reservation
@@ -197,6 +201,7 @@ async def check_in(
 	if room.status not in (RoomStatus.EXPECTED.value, RoomStatus.AVAILABLE.value):
 		raise ConflictError("Room is already occupied or unavailable")
 	stay = Stay(
+		property_id=reservation.property_id,
 		reservation_id=reservation.id,
 		guest_id=reservation.guest_id,
 		room_id=reservation.room_id,
@@ -211,14 +216,15 @@ async def check_in(
 		await session.flush()
 		from app.services.payment import add_charge_record
 
+		currency_symbol = "ETB"
 		if reservation.expected_amount and reservation.expected_amount > 0:
 			total_charge = Decimal(str(reservation.expected_amount))
-			description = f"Room charge (ETB {total_charge:,.2f})"
+			description = f"Room charge ({currency_symbol} {total_charge:,.2f})"
 		else:
 			stay_duration_days = (reservation.expected_checkout.date() - now.date()).days
 			nights = max(1, stay_duration_days)
 			total_charge = Decimal(nights) * Decimal(str(room.price))
-			description = f"Room charge ({nights} night{'s' if nights > 1 else ''} @ ETB {room.price:,.2f})"
+			description = f"Room charge ({nights} night{'s' if nights > 1 else ''} @ {currency_symbol} {room.price:,.2f})"
 
 		await add_charge_record(
 			session,
@@ -228,7 +234,7 @@ async def check_in(
 			amount=total_charge,
 			created_by=user_id,
 		)
-		_audit(session, user_id=user_id, action="CHECK_IN", entity_type="Stay", entity_id=stay.id)
+		_audit(session, property_id=reservation.property_id, user_id=user_id, action="CHECK_IN", entity_type="Stay", entity_id=stay.id)
 		await session.commit()
 	except IntegrityError as exc:
 		await session.rollback()

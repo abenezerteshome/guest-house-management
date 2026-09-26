@@ -6,6 +6,7 @@ from app.models.user import UserRole
 
 
 class UserCreate(BaseModel):
+    property_id: int | None = None
     full_name: str = Field(min_length=1, max_length=200)
     username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@-]+$")
     email: str | None = Field(default=None, max_length=255)
@@ -29,6 +30,8 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    property_id: int | None = None
+    property_name: str | None = None
     full_name: str
     username: str
     email: str | None = None

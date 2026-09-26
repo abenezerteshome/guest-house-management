@@ -15,11 +15,13 @@ from app.repositories.stay import StayRepository
 from app.services.reservation import InvalidTransitionError, ResourceNotFoundError
 
 
-def is_late_checkout(actual_checkout_at: datetime) -> bool:
-	settings = get_settings()
+from app.models.property import Property
+
+
+def is_late_checkout(actual_checkout_at: datetime, deadline_hour: int = 4, deadline_minute: int = 0) -> bool:
 	deadline = datetime.combine(
 		actual_checkout_at.date(),
-		time(settings.checkout_deadline_hour, settings.checkout_deadline_minute),
+		time(deadline_hour, deadline_minute),
 		tzinfo=actual_checkout_at.tzinfo,
 	)
 	return actual_checkout_at > deadline
@@ -71,6 +73,12 @@ async def check_out(
 	reservation.status = ReservationStatus.CHECKED_OUT.value
 	room.status = RoomStatus.CLEANING.value
 	room.available_after = checkout_at + timedelta(hours=1)
+
+	prop = await session.get(Property, stay.property_id) if stay.property_id else None
+	d_hour = prop.checkout_deadline_hour if prop else get_settings().checkout_deadline_hour
+	d_minute = prop.checkout_deadline_minute if prop else get_settings().checkout_deadline_minute
+	d_penalty = prop.late_checkout_penalty if prop else get_settings().late_checkout_penalty
+
 	if penalty_amount is not None:
 		if penalty_amount > 0:
 			from app.services.payment import add_charge_record
@@ -83,7 +91,7 @@ async def check_out(
 				amount=penalty_amount,
 				created_by=user_id,
 			)
-	elif is_late_checkout(now):
+	elif is_late_checkout(now, deadline_hour=d_hour, deadline_minute=d_minute):
 		from app.services.payment import add_charge_record
 
 		await add_charge_record(
@@ -91,16 +99,17 @@ async def check_out(
 			stay_id=stay.id,
 			charge_type=ChargeType.LATE_CHECKOUT_PENALTY,
 			description="Late checkout penalty",
-			amount=get_settings().late_checkout_penalty,
+			amount=d_penalty,
 			created_by=user_id,
 		)
 	session.add(
 		AuditLog(
+			property_id=stay.property_id,
 			user_id=user_id,
 			action="CHECK_OUT",
 			entity_type="Stay",
 			entity_id=stay.id,
-			details=f'{{"is_late_checkout": {str(is_late_checkout(checkout_at)).lower()}}}',
+			details=f'{{"is_late_checkout": {str(is_late_checkout(checkout_at, deadline_hour=d_hour, deadline_minute=d_minute)).lower()}}}',
 		)
 	)
 	await session.commit()
@@ -161,6 +170,7 @@ async def extend_stay(
 	if is_pay_now:
 		payment_ref = f"Stay extension ({extension_days} night{'s' if extension_days > 1 else ''}: {from_str} to {to_str}) - {pay_method_val}"
 		payment = Payment(
+			property_id=stay.property_id,
 			stay_id=stay.id,
 			amount=extension_charge,
 			payment_method=pay_method_val,
@@ -172,6 +182,7 @@ async def extend_stay(
 		session.add(payment)
 		session.add(
 			AuditLog(
+				property_id=stay.property_id,
 				user_id=user_id,
 				action="PAYMENT_CREATED",
 				entity_type="Payment",
@@ -182,6 +193,7 @@ async def extend_stay(
 
 	session.add(
 		AuditLog(
+			property_id=stay.property_id,
 			user_id=user_id,
 			action="STAY_EXTENDED",
 			entity_type="Stay",
@@ -283,6 +295,7 @@ async def void_check_in(
 	# If guest house retains a fee (cancellation / cleaning fee)
 	if retained_fee > 0:
 		fee_charge = Charge(
+			property_id=stay.property_id,
 			stay_id=stay.id,
 			charge_type=ChargeType.ROOM.value,
 			description=f"Retained cancellation/cleaning fee on voided check-in ({reason})",
@@ -293,6 +306,7 @@ async def void_check_in(
 		session.add(fee_charge)
 
 		retained_payment = Payment(
+			property_id=stay.property_id,
 			stay_id=stay.id,
 			amount=retained_fee,
 			payment_method=successful_payments[0].payment_method if successful_payments else PaymentMethod.CASH.value,
@@ -306,6 +320,7 @@ async def void_check_in(
 	# Audit Log
 	session.add(
 		AuditLog(
+			property_id=stay.property_id,
 			user_id=user_id,
 			action="CHECK_IN_VOIDED",
 			entity_type="Stay",

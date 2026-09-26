@@ -31,8 +31,11 @@ class UserRepository:
 		)
 		return result.scalar_one_or_none()
 
-	async def list(self) -> list[User]:
-		result = await self.session.execute(select(User).order_by(User.id))
+	async def list(self, *, property_id: int | None = None) -> list[User]:
+		query = select(User)
+		if property_id is not None:
+			query = query.where(User.property_id == property_id)
+		result = await self.session.execute(query.order_by(User.id))
 		return list(result.scalars().all())
 
 	async def add(self, user: User) -> User:

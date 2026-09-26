@@ -23,31 +23,41 @@ def stay_error(exc: Exception) -> HTTPException:
 	return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
-@router.get("", response_model=list[StayRead], dependencies=[operational_user])
+@router.get("", response_model=list[StayRead])
 async def list_stays(
 	stay_status: StayStatus | None = Query(default=None, alias="status"),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> list[Stay]:
-	return await StayRepository(session).list(status=stay_status.value if stay_status else None)
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	return await StayRepository(session, property_id=prop_id).list(status=stay_status.value if stay_status else None)
 
 
-@router.get("/{stay_id}", response_model=StayRead, dependencies=[operational_user])
-async def get_stay_endpoint(stay_id: int, session: AsyncSession = Depends(get_db)) -> Stay:
-	try:
-		return await get_stay(session, stay_id)
-	except ResourceNotFoundError as exc:
-		raise stay_error(exc) from exc
+@router.get("/{stay_id}", response_model=StayRead)
+async def get_stay_endpoint(
+	stay_id: int,
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
+	session: AsyncSession = Depends(get_db),
+) -> Stay:
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	stay = await StayRepository(session, property_id=prop_id).get_by_id(stay_id)
+	if stay is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stay not found")
+	return stay
 
 
-@router.post("/{stay_id}/check-out", response_model=StayRead, dependencies=[operational_user])
+@router.post("/{stay_id}/check-out", response_model=StayRead)
 async def check_out_stay(
 	stay_id: int,
 	payload: StayCheckOut | None = Body(default=None),
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Stay:
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	stay = await StayRepository(session, property_id=prop_id).get_by_id(stay_id)
+	if stay is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stay not found")
 	try:
-		stay = await get_stay(session, stay_id)
 		return await check_out(
 			session,
 			stay,
@@ -60,15 +70,18 @@ async def check_out_stay(
 		raise stay_error(exc) from exc
 
 
-@router.patch("/{stay_id}/extend", response_model=StayRead, dependencies=[operational_user])
+@router.patch("/{stay_id}/extend", response_model=StayRead)
 async def extend_stay_endpoint(
 	stay_id: int,
 	payload: StayExtend,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Stay:
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	stay = await StayRepository(session, property_id=prop_id).get_by_id(stay_id)
+	if stay is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stay not found")
 	try:
-		stay = await get_stay(session, stay_id)
 		return await extend_stay(
 			session,
 			stay,
@@ -81,15 +94,18 @@ async def extend_stay_endpoint(
 		raise stay_error(exc) from exc
 
 
-@router.post("/{stay_id}/void", response_model=StayRead, dependencies=[operational_user])
+@router.post("/{stay_id}/void", response_model=StayRead)
 async def void_stay_check_in(
 	stay_id: int,
 	payload: VoidCheckInRequest,
-	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION)),
+	current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.RECEPTION, UserRole.SUPER_ADMIN)),
 	session: AsyncSession = Depends(get_db),
 ) -> Stay:
+	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	stay = await StayRepository(session, property_id=prop_id).get_by_id(stay_id)
+	if stay is None:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stay not found")
 	try:
-		stay = await get_stay(session, stay_id)
 		return await void_check_in(
 			session,
 			stay,

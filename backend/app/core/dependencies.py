@@ -40,6 +40,11 @@ async def get_current_user(
 			detail="Invalid credentials",
 			headers={"WWW-Authenticate": "Bearer"},
 		)
+	if user.property_id is not None and user.property is not None and not user.property.is_active:
+		raise HTTPException(
+			status_code=status.HTTP_403_FORBIDDEN,
+			detail="This property account is deactivated or suspended. Please contact platform support.",
+		)
 	return user
 
 
@@ -56,5 +61,10 @@ def require_role(*roles: UserRole) -> Callable:
 
 
 require_authenticated_user = get_current_user
-require_admin = require_role(UserRole.ADMIN)
-require_reception = require_role(UserRole.RECEPTION)
+require_super_admin = require_role(UserRole.SUPER_ADMIN)
+require_admin = require_role(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+require_reception = require_role(UserRole.RECEPTION, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+
+
+async def get_current_property(user: User = Depends(get_current_user)):
+	return user.property

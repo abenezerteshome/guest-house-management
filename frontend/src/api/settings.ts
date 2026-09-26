@@ -7,13 +7,18 @@ export async function getSettings(): Promise<SettingsData> {
 }
 
 export async function updateSettings(data: {
-  checkout_deadline_hour: number
-  checkout_deadline_minute: number
-  late_checkout_penalty: number | string
+  checkout_deadline_hour?: number
+  checkout_deadline_minute?: number
+  late_checkout_penalty?: number | string
+  property_name?: string
+  currency?: string
+  contact_phone?: string | null
+  address?: string | null
 }): Promise<SettingsData> {
-  const res = await api.patch<SettingsData>('/settings', {
-    ...data,
-    late_checkout_penalty: String(data.late_checkout_penalty),
-  })
+  const payload: Record<string, any> = { ...data }
+  if (data.late_checkout_penalty !== undefined) {
+    payload.late_checkout_penalty = String(data.late_checkout_penalty)
+  }
+  const res = await api.patch<SettingsData>('/settings', payload)
   return res.data
 }

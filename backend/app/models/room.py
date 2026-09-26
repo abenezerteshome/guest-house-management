@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Numeric, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -25,10 +25,14 @@ class Room(Base):
 			"status IN ('AVAILABLE', 'OCCUPIED', 'EXPECTED', 'CLEANING')",
 			name="ck_rooms_status",
 		),
+		UniqueConstraint("property_id", "room_number", name="uq_rooms_property_room_number"),
 	)
 
 	id: Mapped[int] = mapped_column(primary_key=True)
-	room_number: Mapped[str] = mapped_column(String(30), unique=True, index=True, nullable=False)
+	property_id: Mapped[int] = mapped_column(
+		ForeignKey("properties.id", ondelete="CASCADE"), nullable=False, index=True
+	)
+	room_number: Mapped[str] = mapped_column(String(30), index=True, nullable=False)
 	room_type: Mapped[str] = mapped_column(String(100), nullable=False)
 	price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
 	hourly_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True, default=None)

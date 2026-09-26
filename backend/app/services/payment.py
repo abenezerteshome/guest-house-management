@@ -24,8 +24,8 @@ class FinancialConflictError(FinancialServiceError):
 	pass
 
 
-def audit(session: AsyncSession, *, user_id: int | None, action: str, entity_type: str, entity_id: int, details: str | None = None) -> None:
-	session.add(AuditLog(user_id=user_id, action=action, entity_type=entity_type, entity_id=entity_id, details=details))
+def audit(session: AsyncSession, *, property_id: int | None = None, user_id: int | None, action: str, entity_type: str, entity_id: int, details: str | None = None) -> None:
+	session.add(AuditLog(property_id=property_id, user_id=user_id, action=action, entity_type=entity_type, entity_id=entity_id, details=details))
 
 
 async def get_stay_or_error(session: AsyncSession, stay_id: int) -> Stay:
@@ -54,8 +54,9 @@ async def add_charge_record(
 ) -> Charge:
 	if amount <= 0 or quantity <= 0:
 		raise FinancialConflictError("Charge amount and quantity must be positive")
-	await get_stay_or_error(session, stay_id)
+	stay = await get_stay_or_error(session, stay_id)
 	charge = Charge(
+		property_id=stay.property_id,
 		stay_id=stay_id,
 		charge_type=charge_type.value,
 		description=description,
@@ -64,7 +65,7 @@ async def add_charge_record(
 		created_by=created_by,
 	)
 	await ChargeRepository(session).add(charge)
-	audit(session, user_id=created_by, action="CHARGE_CREATED", entity_type="Charge", entity_id=charge.id)
+	audit(session, property_id=stay.property_id, user_id=created_by, action="CHARGE_CREATED", entity_type="Charge", entity_id=charge.id)
 	return charge
 
 
@@ -107,6 +108,7 @@ async def create_manual_payment(
 	if amount > current["balance"]:
 		raise FinancialConflictError("Payment exceeds outstanding balance")
 	payment = Payment(
+		property_id=stay.property_id,
 		stay_id=stay_id,
 		amount=amount,
 		payment_method=payment_method.value,
@@ -116,8 +118,8 @@ async def create_manual_payment(
 		created_by=user_id,
 	)
 	await PaymentRepository(session).add(payment)
-	audit(session, user_id=user_id, action="PAYMENT_CREATED", entity_type="Payment", entity_id=payment.id)
-	audit(session, user_id=user_id, action="PAYMENT_SUCCESS", entity_type="Payment", entity_id=payment.id)
+	audit(session, property_id=stay.property_id, user_id=user_id, action="PAYMENT_CREATED", entity_type="Payment", entity_id=payment.id)
+	audit(session, property_id=stay.property_id, user_id=user_id, action="PAYMENT_SUCCESS", entity_type="Payment", entity_id=payment.id)
 	await session.commit()
 	await session.refresh(payment)
 	return payment
