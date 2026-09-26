@@ -65,6 +65,12 @@ async def users():
 
 @pytest_asyncio.fixture(autouse=True)
 async def reset_database() -> AsyncGenerator[None, None]:
+	db_url = str(test_engine.url)
+	if ("neon.tech" in db_url or "render.com" in db_url) and os.environ.get("ALLOW_TEST_DB_TRUNCATE") != "1":
+		raise RuntimeError(
+			"Refusing to truncate remote database during tests! "
+			"Set TEST_DATABASE_URL or ALLOW_TEST_DB_TRUNCATE=1 if you intend to wipe this database."
+		)
 	try:
 		async with test_engine.begin() as connection:
 			for table in reversed(Base.metadata.sorted_tables):

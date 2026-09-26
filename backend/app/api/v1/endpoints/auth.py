@@ -107,3 +107,30 @@ async def admin_override_reset_endpoint(
         message=f"Password for '{user.username}' has been successfully reset by admin authorization.",
         username=user.username,
     )
+
+
+@router.post("/bootstrap-super-admin", response_model=dict[str, str])
+async def bootstrap_super_admin(session: AsyncSession = Depends(get_db)) -> dict[str, str]:
+    from app.models.user import UserRole
+    from app.repositories.user import UserRepository
+    from app.services.user import create_user, set_password
+
+    repo = UserRepository(session)
+    existing = await repo.get_by_username("superadmin")
+    if existing:
+        existing.role = UserRole.SUPER_ADMIN
+        existing.is_active = True
+        await session.commit()
+        await set_password(session, existing, new_password="super-password-123")
+        return {"status": "ok", "message": "Super admin account updated successfully"}
+
+    await create_user(
+        session,
+        full_name="Platform Super Administrator",
+        username="superadmin",
+        password="super-password-123",
+        role=UserRole.SUPER_ADMIN,
+        email="superadmin@platform.local",
+        property_id=None,
+    )
+    return {"status": "ok", "message": "Super admin created successfully"}
