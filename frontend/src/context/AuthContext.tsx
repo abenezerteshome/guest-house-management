@@ -13,11 +13,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     getCurrentUser().then(setUser).catch(() => { clearSession(); setUser(null) }).finally(() => setIsLoading(false))
   }, [])
 
-  async function login(username: string, password: string) {
+  async function login(username: string, password: string): Promise<User> {
     try {
       const response = await loginRequest(username, password)
       localStorage.setItem(TOKEN_KEY, response.access_token)
-      setUser(await getCurrentUser())
+      const currentUser = await getCurrentUser()
+      setUser(currentUser)
+      return currentUser
     } catch (error) {
       throw new Error(getApiError(error, 'Invalid username or password.'), { cause: error })
     }

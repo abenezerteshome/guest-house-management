@@ -18,8 +18,12 @@ export function LoginPage() {
     setError('')
     setSubmitting(true)
     try {
-      await login(username.trim(), password)
-      window.location.href = '/dashboard'
+      const loggedInUser = await login(username.trim(), password)
+      if (loggedInUser.role === 'SUPER_ADMIN') {
+        window.location.href = '/super-admin/properties'
+      } else {
+        window.location.href = '/dashboard'
+      }
     } catch (loginError) {
       setError(
         loginError instanceof Error
@@ -86,7 +90,7 @@ export function LoginPage() {
                     Welcome back, {user.full_name}
                   </h1>
                   <p className="text-xs text-[#717171] mt-1.5">
-                    Signed in as <strong>{user.role === 'ADMIN' ? 'Administrator' : 'Receptionist'}</strong> (@{user.username}).
+                    Signed in as <strong>{user.role === 'SUPER_ADMIN' ? 'Platform Super Administrator' : user.role === 'ADMIN' ? 'Administrator' : 'Receptionist'}</strong> (@{user.username}).
                   </p>
                 </div>
                 <div className="space-y-2.5 pt-2">
@@ -95,7 +99,7 @@ export function LoginPage() {
                     variant="primary"
                     size="lg"
                     className="w-full h-11 text-xs font-semibold rounded-xl"
-                    onClick={() => { window.location.href = '/dashboard' }}
+                    onClick={() => { window.location.href = user.role === 'SUPER_ADMIN' ? '/super-admin/properties' : '/dashboard' }}
                   >
                     Continue to Dashboard
                   </Button>
