@@ -26,6 +26,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
   const [adminFullName, setAdminFullName] = useState('')
   const [adminPassword, setAdminPassword] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
+  const [adminPhone, setAdminPhone] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -43,6 +44,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
     setAdminFullName('')
     setAdminPassword('')
     setAdminEmail('')
+    setAdminPhone('')
     setError('')
   }
 
@@ -82,6 +84,7 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
         admin_full_name: adminFullName.trim(),
         admin_password: adminPassword,
         admin_email: adminEmail.trim() || null,
+        admin_phone: adminPhone.trim() || null,
       })
 
       resetForm()
@@ -214,12 +217,13 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
             <div>
               <Input
                 label="Admin Username *"
-                placeholder="e.g. john_admin"
+                placeholder="e.g. 0911223344 or john_admin"
                 value={adminUsername}
-                onChange={(e) => setAdminUsername(e.target.value.toLowerCase())}
+                onChange={(e) => setAdminUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.@+-]/g, ''))}
                 required
                 disabled={loading}
               />
+              <p className="text-[11px] text-neutral-400 mt-1">Can be a username or phone number</p>
             </div>
             <div>
               <Input
@@ -231,6 +235,16 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
                 required
                 disabled={loading}
               />
+            </div>
+            <div>
+              <Input
+                label="Admin Phone Number (Optional)"
+                placeholder="e.g. 0911223344 or +251..."
+                value={adminPhone}
+                onChange={(e) => setAdminPhone(e.target.value)}
+                disabled={loading}
+              />
+              <p className="text-[11px] text-neutral-400 mt-1">Allows admin to log in using phone number</p>
             </div>
             <div>
               <Input

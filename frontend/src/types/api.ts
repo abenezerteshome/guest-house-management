@@ -7,6 +7,7 @@ export interface User {
   full_name: string
   username: string
   email?: string | null
+  phone?: string | null
   role: Role
   is_active: boolean
   property_id?: number | null
@@ -282,14 +283,18 @@ export interface Property {
   name: string
   code: string
   contact_phone?: string | null
+  contact_email?: string | null
   address?: string | null
   currency: string
   checkout_deadline_hour: number
   checkout_deadline_minute: number
-  late_checkout_penalty: string
+  late_checkout_penalty: string | number
   is_active: boolean
+  notes?: string | null
   total_users?: number
   total_rooms?: number
+  active_stays?: number
+  staff_count?: number
   total_reservations?: number
   total_revenue?: string | number
   total_expenses?: string | number
@@ -302,25 +307,31 @@ export interface PropertyCreate {
   name: string
   code: string
   contact_phone?: string | null
+  contact_email?: string | null
   address?: string | null
   currency?: string
   checkout_deadline_hour?: number
   checkout_deadline_minute?: number
-  late_checkout_penalty?: string
+  late_checkout_penalty?: string | number
+  notes?: string | null
   admin_username: string
   admin_full_name: string
   admin_password: string
   admin_email?: string | null
+  admin_phone?: string | null
 }
 
 export interface PropertyUpdate {
   name?: string
+  code?: string
   contact_phone?: string | null
+  contact_email?: string | null
   address?: string | null
   currency?: string
   checkout_deadline_hour?: number
   checkout_deadline_minute?: number
-  late_checkout_penalty?: string
+  late_checkout_penalty?: string | number
+  notes?: string | null
   is_active?: boolean
 }
 

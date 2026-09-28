@@ -17,13 +17,15 @@ class PropertyCreate(BaseModel):
 
 	# Initial Admin account for this property
 	admin_full_name: str = Field(min_length=1, max_length=200)
-	admin_username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@-]+$")
+	admin_username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@+-]+$")
 	admin_password: str = Field(min_length=6, max_length=128)
 	admin_email: str | None = Field(default=None, max_length=255)
+	admin_phone: str | None = Field(default=None, max_length=50)
 
 
 class PropertyUpdate(BaseModel):
 	name: str | None = Field(default=None, min_length=1, max_length=200)
+	code: str | None = Field(default=None, min_length=1, max_length=50, pattern=r"^[A-Za-z0-9_-]+$")
 	contact_phone: str | None = Field(default=None, max_length=50)
 	contact_email: str | None = Field(default=None, max_length=255)
 	address: str | None = Field(default=None, max_length=300)

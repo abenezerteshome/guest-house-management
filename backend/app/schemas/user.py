@@ -8,18 +8,21 @@ from app.models.user import UserRole
 class UserCreate(BaseModel):
     property_id: int | None = None
     full_name: str = Field(min_length=1, max_length=200)
-    username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@-]+$")
+    username: str = Field(min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@+-]+$")
     email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
     password: str = Field(min_length=6, max_length=128)
     role: UserRole
 
 
 class UserUpdate(BaseModel):
     full_name: str | None = Field(default=None, min_length=1, max_length=200)
-    username: str | None = Field(default=None, min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@-]+$")
+    username: str | None = Field(default=None, min_length=3, max_length=100, pattern=r"^[A-Za-z0-9_.@+-]+$")
     email: str | None = Field(default=None, max_length=255)
+    phone: str | None = Field(default=None, max_length=50)
     role: UserRole | None = None
     is_active: bool | None = None
+    property_id: int | None = None
 
 
 class UserPasswordUpdate(BaseModel):
@@ -35,6 +38,7 @@ class UserRead(BaseModel):
     full_name: str
     username: str
     email: str | None = None
+    phone: str | None = None
     role: UserRole
     is_active: bool
     created_at: datetime

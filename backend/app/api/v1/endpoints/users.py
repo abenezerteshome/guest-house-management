@@ -14,10 +14,14 @@ router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(requir
 
 @router.get("", response_model=list[UserRead])
 async def list_users(
+    property_id: int | None = None,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db)
 ) -> list[User]:
-    prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+    if current_user.role == UserRole.SUPER_ADMIN:
+        prop_id = property_id
+    else:
+        prop_id = current_user.property_id
     return await UserRepository(session).list(property_id=prop_id)
 
 
@@ -67,10 +71,55 @@ async def patch_user(
     session: AsyncSession = Depends(get_db),
 ) -> User:
     user = await get_user_or_404(user_id, current_user, session)
+    data = payload.model_dump(exclude_unset=True)
+    if "property_id" in data and current_user.role != UserRole.SUPER_ADMIN:
+        del data["property_id"]
     try:
-        return await update_user(session, user, **payload.model_dump(exclude_unset=True))
+        return await update_user(session, user, **data)
     except DuplicateUsernameError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user_endpoint(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> None:
+    user = await get_user_or_404(user_id, current_user, session)
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot delete your own account.",
+        )
+    if current_user.role != UserRole.SUPER_ADMIN and user.role in (UserRole.ADMIN, UserRole.SUPER_ADMIN):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only Super Administrators can delete administrator accounts.",
+        )
+
+    # Nullify references in related tables to prevent FK constraint violations
+    from sqlalchemy import update
+    from app.models.audit_log import AuditLog
+    from app.models.charge import Charge
+    from app.models.payment import Payment
+    from app.models.expense import Expense
+
+    await session.execute(
+        update(AuditLog).where(AuditLog.user_id == user.id).values(user_id=None)
+    )
+    await session.execute(
+        update(Charge).where(Charge.created_by == user.id).values(created_by=None)
+    )
+    await session.execute(
+        update(Payment).where(Payment.created_by == user.id).values(created_by=None)
+    )
+    await session.execute(
+        update(Expense).where(Expense.recorded_by == user.id).values(recorded_by=None)
+    )
+
+    await session.delete(user)
+    await session.commit()
 
 
 @router.post("/{user_id}/activate", response_model=UserRead)

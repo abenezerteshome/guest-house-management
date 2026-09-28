@@ -133,13 +133,13 @@ export function LoginPage() {
 
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
-                  {/* Username field */}
+                  {/* Username / Phone field */}
                   <div className="space-y-1.5">
                     <label
                       htmlFor="username"
                       className="block text-xs font-semibold text-[#222222]"
                     >
-                      Username or Email
+                      Username or Phone Number
                     </label>
                     <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] hover:border-[#B0B0B0] focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222] bg-white px-3.5 transition-all">
                       <UserRound size={17} className="text-[#717171] shrink-0 mr-2.5" />
@@ -150,7 +150,7 @@ export function LoginPage() {
                         autoComplete="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="e.g. admin or reception"
+                        placeholder="e.g. 0911223344, admin, or email"
                         className="w-full bg-transparent text-sm text-[#222222] placeholder:text-[#999999] focus:outline-none"
                       />
                     </div>
@@ -246,6 +246,11 @@ export function LoginPage() {
       >
         <div className="space-y-4 text-xs text-[#717171] leading-relaxed">
           <p>
+            <strong className="text-[#222222]">Login Identifier:</strong>
+            <br />
+            You can sign in using your <span className="text-[#222222] font-semibold">Username</span>, your <span className="text-[#222222] font-semibold">Registered Phone Number</span> (e.g. <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">0911223344</code> or <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">+251911223344</code>), or your account email.
+          </p>
+          <p>
             <strong className="text-[#222222]">Default Accounts:</strong>
             <br />
             • Administrator: username <code className="bg-[#F7F7F7] px-1.5 py-0.5 rounded font-mono">admin</code>
@@ -255,7 +260,7 @@ export function LoginPage() {
           <p>
             <strong className="text-[#222222]">Forgotten Passwords:</strong>
             <br />
-            Please contact your system Administrator to reset your staff credentials from the Settings panel.
+            Please contact your system Administrator or Super Administrator to reset your staff credentials.
           </p>
           <div className="pt-2 border-t border-[#F0F0F0]">
             <p className="text-[11px] text-[#999999]">

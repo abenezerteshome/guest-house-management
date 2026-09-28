@@ -212,3 +212,68 @@ async def test_super_admin_operations(client: AsyncClient) -> None:
     mgr_headers = {"Authorization": f"Bearer {mgr_token}"}
     blocked_res = await client.get("/api/v1/rooms", headers=mgr_headers)
     assert blocked_res.status_code == 403
+
+    # 6. Super Admin updates property details (PUT or PATCH)
+    update_res = await client.patch(
+        f"/api/v1/super-admin/properties/{prop_id}",
+        headers=sa_headers,
+        json={
+            "name": "Highland Resort & Spa",
+            "contact_phone": "+251999888777",
+            "late_checkout_penalty": 500.0,
+        },
+    )
+    assert update_res.status_code == 200
+    assert update_res.json()["name"] == "Highland Resort & Spa"
+    assert update_res.json()["contact_phone"] == "+251999888777"
+
+    # 7. Super Admin lists users for this specific property
+    users_res = await client.get(
+        f"/api/v1/users?property_id={prop_id}",
+        headers=sa_headers,
+    )
+    assert users_res.status_code == 200
+    prop_users = users_res.json()
+    assert len(prop_users) == 1
+    mgr_user_id = prop_users[0]["id"]
+    assert prop_users[0]["username"] == "highland_mgr"
+
+    # 8. Super Admin resets password for highland_mgr
+    reset_pw_res = await client.post(
+        f"/api/v1/users/{mgr_user_id}/password",
+        headers=sa_headers,
+        json={"new_password": "new-mgr-password-456"},
+    )
+    assert reset_pw_res.status_code == 200
+
+    # 9. Super Admin reactivates property so we can verify new password login
+    await client.patch(
+        f"/api/v1/super-admin/properties/{prop_id}/status",
+        headers=sa_headers,
+        json={"is_active": True},
+    )
+    new_token = await token_for(client, "highland_mgr", "new-mgr-password-456")
+    assert new_token is not None
+
+    # 10. Super Admin edits username of the user
+    edit_user_res = await client.patch(
+        f"/api/v1/users/{mgr_user_id}",
+        headers=sa_headers,
+        json={"username": "highland_lead"},
+    )
+    assert edit_user_res.status_code == 200
+    assert edit_user_res.json()["username"] == "highland_lead"
+
+    # 11. Super Admin deletes the property (and its users)
+    del_prop_res = await client.delete(
+        f"/api/v1/super-admin/properties/{prop_id}",
+        headers=sa_headers,
+    )
+    assert del_prop_res.status_code == 204
+
+    # Verify property is gone
+    get_gone_res = await client.get(
+        f"/api/v1/super-admin/properties/{prop_id}",
+        headers=sa_headers,
+    )
+    assert get_gone_res.status_code == 404

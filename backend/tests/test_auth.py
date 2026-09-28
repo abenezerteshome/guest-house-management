@@ -233,3 +233,60 @@ async def test_user_activation_and_deactivation(client: AsyncClient, users) -> N
 	activated = await client.post("/api/v1/users/2/activate", headers=headers)
 	assert activated.status_code == 200
 	assert activated.json()["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_login_with_phone_number(client: AsyncClient, users) -> None:
+	token = await token_for(client, "admin", "admin-password-123")
+	headers = {"Authorization": f"Bearer {token}"}
+
+	# 1. Create a user with phone "+251911223344"
+	res = await client.post(
+		"/api/v1/users",
+		headers=headers,
+		json={
+			"full_name": "Phone Receptionist",
+			"username": "phonerecep",
+			"phone": "+251911223344",
+			"password": "phone-password-123",
+			"role": "RECEPTION",
+		},
+	)
+	assert res.status_code == 201
+	assert res.json()["phone"] == "+251911223344"
+
+	# 2. Login using phone format +251911223344
+	login_int = await client.post(
+		"/api/v1/auth/login",
+		json={"username": "+251911223344", "password": "phone-password-123"},
+	)
+	assert login_int.status_code == 200
+	assert login_int.json()["user"]["username"] == "phonerecep"
+
+	# 3. Login using local 09 format 0911223344
+	login_local = await client.post(
+		"/api/v1/auth/login",
+		json={"username": "0911223344", "password": "phone-password-123"},
+	)
+	assert login_local.status_code == 200
+	assert login_local.json()["user"]["username"] == "phonerecep"
+
+	# 4. Create a user where username IS a phone number "0922334455"
+	res2 = await client.post(
+		"/api/v1/users",
+		headers=headers,
+		json={
+			"full_name": "Phone As Username",
+			"username": "0922334455",
+			"password": "phone-password-456",
+			"role": "RECEPTION",
+		},
+	)
+	assert res2.status_code == 201
+
+	login_phone_user = await client.post(
+		"/api/v1/auth/login",
+		json={"username": "0922334455", "password": "phone-password-456"},
+	)
+	assert login_phone_user.status_code == 200
+	assert login_phone_user.json()["user"]["username"] == "0922334455"

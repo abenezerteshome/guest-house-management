@@ -4,20 +4,24 @@ import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { createUser } from '../../api/users'
 import { getApiError } from '../../api/client'
-import type { Role, User } from '../../types/api'
+import type { Role, User, Property } from '../../types/api'
 
 interface AddUserModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: (newUser: User) => void
+  propertyId?: number
+  properties?: Property[]
 }
 
-export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) {
+export function AddUserModal({ isOpen, onClose, onSuccess, propertyId, properties }: AddUserModalProps) {
   const [fullName, setFullName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<Role>('RECEPTION')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<number | ''>(propertyId ?? '')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -28,6 +32,8 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
     setPassword('')
     setRole('RECEPTION')
     setEmail('')
+    setPhone('')
+    setSelectedPropertyId(propertyId ?? '')
     setShowPassword(false)
     setError('')
   }
@@ -40,6 +46,7 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
     const cleanUsername = username.trim().toLowerCase()
     const cleanPassword = password.trim()
     const cleanEmail = email.trim() || null
+    const cleanPhone = phone.trim() || null
 
     if (!cleanName) {
       setError('Please enter the employee or administrator full name.')
@@ -56,6 +63,12 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
       return
     }
 
+    const finalPropertyId = propertyId ?? (selectedPropertyId !== '' ? Number(selectedPropertyId) : undefined)
+    if (properties && properties.length > 0 && finalPropertyId === undefined) {
+      setError('Please select a target guest house for this account.')
+      return
+    }
+
     setLoading(true)
     try {
       const newUser = await createUser({
@@ -64,6 +77,8 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
         password: cleanPassword,
         role,
         email: cleanEmail,
+        phone: cleanPhone,
+        property_id: finalPropertyId,
       })
 
       onSuccess(newUser)
@@ -95,6 +110,28 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
           </div>
         )}
 
+        {/* Property Selector (When multiple properties available and no fixed propertyId) */}
+        {properties && properties.length > 0 && !propertyId && (
+          <div>
+            <label className="block text-xs font-semibold text-neutral-800 mb-1.5">
+              Assigned Guest House *
+            </label>
+            <select
+              value={selectedPropertyId}
+              onChange={(e) => setSelectedPropertyId(e.target.value ? Number(e.target.value) : '')}
+              required
+              className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
+            >
+              <option value="">Select a guest house tenant...</option>
+              {properties.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} ({p.code})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {/* Full Name */}
         <div>
           <label className="block text-xs font-semibold text-neutral-800 mb-1.5">
@@ -122,12 +159,27 @@ export function AddUserModal({ isOpen, onClose, onSuccess }: AddUserModalProps) 
               type="text"
               required
               value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.@-]/g, ''))}
-              placeholder="e.g. yared"
+              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.@+-]/g, ''))}
+              placeholder="e.g. yared or 0911223344"
               className="w-full rounded-xl border border-neutral-300 pl-8 pr-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
             />
           </div>
-          <p className="text-[11px] text-neutral-500 mt-1">Letters, numbers, dots, and underscores only.</p>
+          <p className="text-[11px] text-neutral-500 mt-1">Can be a username or phone number (e.g. 0911223344).</p>
+        </div>
+
+        {/* Phone Number */}
+        <div>
+          <label className="block text-xs font-semibold text-neutral-800 mb-1.5">
+            Phone Number <span className="text-neutral-400 font-normal">(Optional - can be used to log in)</span>
+          </label>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="e.g. 0911223344 or +251911223344"
+            className="w-full rounded-xl border border-neutral-300 px-3.5 py-2.5 text-sm bg-white text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
+          />
+          <p className="text-[11px] text-neutral-500 mt-1">Staff can log into the system directly using this phone number.</p>
         </div>
 
         {/* Role Selection */}

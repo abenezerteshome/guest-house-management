@@ -12,18 +12,10 @@ class AuthenticationError(Exception):
 async def authenticate_user(
 	session: AsyncSession, username: str, password: str
 ) -> User:
-	identifier = username.strip().lower()
 	repo = UserRepository(session)
-	user = await repo.get_by_username(identifier)
-	if user is None and "@" in identifier:
-		user = await repo.get_by_email(identifier)
-	if user is None:
-		if "@" not in identifier:
-			user = await repo.get_by_username(f"{identifier}@guesthousemail.com")
-		elif identifier.endswith("@guesthousemail.com"):
-			user = await repo.get_by_username(identifier.split("@")[0])
+	user = await repo.find_by_identifier(username)
 	if user is None or not verify_password(password, user.password_hash):
-		raise AuthenticationError("Invalid username or password")
+		raise AuthenticationError("Invalid username, phone number, or password")
 	if not user.is_active:
 		raise AuthenticationError("User account is inactive")
 	return user
@@ -38,11 +30,21 @@ def issue_access_token(user: User) -> str:
 	)
 
 
-def build_user(*, full_name: str, username: str, password: str, role: UserRole, email: str | None = None, property_id: int | None = None) -> User:
+def build_user(
+	*,
+	full_name: str,
+	username: str,
+	password: str,
+	role: UserRole,
+	email: str | None = None,
+	phone: str | None = None,
+	property_id: int | None = None,
+) -> User:
 	return User(
 		full_name=full_name,
 		username=username,
 		email=email,
+		phone=phone,
 		password_hash=hash_password(password),
 		role=role.value,
 		property_id=property_id,

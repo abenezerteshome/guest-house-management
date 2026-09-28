@@ -439,7 +439,7 @@ export function SettingsPage() {
                         </span>
                       </div>
                       <p className="text-xs text-neutral-500 mt-0.5">
-                        @{staffUser.username} {staffUser.email ? `· ${staffUser.email}` : ''}
+                        @{staffUser.username} {staffUser.phone ? `· 📞 ${staffUser.phone}` : ''} {staffUser.email ? `· ${staffUser.email}` : ''}
                       </p>
                     </div>
                   </div>

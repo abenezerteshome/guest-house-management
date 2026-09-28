@@ -1,13 +1,14 @@
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import require_super_admin
 from app.db.session import get_db
 from app.models.audit_log import AuditLog
+from app.models.charge import Charge
 from app.models.expense import Expense
 from app.models.payment import Payment, PaymentStatus
 from app.models.property import Property
@@ -155,6 +156,7 @@ async def create_property(
 			password=payload.admin_password,
 			role=UserRole.ADMIN,
 			email=payload.admin_email,
+			phone=payload.admin_phone or payload.contact_phone,
 			property_id=prop.id,
 		)
 	except DuplicateUsernameError as exc:
@@ -210,6 +212,7 @@ async def get_property(property_id: int, session: AsyncSession = Depends(get_db)
 
 
 @router.put("/properties/{property_id}", response_model=PropertyRead)
+@router.patch("/properties/{property_id}", response_model=PropertyRead)
 async def update_property_endpoint(
 	property_id: int, payload: PropertyUpdate, session: AsyncSession = Depends(get_db)
 ) -> PropertyRead:
@@ -217,12 +220,50 @@ async def update_property_endpoint(
 	if not prop:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
 
-	for field, val in payload.model_dump(exclude_unset=True).items():
+	data_dict = payload.model_dump(exclude_unset=True)
+
+	if "code" in data_dict and data_dict["code"] is not None:
+		new_code = data_dict["code"].strip().upper()
+		if new_code != prop.code:
+			existing = (
+				await session.execute(
+					select(Property).where(Property.code == new_code, Property.id != property_id)
+				)
+			).scalar_one_or_none()
+			if existing:
+				raise HTTPException(
+					status_code=status.HTTP_409_CONFLICT, detail="Property code already exists"
+				)
+			prop.code = new_code
+		del data_dict["code"]
+
+	for field, val in data_dict.items():
+		if isinstance(val, str) and field in ("name", "currency"):
+			val = val.strip()
 		setattr(prop, field, val)
 
 	await session.commit()
 	await session.refresh(prop)
-	return PropertyRead.model_validate(prop)
+
+	room_count = (
+		await session.execute(select(func.count(Room.id)).where(Room.property_id == prop.id))
+	).scalar_one() or 0
+	stay_count = (
+		await session.execute(
+			select(func.count(Stay.id)).where(
+				Stay.property_id == prop.id, Stay.status == StayStatus.CHECKED_IN.value
+			)
+		)
+	).scalar_one() or 0
+	staff_count = (
+		await session.execute(select(func.count(User.id)).where(User.property_id == prop.id))
+	).scalar_one() or 0
+
+	data = PropertyRead.model_validate(prop)
+	data.total_rooms = room_count
+	data.active_stays = stay_count
+	data.staff_count = staff_count
+	return data
 
 
 @router.patch("/properties/{property_id}/status", response_model=PropertyRead)
@@ -247,3 +288,50 @@ async def toggle_property_status(
 	await session.commit()
 	await session.refresh(prop)
 	return PropertyRead.model_validate(prop)
+
+
+@router.delete("/properties/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_property_endpoint(
+	property_id: int, session: AsyncSession = Depends(get_db)
+) -> None:
+	prop = await session.get(Property, property_id)
+	if not prop:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Property not found")
+
+	# Check for active checked-in stays
+	active_stays = (
+		await session.execute(
+			select(func.count(Stay.id)).where(
+				Stay.property_id == property_id,
+				Stay.status == StayStatus.CHECKED_IN.value,
+			)
+		)
+	).scalar_one() or 0
+	if active_stays > 0:
+		raise HTTPException(
+			status_code=status.HTTP_400_BAD_REQUEST,
+			detail=f"Cannot delete property with {active_stays} active checked-in stay(s). Please check out or void them first.",
+		)
+
+	# Clean up users belonging to this property to avoid RESTRICT foreign key error
+	users = list(
+		(await session.execute(select(User).where(User.property_id == property_id))).scalars().all()
+	)
+	user_ids = [u.id for u in users]
+	if user_ids:
+		await session.execute(
+			update(AuditLog).where(AuditLog.user_id.in_(user_ids)).values(user_id=None)
+		)
+		await session.execute(
+			update(Charge).where(Charge.created_by.in_(user_ids)).values(created_by=None)
+		)
+		await session.execute(
+			update(Payment).where(Payment.created_by.in_(user_ids)).values(created_by=None)
+		)
+		await session.execute(
+			update(Expense).where(Expense.recorded_by.in_(user_ids)).values(recorded_by=None)
+		)
+		await session.execute(delete(User).where(User.property_id == property_id))
+
+	await session.delete(prop)
+	await session.commit()

@@ -30,3 +30,7 @@ export async function togglePropertyStatus(id: number, isActive: boolean): Promi
   const res = await api.patch<Property>(`/super-admin/properties/${id}/status`, { is_active: isActive })
   return res.data
 }
+
+export async function deleteProperty(id: number): Promise<void> {
+  await api.delete(`/super-admin/properties/${id}`)
+}
