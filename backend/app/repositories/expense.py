@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from datetime import datetime
 from decimal import Decimal
+from typing import List, Tuple
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +37,7 @@ class ExpenseRepository:
 		category: str | None = None,
 		start_date: datetime | None = None,
 		end_date: datetime | None = None,
-	) -> list[Expense]:
+	) -> List[Expense]:
 		stmt = select(Expense)
 		if self.property_id is not None:
 			stmt = stmt.where(Expense.property_id == self.property_id)
@@ -63,7 +66,7 @@ class ExpenseRepository:
 
 	async def category_breakdown(
 		self, start_date: datetime | None = None, end_date: datetime | None = None
-	) -> list[tuple[str, Decimal]]:
+	) -> List[Tuple[str, Decimal]]:
 		stmt = (
 			select(Expense.category, func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
 			.group_by(Expense.category)
