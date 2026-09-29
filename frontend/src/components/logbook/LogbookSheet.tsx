@@ -811,11 +811,11 @@ export function LogbookSheet({
             <thead>
               <tr className="bg-neutral-100">
                 {/* Sticky Left Column: Room info header */}
-                <th className="sticky left-0 z-20 bg-neutral-100 border-b border-r border-neutral-300 p-2.5 min-w-[145px] max-w-[155px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)]">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-neutral-500">
-                    Room / Rate
+                <th className="sticky left-0 z-20 bg-neutral-100 border-b border-r-2 border-neutral-300 p-1.5 sm:p-2.5 w-[82px] min-w-[82px] max-w-[92px] sm:w-[155px] sm:min-w-[145px] sm:max-w-[155px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
+                  <div className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-neutral-500 truncate">
+                    Room
                   </div>
-                  <div className="text-xs font-black text-neutral-800 mt-0.5">
+                  <div className="text-[11px] sm:text-xs font-black text-neutral-800 mt-0.5 truncate">
                     {filteredRooms.length} Rooms
                   </div>
                 </th>
@@ -827,7 +827,7 @@ export function LogbookSheet({
                     <th
                       key={idx}
                       ref={isToday ? todayHeaderRef : undefined}
-                      className={`p-2 min-w-[170px] border-b border-r border-neutral-300 text-center transition ${
+                      className={`p-1.5 sm:p-2 min-w-[145px] sm:min-w-[170px] border-b border-r border-neutral-300 text-center transition ${
                         isToday
                           ? 'bg-rose-50/70 border-t-2 border-t-[#FF385C]'
                           : 'bg-neutral-100/90'
@@ -835,22 +835,22 @@ export function LogbookSheet({
                     >
                       <div className="flex flex-col items-center justify-center">
                         <span
-                          className={`text-[10px] font-bold uppercase tracking-wider ${
+                          className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${
                             isToday ? 'text-[#FF385C]' : 'text-neutral-500'
                           }`}
                         >
                           {dayName}
                         </span>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5">
                           <span
-                            className={`text-xs font-black ${
+                            className={`text-xs sm:text-xs font-black ${
                               isToday ? 'text-[#FF385C]' : 'text-neutral-900'
                             }`}
                           >
                             {monthDay}
                           </span>
                           {isToday && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-[#FF385C] text-white tracking-wide">
+                            <span className="px-1 sm:px-1.5 py-0.2 rounded text-[8px] sm:text-[9px] font-black bg-[#FF385C] text-white tracking-wide">
                               TODAY
                             </span>
                           )}
@@ -870,29 +870,43 @@ export function LogbookSheet({
                 return (
                   <tr key={room.id} className="hover:bg-neutral-50/50 transition group/row">
                     {/* Sticky Room Info Cell */}
-                    <td className="sticky left-0 z-10 bg-white group-hover/row:bg-neutral-50 border-b border-r-2 border-neutral-300 p-2.5 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.06)] align-middle">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-black tracking-tight text-neutral-900">
-                          {room.room_number}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {room.status === 'EXPECTED' && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 uppercase">
-                              Reserved
+                    <td className="sticky left-0 z-10 bg-white group-hover/row:bg-neutral-50 border-b border-r-2 border-neutral-300 p-1.5 sm:p-2.5 w-[82px] min-w-[82px] max-w-[92px] sm:w-[155px] sm:min-w-[145px] sm:max-w-[155px] shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] align-middle">
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center justify-between gap-1 min-w-0">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-xs sm:text-sm font-black tracking-tight text-neutral-900 truncate">
+                              {room.room_number}
                             </span>
-                          )}
-                          {room.status === 'CLEANING' && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 border border-sky-300 uppercase">
-                              Cleaning
+                            {/* Tiny status indicator dots on mobile */}
+                            {room.status === 'CLEANING' && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-sky-500 inline-block sm:hidden shrink-0" title="Cleaning" />
+                            )}
+                            {room.status === 'EXPECTED' && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block sm:hidden shrink-0" title="Reserved" />
+                            )}
+                          </div>
+                          
+                          {/* Desktop-only status & room type pills */}
+                          <div className="hidden sm:flex items-center gap-1 shrink-0">
+                            {room.status === 'EXPECTED' && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 border border-amber-300 uppercase">
+                                Reserved
+                              </span>
+                            )}
+                            {room.status === 'CLEANING' && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 border border-sky-300 uppercase">
+                                Cleaning
+                              </span>
+                            )}
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase truncate max-w-[65px]">
+                              {room.room_type || (room as any).type || 'Room'}
                             </span>
-                          )}
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-neutral-100 text-neutral-600 uppercase">
-                            {room.room_type || (room as any).type || 'Room'}
-                          </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="text-[11px] font-semibold text-neutral-500 mt-0.5">
-                        {roomPrice} <span className="text-[10px] font-normal">ETB / night</span>
+                        
+                        <div className="text-[10px] sm:text-[11px] font-semibold text-neutral-500 mt-0.5 truncate">
+                          {roomPrice} <span className="text-[8px] sm:text-[10px] font-normal">ETB<span className="hidden sm:inline"> / night</span></span>
+                        </div>
                       </div>
                     </td>
 
