@@ -32,7 +32,6 @@ interface LogbookSheetProps {
   checkingInRoomId?: number | null
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
-  onRecordPayment?: (stay: Stay) => void
   onRefresh?: () => void
   onOpenDailyManifest?: () => void
 }
@@ -69,7 +68,6 @@ export function LogbookSheet({
   checkingInRoomId = null,
   onCheckOut,
   onExtendStay,
-  onRecordPayment,
   onRefresh,
   onOpenDailyManifest,
 }: LogbookSheetProps) {
@@ -1297,29 +1295,6 @@ export function LogbookSheet({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
-            {onRecordPayment && (() => {
-              const fin = stayFinancials[activeStayPopover.stay.id]
-              const balance = fin ? Number(fin.balance || 0) : 0
-              return (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onRecordPayment(activeStayPopover.stay)
-                    setActiveStayPopover(null)
-                  }}
-                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ${
-                    balance > 0.01
-                      ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  }`}
-                  title={balance > 0.01 ? `Settle outstanding credit (${Math.round(balance)} ETB)` : 'Record payment'}
-                >
-                  <Banknote className="w-3.5 h-3.5" />
-                  <span>{balance > 0.01 ? 'Settle Credit' : 'Record Payment'}</span>
-                </button>
-              )
-            })()}
-
             {onExtendStay && (
               <button
                 type="button"
