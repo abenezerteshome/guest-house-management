@@ -42,6 +42,7 @@ export function DashboardPage() {
 
   // Live state
   const [dailyReport, setDailyReport] = useState<DailyReport | null>(null)
+  const [financialTimeframe, setFinancialTimeframe] = useState<'ALL_TIME' | 'TODAY'>('ALL_TIME')
   const [rooms, setRooms] = useState<Room[]>([])
   const [activeStays, setActiveStays] = useState<StayWithGuest[]>([])
   const [recentStays, setRecentStays] = useState<StayWithGuest[]>([])
@@ -136,52 +137,129 @@ export function DashboardPage() {
       {/* KPI Cards Grid — Visible strictly to Administrator */}
       {isAdmin && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#222222]">
-              Management Overview
-            </h3>
-            <span className="text-xs text-[#717171]">
-              Real-time financial & occupancy summary (Administrator only)
-            </span>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#222222]">
+                Management Overview
+              </h3>
+              <span className="text-xs text-[#717171]">
+                {financialTimeframe === 'ALL_TIME'
+                  ? 'All-time lifetime financials & real-time occupancy'
+                  : "Today's financial & real-time occupancy"} (Administrator only)
+              </span>
+            </div>
+
+            {/* Timeframe Toggle Switcher */}
+            <div className="flex items-center gap-1 bg-[#F5F5F5] p-1 rounded-xl border border-[#EBEBEB]">
+              <button
+                type="button"
+                onClick={() => setFinancialTimeframe('ALL_TIME')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  financialTimeframe === 'ALL_TIME'
+                    ? 'bg-white text-[#222222] shadow-xs'
+                    : 'text-[#717171] hover:text-[#222222]'
+                }`}
+              >
+                All-Time (Since Start)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFinancialTimeframe('TODAY')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  financialTimeframe === 'TODAY'
+                    ? 'bg-white text-[#222222] shadow-xs'
+                    : 'text-[#717171] hover:text-[#222222]'
+                }`}
+              >
+                Today Only
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
-            <KpiCard
-              loading={loading}
-              label="Today's Income"
-              value={
-                dailyReport
-                  ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
-                  : '0 ETB'
-              }
-              detail="Guest settlements today"
-              icon={CircleDollarSign}
-              tone="success"
-            />
-            <KpiCard
-              loading={loading}
-              label="Today's Expenses"
-              value={
-                dailyReport
-                  ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
-                  : '0 ETB'
-              }
-              detail="Disbursed petty cash"
-              icon={Wallet}
-              tone="neutral"
-            />
-            <KpiCard
-              loading={loading}
-              label="Net Cashflow"
-              value={
-                dailyReport
-                  ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
-                  : '0 ETB'
-              }
-              detail="Revenue minus expenses"
-              icon={TrendingUp}
-              tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
-            />
+            {financialTimeframe === 'ALL_TIME' ? (
+              <>
+                <KpiCard
+                  loading={loading}
+                  label="All-Time Income"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.all_time_income ?? dailyReport.todays_income).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Today: +${Number(dailyReport?.todays_income || 0).toLocaleString()} ETB`}
+                  icon={CircleDollarSign}
+                  tone="success"
+                />
+                <KpiCard
+                  loading={loading}
+                  label="All-Time Expenses"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.all_time_expenses ?? dailyReport.todays_expenses).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Today: ${Number(dailyReport?.todays_expenses || 0).toLocaleString()} ETB`}
+                  icon={Wallet}
+                  tone="neutral"
+                />
+                <KpiCard
+                  loading={loading}
+                  label="All-Time Net Cashflow"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.all_time_net_income ?? (Number(dailyReport.all_time_income || 0) - Number(dailyReport.all_time_expenses || 0))).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Today: ${Number(dailyReport?.net_income || 0) >= 0 ? '+' : ''}${Number(dailyReport?.net_income || 0).toLocaleString()} ETB`}
+                  icon={TrendingUp}
+                  tone={
+                    Number(dailyReport?.all_time_net_income ?? dailyReport?.net_income ?? 0) >= 0
+                      ? 'success'
+                      : 'danger'
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <KpiCard
+                  loading={loading}
+                  label="Today's Income"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.todays_income).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Lifetime: ${Number(dailyReport?.all_time_income || 0).toLocaleString()} ETB`}
+                  icon={CircleDollarSign}
+                  tone="success"
+                />
+                <KpiCard
+                  loading={loading}
+                  label="Today's Expenses"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.todays_expenses).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Lifetime: ${Number(dailyReport?.all_time_expenses || 0).toLocaleString()} ETB`}
+                  icon={Wallet}
+                  tone="neutral"
+                />
+                <KpiCard
+                  loading={loading}
+                  label="Today's Net Cashflow"
+                  value={
+                    dailyReport
+                      ? `${Number(dailyReport.net_income).toLocaleString()} ETB`
+                      : '0 ETB'
+                  }
+                  detail={`Lifetime: ${Number(dailyReport?.all_time_net_income || 0).toLocaleString()} ETB`}
+                  icon={TrendingUp}
+                  tone={Number(dailyReport?.net_income || 0) >= 0 ? 'success' : 'danger'}
+                />
+              </>
+            )}
             <KpiCard
               loading={loading}
               label="Occupied Rooms"

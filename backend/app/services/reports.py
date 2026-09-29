@@ -39,7 +39,7 @@ async def get_daily_report(
 		target_date = datetime.now(timezone.utc).date()
 	start_dt, end_dt = _to_utc_range(target_date)
 
-	# 1. Income
+	# 1. Income (Today)
 	income_stmt = select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
 		Payment.status == PaymentStatus.SUCCESS.value,
 		Payment.created_at >= start_dt,
@@ -50,7 +50,15 @@ async def get_daily_report(
 	income_res = await session.execute(income_stmt)
 	todays_income = Decimal(str(income_res.scalar() or "0.00"))
 
-	# 2. Expenses
+	# 1b. All-Time Income (Since System Started)
+	all_time_income_stmt = select(func.coalesce(func.sum(Payment.amount), Decimal("0.00"))).where(
+		Payment.status == PaymentStatus.SUCCESS.value,
+	)
+	if property_id is not None:
+		all_time_income_stmt = all_time_income_stmt.where(Payment.property_id == property_id)
+	all_time_income = Decimal(str((await session.execute(all_time_income_stmt)).scalar() or "0.00"))
+
+	# 2. Expenses (Today)
 	expense_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00"))).where(
 		Expense.expense_date >= start_dt,
 		Expense.expense_date <= end_dt,
@@ -59,6 +67,12 @@ async def get_daily_report(
 		expense_stmt = expense_stmt.where(Expense.property_id == property_id)
 	expense_res = await session.execute(expense_stmt)
 	todays_expenses = Decimal(str(expense_res.scalar() or "0.00"))
+
+	# 2b. All-Time Expenses (Since System Started)
+	all_time_expense_stmt = select(func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+	if property_id is not None:
+		all_time_expense_stmt = all_time_expense_stmt.where(Expense.property_id == property_id)
+	all_time_expenses = Decimal(str((await session.execute(all_time_expense_stmt)).scalar() or "0.00"))
 
 	# 3. Room Status Counts
 	rooms_stmt = select(Room.status, func.count(Room.id)).where(Room.is_active.is_(True))
@@ -119,6 +133,9 @@ async def get_daily_report(
 		todays_income=todays_income,
 		todays_expenses=todays_expenses,
 		net_income=todays_income - todays_expenses,
+		all_time_income=all_time_income,
+		all_time_expenses=all_time_expenses,
+		all_time_net_income=all_time_income - all_time_expenses,
 		occupied_rooms=room_counts.get(RoomStatus.OCCUPIED.value, 0),
 		available_rooms=room_counts.get(RoomStatus.AVAILABLE.value, 0),
 		expected_rooms=room_counts.get(RoomStatus.EXPECTED.value, 0),

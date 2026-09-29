@@ -9,6 +9,9 @@ class DailyReport(BaseModel):
 	todays_income: Decimal
 	todays_expenses: Decimal
 	net_income: Decimal
+	all_time_income: Decimal = Decimal("0.00")
+	all_time_expenses: Decimal = Decimal("0.00")
+	all_time_net_income: Decimal = Decimal("0.00")
 	occupied_rooms: int
 	available_rooms: int
 	expected_rooms: int

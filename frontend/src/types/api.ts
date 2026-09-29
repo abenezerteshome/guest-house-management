@@ -151,6 +151,9 @@ export interface DailyReport {
   todays_income: string
   todays_expenses: string
   net_income: string
+  all_time_income?: string
+  all_time_expenses?: string
+  all_time_net_income?: string
   occupied_rooms: number
   available_rooms: number
   expected_rooms: number
