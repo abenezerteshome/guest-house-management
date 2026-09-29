@@ -116,7 +116,7 @@ export function GuestsPage() {
     },
     {
       key: 'full_name',
-      header: 'Guest Full Name',
+      header: 'Guest',
       render: (g) => (
         <div className="flex items-center gap-2.5">
           {g.id_photo_url ? (
@@ -126,7 +126,7 @@ export function GuestsPage() {
                 setViewPhotoUrl(g.id_photo_url || null)
               }}
               className="w-8 h-8 rounded-full overflow-hidden border border-emerald-400 bg-neutral-100 cursor-pointer shadow-2xs hover:scale-105 transition shrink-0"
-              title="Click to view ID / Passport photo"
+              title="View document photo"
             >
               <img src={g.id_photo_url} alt={g.full_name} className="w-full h-full object-cover" />
             </div>
@@ -146,7 +146,7 @@ export function GuestsPage() {
     },
     {
       key: 'contact',
-      header: 'Phone Number',
+      header: 'Phone',
       render: (g) => (
         <span className="text-xs font-medium text-neutral-800 flex items-center gap-1.5">
           <Phone className="w-3.5 h-3.5 text-neutral-400" />
@@ -156,7 +156,7 @@ export function GuestsPage() {
     },
     {
       key: 'id_number',
-      header: 'ID / Passport #',
+      header: 'ID Number',
       render: (g) => (
         <div className="flex items-center gap-2">
           <span className="font-mono text-xs font-semibold text-neutral-700 bg-neutral-100 px-2 py-0.5 rounded-md">
@@ -167,7 +167,7 @@ export function GuestsPage() {
               type="button"
               onClick={() => setViewPhotoUrl(g.id_photo_url || null)}
               className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"
-              title="View Passport / ID Document Photo"
+              title="View Document Photo"
             >
               Photo
             </button>
@@ -177,7 +177,7 @@ export function GuestsPage() {
     },
     {
       key: 'notes',
-      header: 'Notes & Preferences',
+      header: 'Notes',
       render: (g) => (
         <span className="text-xs text-neutral-500 italic max-w-xs truncate block">
           {g.notes || '—'}
@@ -220,7 +220,7 @@ export function GuestsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Guest Directory"
+        title="Guests"
         action={
           <Button
             variant="primary"
@@ -229,7 +229,7 @@ export function GuestsPage() {
             className="gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            Register Guest
+            Add Guest
           </Button>
         }
       />
@@ -237,7 +237,7 @@ export function GuestsPage() {
       {/* Search */}
       <div className="w-full sm:w-80">
         <Input
-          placeholder="Search by name, phone, or ID..."
+          placeholder="Search guests..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -250,8 +250,8 @@ export function GuestsPage() {
           data={filteredGuests}
           keyExtractor={(g) => g.id}
           isLoading={loading}
-          loadingLabel="Loading guest records..."
-          emptyMessage="No guests found matching your search."
+          loadingLabel="Loading guests..."
+          emptyMessage="No guests found."
         />
       </div>
 
@@ -259,7 +259,7 @@ export function GuestsPage() {
       <Modal
         isOpen={createGuestOpen}
         onClose={() => setCreateGuestOpen(false)}
-        title="Register New Guest"
+        title="Add Guest"
         size="md"
       >
         <form onSubmit={handleCreateGuest} className="space-y-4">
@@ -273,14 +273,14 @@ export function GuestsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="Phone Number *"
+              label="Phone *"
               placeholder="+251 912 345678"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
             <Input
-              label="ID / Passport Number *"
+              label="ID Number *"
               placeholder="e.g. ETH-459021"
               required
               value={idNumber}
@@ -298,17 +298,16 @@ export function GuestsPage() {
           <IdPhotoCapture
             value={idPhoto}
             onChange={setIdPhoto}
-            label="Passport / National ID Photo"
-            helperText="Upload photo of guest's passport or national ID."
+            label="ID / Passport Photo"
           />
 
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Guest Notes / Preferences
+              Notes
             </label>
             <textarea
               rows={2}
-              placeholder="Special requests, business client, preferred floor..."
+              placeholder="Special requests or preferences..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full rounded-xl border border-neutral-200 px-3.5 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
@@ -336,7 +335,7 @@ export function GuestsPage() {
             </Button>
             <Button variant="primary" type="submit" isLoading={formLoading} className="gap-2">
               <UserCheck className="w-4 h-4" />
-              {formLoading ? 'Saving guest...' : 'Register Profile'}
+              {formLoading ? 'Saving...' : 'Save Guest'}
             </Button>
           </div>
         </form>
@@ -346,7 +345,7 @@ export function GuestsPage() {
       <Modal
         isOpen={!!viewPhotoUrl}
         onClose={() => setViewPhotoUrl(null)}
-        title="Guest Passport / National ID Document"
+        title="ID Document"
         maxWidth="lg"
       >
         <div className="space-y-4">

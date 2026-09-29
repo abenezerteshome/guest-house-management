@@ -66,9 +66,9 @@ function compressImage(source: File | string, maxWidth = 1280, maxHeight = 960, 
 export function IdPhotoCapture({
   value,
   onChange,
-  label = 'Passport / National ID Photo',
+  label = 'ID / Passport Photo',
   required = false,
-  helperText = 'Upload an image file of the guest’s passport or national ID.',
+  helperText,
 }: IdPhotoCaptureProps) {
   const [inspectOpen, setInspectOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -102,7 +102,7 @@ export function IdPhotoCapture({
         {value && (
           <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
             <CheckCircle2 size={12} className="text-emerald-600" />
-            Photo Attached
+            Attached
           </span>
         )}
       </div>
@@ -125,7 +125,7 @@ export function IdPhotoCapture({
             <div
               onClick={() => setInspectOpen(true)}
               className="relative w-16 h-12 rounded-xl overflow-hidden border border-emerald-300 bg-neutral-100 cursor-pointer group shadow-2xs shrink-0"
-              title="Click to view full photo"
+              title="View photo"
             >
               <img src={value} alt="ID Document" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition">
@@ -134,8 +134,7 @@ export function IdPhotoCapture({
             </div>
 
             <div className="min-w-0">
-              <p className="text-xs font-bold text-neutral-900 truncate">ID / Passport Verified</p>
-              <p className="text-[11px] text-neutral-500 truncate">Document photo attached for check-in</p>
+              <p className="text-xs font-bold text-neutral-900 truncate">Document Attached</p>
             </div>
           </div>
 
@@ -157,7 +156,7 @@ export function IdPhotoCapture({
               leftIcon={<RefreshCw size={13} />}
               onClick={() => fileInputRef.current?.click()}
               className="h-8 text-xs"
-              title="Replace with new photo"
+              title="Replace photo"
             >
               Replace
             </Button>
@@ -167,7 +166,7 @@ export function IdPhotoCapture({
               size="sm"
               onClick={() => onChange(null)}
               className="h-8 text-xs text-rose-600 hover:bg-rose-50"
-              title="Remove Photo"
+              title="Remove"
             >
               <Trash2 size={14} />
             </Button>
@@ -185,7 +184,7 @@ export function IdPhotoCapture({
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-neutral-800 group-hover:text-[#FF385C] transition">
-              Upload Photo File
+              Upload Photo
             </p>
             <p className="text-[11px] text-neutral-400">
               JPG, PNG, or WebP up to 10MB
@@ -198,7 +197,7 @@ export function IdPhotoCapture({
       <Modal
         isOpen={inspectOpen}
         onClose={() => setInspectOpen(false)}
-        title="Passport / ID Document Preview"
+        title="Document Preview"
         maxWidth="lg"
       >
         <div className="space-y-4">
@@ -223,7 +222,7 @@ export function IdPhotoCapture({
               }}
               className="text-rose-600 hover:bg-rose-50"
             >
-              Remove Photo
+              Remove
             </Button>
             <Button
               type="button"

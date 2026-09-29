@@ -89,7 +89,6 @@ export function EditUserModal({ isOpen, user, onClose, onSuccess, properties }: 
       isOpen={isOpen}
       onClose={onClose}
       title="Edit Staff Account"
-      description={`Update role, username, email, and permissions for @${user.username}.`}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

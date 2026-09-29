@@ -64,7 +64,7 @@ export function ExpensesPage() {
     },
     {
       key: 'category',
-      header: 'Expense Type',
+      header: 'Category',
       render: (e) => (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-neutral-100 text-neutral-800 border border-neutral-200">
           {e.category}
@@ -103,7 +103,7 @@ export function ExpensesPage() {
     },
     {
       key: 'amount',
-      header: 'Disbursed Amount',
+      header: 'Amount',
       align: 'right',
       render: (e) => (
         <span className="font-bold text-sm text-neutral-900">
@@ -143,8 +143,7 @@ export function ExpensesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Operational Expenses"
-        subtitle="Track what was spent, why it was needed, and how it was paid."
+        title="Expenses"
         action={
           <Button
             variant="primary"
@@ -156,7 +155,7 @@ export function ExpensesPage() {
             className="gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
-            Record Expense
+            Add Expense
           </Button>
         }
       />
@@ -164,7 +163,7 @@ export function ExpensesPage() {
       {/* Search */}
       <div className="w-full sm:w-80">
         <Input
-          placeholder="Search type, reason, details, or payment method..."
+          placeholder="Search expenses..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -178,7 +177,7 @@ export function ExpensesPage() {
           keyExtractor={(e) => e.id}
           isLoading={loading}
           loadingLabel="Loading expenses..."
-          emptyMessage="No expense records found."
+          emptyMessage="No expenses found."
         />
       </div>
 

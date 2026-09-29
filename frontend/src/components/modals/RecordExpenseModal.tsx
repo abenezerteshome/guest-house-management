@@ -150,14 +150,14 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={expense ? `Edit Operational Expense #${expense.id}` : 'Log Operational Expense'}
+      title={expense ? 'Edit Expense' : 'Add Expense'}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Expense type and reason */}
+        {/* Expense category and reason */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Expense Type *
+            Category *
           </label>
           <select
             value={category}
@@ -178,7 +178,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
 
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Expense Reason *
+            Reason *
           </label>
           <select
             value={reason}
@@ -208,7 +208,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
           />
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-              Expense Date *
+              Date *
             </label>
             <input
               type="date"
@@ -223,7 +223,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
         {/* Payment Method Used */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Payment Method Disbursed *
+            Payment Method *
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
@@ -251,12 +251,12 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
         {/* Description */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            Details / Notes *
+            Description *
           </label>
           <textarea
             rows={2}
             required
-            placeholder="e.g., Monthly electricity bill settlement for Guest House premises"
+            placeholder="Expense description..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             className="w-full rounded-xl border border-neutral-200 px-3.5 py-2 text-sm text-neutral-900 focus:outline-none focus:ring-2 focus:ring-[#FF385C]"
@@ -276,7 +276,7 @@ export function RecordExpenseModal({ isOpen, onClose, onSuccess, expense }: Reco
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <ReceiptText className="w-4 h-4" />
-            {loading ? (expense ? 'Updating expense...' : 'Saving expense...') : (expense ? 'Update Expense' : 'Record Expense')}
+            {loading ? 'Saving...' : (expense ? 'Save Changes' : 'Add Expense')}
           </Button>
         </div>
       </form>

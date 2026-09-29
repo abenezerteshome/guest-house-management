@@ -147,7 +147,7 @@ export function ExtendStayModal({
     : `Room ${roomNumber || stay.room_id}`
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Extend Guest Stay" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Extend Stay" size="md">
       <form onSubmit={handleExtend} className="space-y-5">
         {/* Info card */}
         <div className="rounded-2xl bg-neutral-50 p-4 border border-neutral-200">
@@ -188,7 +188,7 @@ export function ExtendStayModal({
               }`}
             >
               {selectedQuickDays === 1 && <Check size={14} className="shrink-0 stroke-[2.5]" />}
-              <span>+1 Day (24 hrs)</span>
+              <span>+1 Day</span>
             </button>
             <button
               type="button"
@@ -220,7 +220,7 @@ export function ExtendStayModal({
         {/* Custom new checkout date */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-600 mb-1.5">
-            New Expected Checkout Date & Time *
+            New Checkout *
           </label>
           <input
             type="datetime-local"
@@ -244,7 +244,7 @@ export function ExtendStayModal({
         {/* Payment / Credit Selection */}
         <div className="space-y-3">
           <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-700">
-            Payment Method for Extension
+            Payment Option
           </label>
 
           <div className="grid grid-cols-2 gap-3">
@@ -257,13 +257,13 @@ export function ExtendStayModal({
                   : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
               }`}
             >
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1">
                 <Banknote className={`w-4 h-4 ${paymentOption === 'PAY_NOW' ? 'text-emerald-600' : 'text-neutral-400'}`} />
-                <span className="text-xs font-bold">Paid Right Away</span>
+                <span className="text-xs font-bold">Pay Now</span>
               </div>
-              <p className="text-[11px] text-neutral-500 leading-tight">
-                Guest pays {totalExtensionFee.toLocaleString()} ETB now. Leaves zero credit.
-              </p>
+              <span className="text-xs font-semibold text-emerald-700">
+                ETB {totalExtensionFee.toLocaleString()}
+              </span>
             </button>
 
             <button
@@ -275,13 +275,13 @@ export function ExtendStayModal({
                   : 'border-neutral-200 hover:border-neutral-300 bg-white text-neutral-700'
               }`}
             >
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1">
                 <CreditCard className={`w-4 h-4 ${paymentOption === 'CREDIT' ? 'text-amber-600' : 'text-neutral-400'}`} />
-                <span className="text-xs font-bold">On Credit (Pay Later)</span>
+                <span className="text-xs font-bold">On Credit</span>
               </div>
-              <p className="text-[11px] text-neutral-500 leading-tight">
-                Add {totalExtensionFee.toLocaleString()} ETB to unpaid balance. Verified at checkout.
-              </p>
+              <span className="text-xs font-semibold text-amber-700">
+                Due at checkout
+              </span>
             </button>
           </div>
 
@@ -290,7 +290,7 @@ export function ExtendStayModal({
             <div className="p-3.5 rounded-xl bg-emerald-50/40 border border-emerald-200 space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-emerald-900 mb-1">
-                  Received Via
+                  Payment Method
                 </label>
                 <select
                   value={paymentMethod}
@@ -324,12 +324,12 @@ export function ExtendStayModal({
             </div>
           )}
 
-          {/* If Credit, display notice (single-line) */}
+          {/* If Credit, display notice */}
           {paymentOption === 'CREDIT' && (
             <div className="px-3 py-2 rounded-xl bg-amber-50/70 border border-amber-200 flex items-center gap-2 text-xs text-amber-900">
               <CircleDollarSign className="w-4 h-4 text-amber-600 shrink-0" />
               <span className="truncate">
-                Credit: <strong>{totalExtensionFee.toLocaleString()} ETB</strong> added to guest folio (settled at checkout).
+                Credit: <strong>{totalExtensionFee.toLocaleString()} ETB</strong> added to guest folio.
               </span>
             </div>
           )}
@@ -348,11 +348,7 @@ export function ExtendStayModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <CalendarPlus className="w-4 h-4" />
-            {loading
-              ? 'Extending stay...'
-              : paymentOption === 'PAY_NOW'
-              ? 'Confirm Extension & Payment'
-              : 'Confirm Extension on Credit'}
+            {loading ? 'Extending stay...' : 'Extend Stay'}
           </Button>
         </div>
       </form>

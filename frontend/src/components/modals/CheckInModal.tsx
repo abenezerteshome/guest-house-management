@@ -255,8 +255,7 @@ export function CheckInModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Check In Guest"
-      description="Enter guest information and confirm check-in."
+      title="Check In"
       maxWidth="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-sm text-[#222222]">
@@ -271,7 +270,7 @@ export function CheckInModal({
         <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-2xs space-y-2.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-bold text-neutral-800">
-              Expected Checkout Date & Time *
+              Expected Checkout *
             </label>
             <span className="text-xs font-bold text-neutral-800 bg-neutral-100 px-3 py-1 rounded-lg border border-neutral-200">
               {durationDescription} = ETB {totalRoomCharge.toLocaleString()}
@@ -288,25 +287,25 @@ export function CheckInModal({
           />
         </div>
 
-        {/* 2. GUEST INFORMATION Card */}
+        {/* Guest Details Card */}
         <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-2xs space-y-3">
           <div className="flex items-center gap-2">
             <UserCheck size={16} className="text-emerald-600" />
             <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-              2. GUEST INFORMATION
+              Guest Details
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
-              label="Guest Full Name *"
+              label="Guest Name *"
               required
               placeholder="e.g. Abebe Kebede"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
             <Input
-              label="Phone Number *"
+              label="Phone *"
               required
               placeholder="e.g. 0911 234567"
               value={phone}
@@ -318,19 +317,18 @@ export function CheckInModal({
             <IdPhotoCapture
               value={idPhoto}
               onChange={setIdPhoto}
-              label="Passport / National ID Photo"
-              helperText="Upload a photo of the guest's ID or Passport."
+              label="ID / Passport Photo"
             />
           </div>
         </div>
 
-        {/* 3. RECEIVED VIA Card */}
+        {/* Payment Method Card */}
         <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Banknote size={16} className="text-emerald-600" />
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-                3. RECEIVED VIA *
+                Payment Method
               </span>
             </div>
             <span className="text-xs font-bold text-neutral-800 bg-neutral-100 px-3 py-1 rounded-lg border border-neutral-200">
@@ -340,7 +338,7 @@ export function CheckInModal({
 
           <div>
             <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-              Received Via *
+              Payment Method *
             </label>
             <select
               value={receivedVia}
@@ -355,7 +353,7 @@ export function CheckInModal({
               <option value="CBE_BIRR">CBE Birr</option>
               <option value="BANK_TRANSFER">Bank Transfer</option>
               <option value="OTHER">Other</option>
-              <option value="CREDIT">On Credit (Pay Later)</option>
+              <option value="CREDIT">On Credit</option>
             </select>
           </div>
 
@@ -399,15 +397,6 @@ export function CheckInModal({
 
         {/* Footer Actions */}
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100">
-          {loading && (
-            <p
-              className="mr-auto text-xs font-semibold text-neutral-500"
-              role="status"
-              aria-live="polite"
-            >
-              Completing check-in and recording payment...
-            </p>
-          )}
           <Button
             variant="ghost"
             size="md"
@@ -426,7 +415,7 @@ export function CheckInModal({
             leftIcon={<KeyRound size={16} />}
             className="bg-[#FF385C] hover:bg-[#E03150] text-white font-bold rounded-xl px-5 py-2.5 shadow-xs"
           >
-            {loading ? 'Checking In...' : 'Confirm & Check In Guest'}
+            {loading ? 'Checking In...' : 'Check In'}
           </Button>
         </div>
       </form>

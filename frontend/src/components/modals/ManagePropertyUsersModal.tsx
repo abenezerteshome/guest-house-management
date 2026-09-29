@@ -101,7 +101,6 @@ export function ManagePropertyUsersModal({
         isOpen={isOpen}
         onClose={onClose}
         title={`Staff & Credentials: ${property.name}`}
-        description={`Manage usernames, roles, and password resets for property tenant "${property.code}".`}
         size="lg"
       >
         <div className="space-y-4 pt-1">

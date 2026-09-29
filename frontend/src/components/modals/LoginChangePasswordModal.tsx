@@ -145,8 +145,7 @@ export function LoginChangePasswordModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Staff Password Management"
-      description="Update your personal password or authorize a front-desk shift reset."
+      title="Change Password"
       size="md"
     >
       <div className="space-y-4">
@@ -165,7 +164,7 @@ export function LoginChangePasswordModal({
             }`}
           >
             <KeyRound size={13} className={activeTab === 'SELF_SERVICE' ? 'text-rose-600' : ''} />
-            <span>I Know Current Password</span>
+            <span>Self-Service</span>
           </button>
           <button
             type="button"
@@ -180,7 +179,7 @@ export function LoginChangePasswordModal({
             }`}
           >
             <ShieldCheck size={13} className={activeTab === 'ADMIN_OVERRIDE' ? 'text-amber-600' : ''} />
-            <span>Admin Shift Override</span>
+            <span>Admin Override</span>
           </button>
         </div>
 
@@ -195,16 +194,9 @@ export function LoginChangePasswordModal({
         {/* TAB 1: SELF-SERVICE (REQUIRES CURRENT PASSWORD) */}
         {activeTab === 'SELF_SERVICE' && (
           <form onSubmit={handleSelfSubmit} className="space-y-3.5">
-            <div className="p-2.5 rounded-lg bg-stone-50 border border-stone-200 text-[11px] text-stone-600 flex items-start gap-2">
-              <UserCheck size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-              <span>
-                Enter your username and existing password to set a new password for your account.
-              </span>
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Username or Account
+                Username
               </label>
               <div className="relative">
                 <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -296,13 +288,13 @@ export function LoginChangePasswordModal({
             <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/80 text-[11px] text-amber-800 flex items-start gap-2">
               <ShieldCheck size={14} className="text-amber-600 shrink-0 mt-0.5" />
               <span>
-                Use this when staff forgot their password. The on-duty Administrator must authorize the reset.
+                Administrator credentials required to authorize password reset.
               </span>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-700 mb-1">
-                Staff Username to Reset
+                Username to Reset
               </label>
               <div className="relative">
                 <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -320,7 +312,7 @@ export function LoginChangePasswordModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  New Password for Staff
+                  New Password
                 </label>
                 <input
                   type={showPasswords ? 'text' : 'password'}
@@ -334,7 +326,7 @@ export function LoginChangePasswordModal({
               </div>
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Confirm Password
+                  Confirm New Password
                 </label>
                 <input
                   type={showPasswords ? 'text' : 'password'}
@@ -353,7 +345,7 @@ export function LoginChangePasswordModal({
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wider flex items-center gap-1.5">
                   <Lock size={12} className="text-amber-600" />
-                  Manager / Admin Authorization
+                  Admin Authorization
                 </span>
                 <button
                   type="button"

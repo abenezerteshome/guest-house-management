@@ -51,7 +51,7 @@ export function ConfirmDeleteExpenseModal({
     : ''
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Delete Operational Expense" size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title="Delete Expense" size="sm">
       <div className="space-y-4">
         <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200">
           <div className="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
@@ -59,14 +59,14 @@ export function ConfirmDeleteExpenseModal({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-bold text-rose-950">
-              Permanently delete Expense #{expense.id}?
+              Delete expense #{expense.id}?
             </h4>
             <p className="text-xs text-rose-700 mt-1">
-              Are you sure you want to delete this expense of{' '}
+              Delete this expense of{' '}
               <strong className="font-semibold text-rose-900">
                 {Number(expense.amount).toLocaleString()} ETB
               </strong>
-              ? This action removes the entry from the operational log.
+              ? This action cannot be undone.
             </p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export function ConfirmDeleteExpenseModal({
             className="gap-1.5"
           >
             <Trash2 size={13} />
-            Confirm Delete
+            Delete
           </Button>
         </div>
       </div>

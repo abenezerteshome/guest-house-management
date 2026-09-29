@@ -99,10 +99,10 @@ export function EditRoomModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${room.room_number}`} size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Room ${room.room_number}`} size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Room Number / Code *"
+          label="Room Number *"
           placeholder="e.g. 101, Suite A"
           required
           value={roomNumber}
@@ -139,7 +139,7 @@ export function EditRoomModal({
 
         <div className="grid grid-cols-2 gap-3">
           <Input
-            label="Nightly Price (ETB) *"
+            label="Price (ETB) *"
             type="number"
             min="0"
             step="50"
@@ -153,7 +153,7 @@ export function EditRoomModal({
             type="number"
             min="0"
             step="50"
-            placeholder="Optional, e.g. 500"
+            placeholder="e.g. 500"
             value={hourlyPrice}
             onChange={(e) => setHourlyPrice(e.target.value)}
           />
@@ -162,8 +162,7 @@ export function EditRoomModal({
         {/* Active Toggle */}
         <div className="pt-2 flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-200">
           <div>
-            <p className="text-xs font-bold text-neutral-900">Room Active in Inventory</p>
-            <p className="text-[11px] text-neutral-500">Inactive rooms cannot receive new check-ins or reservations</p>
+            <p className="text-xs font-bold text-neutral-900">Active</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
             <input

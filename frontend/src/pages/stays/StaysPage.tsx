@@ -133,7 +133,7 @@ export function StaysPage() {
     },
     {
       key: 'timeline',
-      header: 'Stay Timeline',
+      header: 'Dates',
       render: (s) => {
         const inDate = new Date(s.check_in_at).toLocaleDateString('en-US', {
           month: 'short',
@@ -150,14 +150,14 @@ export function StaysPage() {
         return (
           <div className="text-xs text-neutral-700">
             <p className="font-medium text-neutral-900">In: {inDate}</p>
-            <p className="text-neutral-500">Exp Out: {outDate}</p>
+            <p className="text-neutral-500">Exp: {outDate}</p>
           </div>
         )
       },
     },
     {
       key: 'folio',
-      header: 'Folio Balance',
+      header: 'Balance',
       render: (s) => {
         if (!s.summary) {
           return <span className="text-xs text-neutral-400">—</span>
@@ -170,7 +170,7 @@ export function StaysPage() {
           <div className="text-xs">
             <div className="flex items-center gap-1.5 font-bold">
               <span className={bal > 0 ? 'text-[#FF385C]' : 'text-emerald-600'}>
-                {bal > 0 ? `${bal.toLocaleString()} ETB Due` : 'Settled (0 ETB)'}
+                {bal > 0 ? `${bal.toLocaleString()} ETB Due` : 'Settled'}
               </span>
             </div>
             <p className="text-[11px] text-neutral-500 mt-0.5">
@@ -205,7 +205,7 @@ export function StaysPage() {
                 size="xs"
                 onClick={() => setExtendStayItem(s)}
                 className="gap-1"
-                title="Extend stay (+1 day room rate)"
+                title="Extend stay"
               >
                 <CalendarPlus className="w-3.5 h-3.5" />
                 Extend
@@ -215,7 +215,7 @@ export function StaysPage() {
                 size="xs"
                 onClick={() => setPaymentStayItem(s)}
                 className="gap-1"
-                title="Record Payment"
+                title="Record payment"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 Pay
@@ -228,14 +228,14 @@ export function StaysPage() {
                 title="Check out guest"
               >
                 <DoorClosed className="w-3.5 h-3.5" />
-                Checkout
+                Check Out
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
                 onClick={() => setVoidStayItem(s)}
                 className="gap-1 text-rose-600 hover:bg-rose-50 hover:text-rose-700 px-2"
-                title="Void / Cancel Check-In"
+                title="Void check-in"
               >
                 <Undo2 className="w-3.5 h-3.5" />
                 Void
@@ -251,8 +251,7 @@ export function StaysPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Guest Stays & Folios"
-        subtitle="Live resident guests, folio ledgers, stay extensions, and late checkout audits."
+        title="Stays"
         action={
           <Button
             variant="primary"
@@ -261,7 +260,7 @@ export function StaysPage() {
             className="gap-1.5"
           >
             <KeyRound className="w-3.5 h-3.5" />
-            Check In Guest
+            Check In
           </Button>
         }
       />
@@ -270,10 +269,10 @@ export function StaysPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-neutral-200">
         <div className="flex flex-wrap items-center gap-2">
           {[
-            { id: 'CHECKED_IN', label: 'In House (Active)', count: checkedInCount },
-            { id: 'CHECKED_OUT', label: 'Completed (Checked Out)', count: completedCount },
-            { id: 'VOIDED', label: 'Voided / Cancelled', count: voidedCount },
-            { id: 'ALL', label: 'All Stays', count: stays.length },
+            { id: 'CHECKED_IN', label: 'In House', count: checkedInCount },
+            { id: 'CHECKED_OUT', label: 'Checked Out', count: completedCount },
+            { id: 'VOIDED', label: 'Voided', count: voidedCount },
+            { id: 'ALL', label: 'All', count: stays.length },
           ].map((tab) => {
             const active = filterStatus === tab.id
             return (
@@ -301,7 +300,7 @@ export function StaysPage() {
 
         <div className="w-full sm:w-64">
           <Input
-            placeholder="Search stay #, guest, or room..."
+            placeholder="Search stays..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -315,8 +314,8 @@ export function StaysPage() {
           data={filteredStays}
           keyExtractor={(s) => s.id}
           isLoading={loading}
-          loadingLabel="Loading guest stays..."
-          emptyMessage="No guest stays found matching this view."
+          loadingLabel="Loading stays..."
+          emptyMessage="No stays found."
         />
       </div>
 

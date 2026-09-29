@@ -68,7 +68,7 @@ export function ReservationsPage() {
   }
 
   async function handleCancel(resId: number) {
-    if (!confirm('Are you sure you want to cancel this reservation? Room will become available.')) return
+    if (!confirm('Cancel this reservation? The room will be released.')) return
     setActionLoading({ id: resId, type: 'cancel' })
     try {
       await cancelReservation(resId)
@@ -84,7 +84,7 @@ export function ReservationsPage() {
   }
 
   async function handleNoShow(resId: number) {
-    if (!confirm('Mark guest as No-Show? Room will become available.')) return
+    if (!confirm('Mark reservation as no-show? The room will be released.')) return
     setActionLoading({ id: resId, type: 'no-show' })
     try {
       await markReservationNoShow(resId)
@@ -120,14 +120,14 @@ export function ReservationsPage() {
   const columns: TableColumn<Reservation>[] = [
     {
       key: 'id',
-      header: 'Booking #',
+      header: 'Reservation #',
       render: (r) => (
         <span className="font-mono text-xs font-semibold text-neutral-900">#{r.id}</span>
       ),
     },
     {
       key: 'guest',
-      header: 'Guest Details',
+      header: 'Guest',
       render: (r) => {
         const guest = guestMap.get(r.guest_id)
         return (
@@ -142,7 +142,7 @@ export function ReservationsPage() {
     },
     {
       key: 'room',
-      header: 'Assigned Room',
+      header: 'Room',
       render: (r) => {
         const room = roomMap.get(r.room_id)
         return room ? (
@@ -159,7 +159,7 @@ export function ReservationsPage() {
     },
     {
       key: 'dates',
-      header: 'Arrival & Departure',
+      header: 'Dates',
       render: (r) => {
         const arr = new Date(r.expected_arrival).toLocaleDateString('en-US', {
           month: 'short',
@@ -251,7 +251,7 @@ export function ReservationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Reservations & Expected Guests"
+        title="Reservations"
         action={
           <Button
             variant="primary"
@@ -268,7 +268,7 @@ export function ReservationsPage() {
       {/* Search */}
       <div className="w-full sm:w-80">
         <Input
-          placeholder="Search by guest, room, or ID..."
+          placeholder="Search reservations..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -282,7 +282,7 @@ export function ReservationsPage() {
           keyExtractor={(r) => r.id}
           isLoading={loading}
           loadingLabel="Loading reservations..."
-          emptyMessage="No reservations found matching your criteria."
+          emptyMessage="No reservations found."
         />
       </div>
 

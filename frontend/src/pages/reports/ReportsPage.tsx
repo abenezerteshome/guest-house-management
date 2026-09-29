@@ -120,8 +120,7 @@ export function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Financial & Operations Intelligence"
-        subtitle="Daily performance, revenue breakdown by payment channel, operational expense audits, and occupancy reports."
+        title="Reports"
         action={
           <div className="flex flex-wrap items-center gap-2.5">
             {user?.role === 'SUPER_ADMIN' && (
@@ -203,7 +202,7 @@ export function ReportsPage() {
       />
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-neutral-200 space-x-1">
+      <div className="flex border-b border-neutral-200 space-x-1 overflow-x-auto scrollbar-none">
         {[
           { id: 'monthly', label: 'Total Statement', icon: FileSpreadsheet },
           { id: 'daily', label: 'Daily Flash Report', icon: Calendar },
@@ -240,28 +239,24 @@ export function ReportsPage() {
                 <KpiCard
                   title="Net Cashflow"
                   value={`${Number(dailyData.net_income).toLocaleString()} ETB`}
-                  subtitle="Revenue minus operational expenses"
                   icon={<Wallet className="w-5 h-5" />}
                   tone={Number(dailyData.net_income) >= 0 ? 'success' : 'danger'}
                 />
                 <KpiCard
                   title="Daily Revenue"
                   value={`${Number(dailyData.todays_income).toLocaleString()} ETB`}
-                  subtitle="Guest settlements collected"
                   icon={<TrendingUp className="w-5 h-5" />}
                   tone="success"
                 />
                 <KpiCard
                   title="Daily Expenses"
                   value={`${Number(dailyData.todays_expenses).toLocaleString()} ETB`}
-                  subtitle="Operational costs logged today"
                   icon={<TrendingDown className="w-5 h-5" />}
                   tone="neutral"
                 />
                 <KpiCard
                   title="Occupied Rooms"
                   value={`${dailyData.occupied_rooms} Rooms`}
-                  subtitle={`${dailyData.available_rooms} available for check-in`}
                   icon={<Building className="w-5 h-5" />}
                   tone="accent"
                 />
@@ -281,7 +276,6 @@ export function ReportsPage() {
                   <p className="text-xl font-bold text-neutral-900 mt-2">
                     {dailyData.check_ins_count} Guests
                   </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">Checked in during this date</p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-white border border-neutral-200">
@@ -296,7 +290,6 @@ export function ReportsPage() {
                   <p className="text-xl font-bold text-neutral-900 mt-2">
                     {dailyData.check_outs_count} Rooms
                   </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">Vacated & ready for housekeeping</p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-white border border-neutral-200">
@@ -311,7 +304,6 @@ export function ReportsPage() {
                   <p className="text-xl font-bold text-rose-600 mt-2">
                     {Number(dailyData.penalties_total).toLocaleString()} ETB
                   </p>
-                  <p className="text-xs text-neutral-500 mt-0.5">Automated 4:00 AM penalty charges</p>
                 </div>
               </div>
             </>
@@ -433,21 +425,18 @@ export function ReportsPage() {
             <KpiCard
               title="7-Day Net Cashflow"
               value={`${Number(weeklyData.net_income).toLocaleString()} ETB`}
-              subtitle={`${weeklyData.start_date} to ${weeklyData.end_date}`}
               icon={<Wallet className="w-5 h-5" />}
               tone={Number(weeklyData.net_income) >= 0 ? 'success' : 'danger'}
             />
             <KpiCard
               title="7-Day Revenue"
               value={`${Number(weeklyData.total_income).toLocaleString()} ETB`}
-              subtitle="Gross income collected"
               icon={<TrendingUp className="w-5 h-5" />}
               tone="success"
             />
             <KpiCard
               title="7-Day Expenses"
               value={`${Number(weeklyData.total_expense).toLocaleString()} ETB`}
-              subtitle="Operational disbursements"
               icon={<TrendingDown className="w-5 h-5" />}
               tone="neutral"
             />
@@ -504,10 +493,6 @@ export function ReportsPage() {
                     Default: Gross Income
                   </span>
                 </div>
-                <p className="text-xs text-neutral-500 mt-1">
-                  Isolate key financial dimensions to audit revenue, expenses, and cashflow for{' '}
-                  <span className="font-semibold text-neutral-800">{monthlyData.month}</span>.
-                </p>
               </div>
 
               {/* Filter Pills */}
@@ -572,20 +557,6 @@ export function ReportsPage() {
                     {statementMetric === 'NET_CASHFLOW' && `${Number(monthlyData.net_income).toLocaleString()} ETB`}
                     {statementMetric === 'ALL' && `${Number(monthlyData.total_income).toLocaleString()} ETB Gross`}
                   </h2>
-                  <p className="text-xs text-neutral-300 mt-1 max-w-2xl">
-                    {statementMetric === 'GROSS_INCOME' &&
-                      'Total gross earnings accumulated from all guest reservations, stay extensions, and front-desk settlements before operational deductions.'}
-                    {statementMetric === 'DAILY_REVENUE' &&
-                      'Average daily revenue yield generated across all rooms and guest collections within this statement period.'}
-                    {statementMetric === 'NET_INCOME' &&
-                      'Net profit remaining after deducting total operational costs from gross revenues.'}
-                    {statementMetric === 'EXPENSE' &&
-                      'Cumulative operational expenses incurred for guest supplies, food & beverages, utilities, and facility upkeep.'}
-                    {statementMetric === 'NET_CASHFLOW' &&
-                      'Net liquid cash retained from guest payments collected minus all logged operational expenditures.'}
-                    {statementMetric === 'ALL' &&
-                      'Consolidated statement overview auditing gross income, daily revenue velocity, operating expenses, and cashflow.'}
-                  </p>
                 </div>
               </div>
 
@@ -618,7 +589,6 @@ export function ReportsPage() {
               <KpiCard
                 title="Gross Income"
                 value={`${Number(monthlyData.total_income).toLocaleString()} ETB`}
-                subtitle={statementMetric === 'GROSS_INCOME' ? '★ Active Filter (Default)' : 'All room charges & extensions'}
                 icon={<TrendingUp className="w-5 h-5" />}
                 tone="success"
               />
@@ -630,9 +600,8 @@ export function ReportsPage() {
               }`}
             >
               <KpiCard
-                title="Daily Revenue Pace"
+                title="Daily Revenue"
                 value={`${Number(monthlyData.average_daily_income).toLocaleString()} ETB`}
-                subtitle={statementMetric === 'DAILY_REVENUE' ? '★ Active Filter' : 'Average daily income'}
                 icon={<CircleDollarSign className="w-5 h-5" />}
                 tone="accent"
               />
@@ -646,7 +615,6 @@ export function ReportsPage() {
               <KpiCard
                 title="Total Expenses"
                 value={`${Number(monthlyData.total_expenses).toLocaleString()} ETB`}
-                subtitle={statementMetric === 'EXPENSE' ? '★ Active Filter' : 'Operations, supplies & maintenance'}
                 icon={<TrendingDown className="w-5 h-5" />}
                 tone="neutral"
               />
@@ -662,11 +630,6 @@ export function ReportsPage() {
               <KpiCard
                 title={statementMetric === 'NET_CASHFLOW' ? 'Net Cashflow' : 'Net Income'}
                 value={`${Number(monthlyData.net_income).toLocaleString()} ETB`}
-                subtitle={
-                  statementMetric === 'NET_INCOME' || statementMetric === 'NET_CASHFLOW'
-                    ? '★ Active Filter'
-                    : 'Gross income minus expenses'
-                }
                 icon={<Wallet className="w-5 h-5" />}
                 tone={Number(monthlyData.net_income) >= 0 ? 'success' : 'danger'}
               />
@@ -682,7 +645,6 @@ export function ReportsPage() {
               <p className="text-2xl font-bold text-neutral-900 mt-1">
                 {monthlyData.occupancy_rate}%
               </p>
-              <p className="text-xs text-neutral-500 mt-0.5">Room capacity utilization in period</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs">
@@ -692,7 +654,6 @@ export function ReportsPage() {
               <p className="text-2xl font-bold text-amber-600 mt-1">
                 {Number(monthlyData.total_credit).toLocaleString()} ETB
               </p>
-              <p className="text-xs text-neutral-500 mt-0.5">Unsettled folio credit / ledger</p>
             </div>
 
             <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs">
@@ -702,7 +663,6 @@ export function ReportsPage() {
               <p className="text-2xl font-bold text-rose-600 mt-1">
                 {Number(monthlyData.total_penalties).toLocaleString()} ETB
               </p>
-              <p className="text-xs text-neutral-500 mt-0.5">Automated penalty fees</p>
             </div>
           </div>
 
@@ -713,9 +673,6 @@ export function ReportsPage() {
                 <h3 className="text-sm font-bold text-neutral-900">
                   Statement Ledger Breakdown
                 </h3>
-                <p className="text-xs text-neutral-500">
-                  Daily journal of financial inflows and outflows for {monthlyData.month}.
-                </p>
               </div>
               <div className="text-xs text-neutral-500">
                 Filtered Column:{' '}

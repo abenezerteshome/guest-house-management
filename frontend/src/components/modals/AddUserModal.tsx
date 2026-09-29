@@ -99,7 +99,6 @@ export function AddUserModal({ isOpen, onClose, onSuccess, propertyId, propertie
         onClose()
       }}
       title="Create Staff Account"
-      description="Add a new administrator or front-desk receptionist to the system."
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">

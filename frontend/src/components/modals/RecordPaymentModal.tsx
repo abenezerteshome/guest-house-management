@@ -127,14 +127,14 @@ export function RecordPaymentModal({
   if (!stayId) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Record Received Payment" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Record Payment" size="md">
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Prominent Amount Due Banner */}
         <div className="rounded-2xl bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900 text-white p-5 shadow-sm border border-neutral-700/50">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-                Remaining Amount to Pay
+                Balance Due
               </p>
               <div className="flex items-baseline gap-2 mt-1">
                 <span className="text-2xl font-black tracking-tight text-white">
@@ -157,11 +157,11 @@ export function RecordPaymentModal({
 
           <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-white/10 text-xs">
             <div>
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Room Bill</span>
+              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Due</span>
               <span className="font-bold text-neutral-200">{totalCharges.toLocaleString()} ETB</span>
             </div>
             <div className="text-right">
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Amount Already Paid</span>
+              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Total Paid</span>
               <span className="font-bold text-emerald-400">{totalPayments.toLocaleString()} ETB</span>
             </div>
           </div>
@@ -177,37 +177,37 @@ export function RecordPaymentModal({
               {
                 id: 'CASH',
                 label: 'Cash',
-                desc: 'Direct cash settlement',
+                desc: 'Cash settlement',
                 icon: Banknote,
               },
               {
                 id: 'TELEBIRR',
                 label: 'Telebirr',
-                desc: 'Manual reference recording',
+                desc: 'Telebirr transfer',
                 icon: Smartphone,
               },
               {
                 id: 'CBE_BIRR',
                 label: 'CBE Birr',
-                desc: 'Commercial Bank of Ethiopia',
+                desc: 'CBE Birr transfer',
                 icon: Building2,
               },
               {
                 id: 'BANK_TRANSFER',
                 label: 'Bank Transfer',
-                desc: 'Direct deposit / wire slip',
+                desc: 'Bank deposit / transfer',
                 icon: Building2,
               },
               {
                 id: 'OTHER',
                 label: 'Other',
-                desc: 'Other bank or provider',
+                desc: 'Other bank',
                 icon: Building2,
               },
               {
                 id: 'CREDIT',
-                label: 'Credit / Ledger',
-                desc: 'Unsettled guest credit',
+                label: 'Credit',
+                desc: 'Guest ledger credit',
                 icon: CreditCard,
               },
             ].map((m) => {
@@ -273,7 +273,7 @@ export function RecordPaymentModal({
                 onClick={() => setAmount(balance.toFixed(2))}
                 className="text-[11px] font-semibold text-[#FF385C] hover:underline flex items-center gap-1"
               >
-                <Sparkles className="w-3 h-3" /> Fill balance ({balance.toLocaleString()} ETB)
+                <Sparkles className="w-3 h-3" /> Pay full balance
               </button>
             )}
           </div>
@@ -293,18 +293,14 @@ export function RecordPaymentModal({
         {/* Reference Input */}
         <div>
           <Input
-            label="Transaction / Transfer Reference (Optional)"
-            placeholder="e.g. TXN-789024, Telebirr Trans ID, or Bank Slip #"
+            label="Reference (Optional)"
+            placeholder="e.g. TXN-789024 or slip #"
             disabled={loading}
             value={reference}
             onChange={(e) => setReference(e.target.value)}
           />
-          <p className="text-[11px] text-neutral-500 mt-1">
-            Provide bank slip number or mobile money reference for audit reconciliation.
-          </p>
         </div>
 
-        {/* Error Display */}
         {error && (
           <div className="rounded-xl bg-rose-50 p-3 text-xs text-rose-700 border border-rose-200 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
@@ -319,7 +315,7 @@ export function RecordPaymentModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} disabled={loading} className="gap-2">
             <Receipt className="w-4 h-4" />
-            <span>{loading ? 'Recording payment...' : 'Record Payment'}</span>
+            <span>{loading ? 'Saving...' : 'Record Payment'}</span>
           </Button>
         </div>
       </form>

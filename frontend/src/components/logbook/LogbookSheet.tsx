@@ -715,7 +715,7 @@ export function LogbookSheet({
   return (
     <div className="space-y-3">
       {/* Month Navigation & Toolbar */}
-      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white rounded-xl border border-neutral-300 p-3 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <button
@@ -745,14 +745,25 @@ export function LogbookSheet({
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
             {daysCount} Days
           </span>
+        </div>
 
-          {!isViewingCurrentMonth && (
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+          {!isViewingCurrentMonth ? (
             <button
               type="button"
               onClick={handleJumpToToday}
               className="text-xs font-bold text-[#FF385C] hover:underline cursor-pointer"
             >
               Return to Current Month
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleJumpToToday}
+              className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-bold rounded-md bg-rose-50 text-[#FF385C] border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1 cursor-pointer shrink-0"
+            >
+              <CalendarDays className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+              <span>Jump to Today</span>
             </button>
           )}
 
@@ -761,43 +772,10 @@ export function LogbookSheet({
               type="button"
               onClick={onOpenDailyManifest}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-neutral-300 bg-neutral-50 hover:bg-neutral-100 text-neutral-800 text-xs font-semibold transition cursor-pointer shadow-2xs"
-              title="View & print today's checked-in, checked-out, and reserved guest manifest"
+              title="Daily Manifest"
             >
               <Printer className="w-3.5 h-3.5 text-neutral-600" />
-              <span>Today's Manifest</span>
-            </button>
-          )}
-        </div>
-
-        {/* Legend & Jump to Today Button */}
-        <div className="flex items-center gap-4 flex-wrap text-xs text-neutral-600">
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-              Occupied
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FF385C] inline-block" />
-              Today
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
-              Reserved
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
-              Past / Checked Out
-            </span>
-          </div>
-
-          {isViewingCurrentMonth && (
-            <button
-              type="button"
-              onClick={handleJumpToToday}
-              className="px-2.5 py-1 text-xs font-bold rounded-md bg-rose-50 text-[#FF385C] border border-rose-200 hover:bg-rose-100 transition flex items-center gap-1.5 cursor-pointer ml-auto md:ml-0"
-            >
-              <CalendarDays className="w-3.5 h-3.5" />
-              <span>Jump to Today</span>
+              <span>Daily Manifest</span>
             </button>
           )}
         </div>
@@ -1241,7 +1219,7 @@ export function LogbookSheet({
                             onClick={() => onCheckInRoom(room.id)}
                             disabled={isCheckingIn}
                             className="h-full w-full rounded border border-dashed border-neutral-300 group-hover/cell:border-[#FF385C] bg-white/70 group-hover/cell:bg-white p-1 flex flex-col items-center justify-center cursor-pointer transition shadow-2xs text-center"
-                            title={`Click to check in room ${room.room_number} (check-in starts today)`}
+                            title={`Check in room ${room.room_number}`}
                           >
                             <span className="text-[11px] font-bold text-neutral-500 group-hover/cell:text-[#FF385C] flex items-center gap-1 transition">
                               {isCheckingIn ? (
@@ -1272,7 +1250,6 @@ export function LogbookSheet({
           isOpen={Boolean(activeStayPopover)}
           onClose={() => setActiveStayPopover(null)}
           title={`Room ${activeStayPopover.room.room_number} — Checked In`}
-          description="Review the stay details or continue to checkout."
           maxWidth="xl"
         >
           <div className="p-4 rounded-xl bg-neutral-900 text-white shadow-xl border border-neutral-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0">

@@ -39,14 +39,14 @@ const navSections: NavSection[] = [
     title: 'Platform',
     roles: ['SUPER_ADMIN'],
     items: [
-      { label: 'Properties & Tenants', to: '/super-admin/properties', icon: Building2, roles: ['SUPER_ADMIN'] },
+      { label: 'Properties', to: '/super-admin/properties', icon: Building2, roles: ['SUPER_ADMIN'] },
     ],
   },
   {
     title: 'Operations',
     roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'],
     items: [
-      { label: 'Daily Logbook', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
+      { label: 'Logbook', to: '/dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
       { label: 'Reservations', to: '/reservations', icon: CalendarDays, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
       { label: 'Guests', to: '/guests', icon: Users, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
       { label: 'Expenses', to: '/expenses', icon: Wallet, roles: ['ADMIN', 'RECEPTION', 'SUPER_ADMIN'] },
@@ -57,7 +57,7 @@ const navSections: NavSection[] = [
     roles: ['ADMIN', 'SUPER_ADMIN'],
     items: [
       { label: 'Rooms', to: '/rooms', icon: BedDouble, roles: ['ADMIN', 'SUPER_ADMIN'] },
-      { label: 'Stays Archive', to: '/stays', icon: ClipboardList, roles: ['ADMIN', 'SUPER_ADMIN'] },
+      { label: 'Stays', to: '/stays', icon: ClipboardList, roles: ['ADMIN', 'SUPER_ADMIN'] },
       { label: 'Reports', to: '/reports', icon: BarChart3, roles: ['ADMIN', 'SUPER_ADMIN'] },
       { label: 'Settings', to: '/settings', icon: Settings, roles: ['ADMIN', 'SUPER_ADMIN'] },
     ],
@@ -136,7 +136,7 @@ export function AppShell() {
                   {user?.role === 'SUPER_ADMIN' ? 'Platform Console' : (user?.property_name || 'Family Guest House')}
                 </span>
                 <span className="block text-[11px] font-medium text-[#717171]">
-                  {user?.role === 'SUPER_ADMIN' ? 'Multi-Tenant SaaS' : 'Management System'}
+                  {user?.role === 'SUPER_ADMIN' ? 'Platform Admin' : 'Management'}
                 </span>
               </div>
             </div>
@@ -304,7 +304,7 @@ export function AppShell() {
                         className="flex items-center gap-2 px-3.5 py-2 text-[#222222] hover:bg-[#F7F7F7] transition"
                       >
                         <Settings size={14} className="text-[#717171]" />
-                        <span>Guest House Settings</span>
+                        <span>Settings</span>
                       </Link>
                       <button
                         type="button"

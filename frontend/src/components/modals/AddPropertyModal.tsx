@@ -107,7 +107,6 @@ export function AddPropertyModal({ isOpen, onClose, onSuccess }: AddPropertyModa
         }
       }}
       title="Onboard New Client Property"
-      description="Provision an isolated guest house tenant with dedicated database records and an initial administrator."
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">

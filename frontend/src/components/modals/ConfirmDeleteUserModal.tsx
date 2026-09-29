@@ -45,7 +45,7 @@ export function ConfirmDeleteUserModal({
       onClose={() => {
         if (!loading) onClose()
       }}
-      title={`Delete Account: @${user.username}`}
+      title="Delete User"
       size="sm"
     >
       <div className="space-y-4 pt-1">
@@ -54,14 +54,11 @@ export function ConfirmDeleteUserModal({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-rose-950 uppercase tracking-wide">
-              Permanent Account Removal
+            <h4 className="text-sm font-bold text-rose-950">
+              Delete user @{user.username}?
             </h4>
             <p className="text-xs text-rose-700 leading-relaxed">
-              Are you sure you want to permanently delete the account for{' '}
-              <span className="font-semibold text-rose-950">{user.full_name}</span> (
-              <span className="font-mono text-rose-950 font-semibold">@{user.username}</span>)?
-              The user will no longer be able to log in.
+              Delete account for <span className="font-semibold text-rose-950">{user.full_name}</span>? This action cannot be undone.
             </p>
           </div>
         </div>
@@ -90,7 +87,7 @@ export function ConfirmDeleteUserModal({
             className="gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Confirm Delete</span>
+            <span>Delete</span>
           </Button>
         </div>
       </div>

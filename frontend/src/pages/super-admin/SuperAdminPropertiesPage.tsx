@@ -205,8 +205,7 @@ export function SuperAdminPropertiesPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <PageHeader
-          title="Multi-Tenancy & Platform Administration"
-          subtitle="Directory of guest house clients, credential & password management, and access controls."
+          title="Properties & Accounts"
         />
         <div className="flex items-center gap-2.5 self-start sm:self-auto">
           {activeTab === 'PROPERTIES' ? (
@@ -1097,11 +1096,6 @@ export function SuperAdminPropertiesPage() {
             selectedPropertyForToggle.is_active
               ? `Suspend "${selectedPropertyForToggle.name}"?`
               : `Reactivate "${selectedPropertyForToggle.name}"?`
-          }
-          description={
-            selectedPropertyForToggle.is_active
-              ? 'Suspending this property will immediately revoke login access for all its receptionists and administrators. Database records will remain preserved.'
-              : 'Reactivating this property will immediately restore access for its administrators and staff.'
           }
           size="md"
         >

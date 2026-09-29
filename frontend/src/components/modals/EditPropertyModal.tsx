@@ -98,7 +98,6 @@ export function EditPropertyModal({
         if (!loading) onClose()
       }}
       title={`Edit Property: ${property.name}`}
-      description="Update guest house directory details, contact records, and checkout deadlines."
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6 pt-1">

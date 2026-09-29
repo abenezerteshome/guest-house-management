@@ -151,7 +151,6 @@ export function RoomsPage() {
       {/* Page Header */}
       <PageHeader
         title="Rooms"
-        subtitle="Monitor availability, arrivals, and active stays."
         action={
           <div className="flex items-center gap-2.5">
             {isAdmin && (
@@ -176,7 +175,6 @@ export function RoomsPage() {
             <span className="text-[11px] font-medium text-neutral-500">Total rooms</span>
             <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{rooms.length}</strong>
           </div>
-          <span className="text-[10px] text-neutral-400 mt-2">Across the property</span>
         </div>
 
         {/* Available Card (Option 3 with Progress & Cleaning Breakdown) */}
@@ -204,7 +202,7 @@ export function RoomsPage() {
                   ? 'bg-emerald-700 text-white border-emerald-700'
                   : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
               }`}
-              title="Click to filter ready rooms"
+              title="Filter ready rooms"
             >
               <span className={`w-1.5 h-1.5 rounded-full ${statusFilter === 'AVAILABLE' ? 'bg-white' : 'bg-emerald-500'}`} />
               <span>{availableRooms.length} Ready</span>
@@ -220,7 +218,7 @@ export function RoomsPage() {
                   ? 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                   : 'bg-neutral-50 text-neutral-400 border-neutral-200 opacity-60 cursor-default'
               }`}
-              title={cleaningRooms.length > 0 ? 'Click to filter rooms in cleaning turnaround' : 'No rooms in cleaning'}
+              title={cleaningRooms.length > 0 ? 'Filter cleaning turnaround' : 'No rooms in cleaning'}
               disabled={cleaningRooms.length === 0}
             >
               <SprayCan className="w-3.5 h-3.5" />
@@ -255,7 +253,6 @@ export function RoomsPage() {
             <span className="text-[11px] font-medium text-neutral-500">Occupied</span>
             <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{occupiedRooms.length}</strong>
           </div>
-          <span className="text-[10px] text-neutral-400 mt-2">Active stays</span>
         </div>
 
         {/* Arriving Today Card */}
@@ -264,7 +261,6 @@ export function RoomsPage() {
             <span className="text-[11px] font-medium text-neutral-500">Arriving today</span>
             <strong className="block text-2xl font-bold text-neutral-900 mt-0.5">{expectedRooms.length}</strong>
           </div>
-          <span className="text-[10px] text-neutral-400 mt-2">Expected guests</span>
         </div>
       </div>
 

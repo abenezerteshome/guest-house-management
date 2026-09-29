@@ -70,7 +70,7 @@ export function LoginPage() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#717171] hover:text-[#222222] transition-colors py-2 px-3 rounded-full hover:bg-[#F7F7F7]"
         >
           <HelpCircle size={15} />
-          <span>Help & Support</span>
+          <span>Help</span>
         </button>
       </header>
 
@@ -83,14 +83,14 @@ export function LoginPage() {
               <div className="text-center space-y-5">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBF9EB] text-[#008A05] text-xs font-semibold">
                   <ShieldCheck size={13} />
-                  <span>Currently Signed In</span>
+                  <span>Signed In</span>
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-[#222222] tracking-tight">
-                    Welcome back, {user.full_name}
+                    {user.full_name}
                   </h1>
                   <p className="text-xs text-[#717171] mt-1.5">
-                    Signed in as <strong>{user.role === 'SUPER_ADMIN' ? 'Platform Super Administrator' : user.role === 'ADMIN' ? 'Administrator' : 'Receptionist'}</strong> (@{user.username}).
+                    {user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role === 'ADMIN' ? 'Administrator' : 'Reception Desk'} (@{user.username})
                   </p>
                 </div>
                 <div className="space-y-2.5 pt-2">
@@ -101,7 +101,7 @@ export function LoginPage() {
                     className="w-full h-11 text-xs font-semibold rounded-xl"
                     onClick={() => { window.location.href = user.role === 'SUPER_ADMIN' ? '/super-admin/properties' : '/dashboard' }}
                   >
-                    Continue to Dashboard
+                    Dashboard
                   </Button>
                   <Button
                     type="button"
@@ -110,7 +110,7 @@ export function LoginPage() {
                     className="w-full h-11 text-xs font-semibold rounded-xl text-[#C13515] border-[#DDDDDD] hover:bg-[#FFF7F5]"
                     onClick={() => logout()}
                   >
-                    Sign Out / Switch User
+                    Sign Out
                   </Button>
                 </div>
               </div>
@@ -119,16 +119,9 @@ export function LoginPage() {
               <>
                 {/* Greeting & Header */}
                 <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F2] text-[#FF385C] text-xs font-semibold mb-3">
-                    <ShieldCheck size={13} />
-                    <span>Staff Portal</span>
-                  </div>
                   <h1 className="text-2xl sm:text-3xl font-bold text-[#222222] tracking-tight">
-                    Welcome back
+                    Sign In
                   </h1>
-                  <p className="text-sm text-[#717171] mt-1.5 leading-relaxed">
-                    Sign in to manage your guest house operations.
-                  </p>
                 </div>
 
                 {/* Form */}
@@ -139,7 +132,7 @@ export function LoginPage() {
                       htmlFor="username"
                       className="block text-xs font-semibold text-[#222222]"
                     >
-                      Username or Phone Number
+                      Username or Phone
                     </label>
                     <div className="relative flex items-center h-12 rounded-xl border border-[#DDDDDD] hover:border-[#B0B0B0] focus-within:border-[#222222] focus-within:ring-1 focus-within:ring-[#222222] bg-white px-3.5 transition-all">
                       <UserRound size={17} className="text-[#717171] shrink-0 mr-2.5" />
@@ -150,7 +143,7 @@ export function LoginPage() {
                         autoComplete="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        placeholder="e.g. 0911223344, admin, or email"
+                        placeholder="Username or phone"
                         className="w-full bg-transparent text-sm text-[#222222] placeholder:text-[#999999] focus:outline-none"
                       />
                     </div>
@@ -173,7 +166,7 @@ export function LoginPage() {
                         autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
+                        placeholder="Password"
                         className="w-full bg-transparent text-sm text-[#222222] placeholder:text-[#999999] focus:outline-none"
                       />
                       <button
@@ -206,7 +199,7 @@ export function LoginPage() {
                     loading={submitting}
                     className="w-full h-12 text-sm font-semibold rounded-xl mt-2"
                   >
-                    {submitting ? 'Signing in...' : 'Sign In to Guest House'}
+                    {submitting ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </form>
               </>
@@ -216,7 +209,7 @@ export function LoginPage() {
             <div className="mt-8 pt-6 border-t border-[#F0F0F0] text-center">
               <span className="text-xs text-[#717171] flex items-center justify-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#008A05]" />
-                Authorized staff access only · Family Guest House Management System
+                Authorized access only
               </span>
             </div>
           </div>
@@ -231,8 +224,6 @@ export function LoginPage() {
             <span>Privacy</span>
             <span>·</span>
             <span>Terms</span>
-            <span>·</span>
-            <span>Guest House Management System</span>
           </div>
         </div>
       </footer>
@@ -241,8 +232,7 @@ export function LoginPage() {
       <Modal
         isOpen={helpOpen}
         onClose={() => setHelpOpen(false)}
-        title="Need Sign In Help?"
-        description="Here is how to get access to your account."
+        title="Sign In Help"
       >
         <div className="space-y-4 text-xs text-[#717171] leading-relaxed">
           <p>

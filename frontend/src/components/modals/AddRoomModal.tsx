@@ -70,10 +70,10 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add New Room" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Room" size="md">
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Room Number / Identifier *"
+          label="Room Number *"
           placeholder="e.g. 203, 301, Suite A"
           required
           value={roomNumber}
@@ -109,7 +109,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input
-            label="Nightly Price (ETB) *"
+            label="Price (ETB) *"
             type="number"
             min="50"
             step="1"
@@ -119,12 +119,11 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
             onChange={(e) => setPrice(e.target.value)}
           />
           <Input
-            label="Hourly Rate (ETB / hr)"
+            label="Hourly Rate (ETB)"
             type="number"
             min="10"
             step="1"
             placeholder="e.g. 150"
-            helperText="For 3hr / 6hr day-use stays"
             value={hourlyPrice}
             onChange={(e) => setHourlyPrice(e.target.value)}
           />
@@ -143,7 +142,7 @@ export function AddRoomModal({ isOpen, onClose, onSuccess }: AddRoomModalProps) 
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <Building className="w-4 h-4" />
-            {loading ? 'Creating room...' : 'Create Room'}
+            {loading ? 'Saving...' : 'Add Room'}
           </Button>
         </div>
       </form>

@@ -48,8 +48,8 @@ export function ChangePasswordModal({ user, adminReset = false, onClose, onSaved
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFF0F2] text-[#FF385C]"><KeyRound size={19} /></div>
             <div>
-              <h2 id="password-dialog-title" className="text-lg font-bold text-[#222222]">{adminReset ? 'Set staff password' : 'Change your password'}</h2>
-              <p className="text-xs text-[#717171]">{adminReset ? `Set a new password for ${user.full_name}.` : 'Use at least 6 characters.'}</p>
+              <h2 id="password-dialog-title" className="text-lg font-bold text-[#222222]">{adminReset ? 'Reset Password' : 'Change Password'}</h2>
+              <p className="text-xs text-[#717171]">{adminReset ? user.full_name : 'Minimum 6 characters'}</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-[#717171] hover:bg-[#F7F7F7]" aria-label="Close password dialog"><X size={18} /></button>
@@ -58,28 +58,28 @@ export function ChangePasswordModal({ user, adminReset = false, onClose, onSaved
         <div className="mt-6 space-y-4">
           {!adminReset && (
             <label className="block text-sm font-medium text-[#222222]">
-              Current password
+              Current Password
               <input required type={showPasswords ? 'text' : 'password'} value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="current-password" />
             </label>
           )}
           <label className="block text-sm font-medium text-[#222222]">
-            New password
+            New Password
             <input required minLength={6} maxLength={128} type={showPasswords ? 'text' : 'password'} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
           </label>
           <label className="block text-sm font-medium text-[#222222]">
-            Confirm new password
+            Confirm New Password
             <input required minLength={6} maxLength={128} type={showPasswords ? 'text' : 'password'} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-1.5 w-full rounded-xl border border-[#DDDDDD] px-3.5 py-2.5 focus:border-[#FF385C] focus:outline-none focus:ring-2 focus:ring-[#FF385C]/20" autoComplete="new-password" />
           </label>
           <button type="button" onClick={() => setShowPasswords((visible) => !visible)} className="flex items-center gap-2 text-xs font-medium text-[#717171] hover:text-[#222222]">
             {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
-            {showPasswords ? 'Hide passwords' : 'Show passwords'}
+            {showPasswords ? 'Hide password' : 'Show password'}
           </button>
           {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button type="submit" isLoading={saving}>{adminReset ? 'Set password' : 'Update password'}</Button>
+          <Button type="submit" isLoading={saving}>{adminReset ? 'Reset Password' : 'Change Password'}</Button>
         </div>
       </form>
     </div>

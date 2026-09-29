@@ -142,11 +142,6 @@ export function DashboardPage() {
               <h3 className="text-xs font-bold uppercase tracking-wider text-[#222222]">
                 Management Overview
               </h3>
-              <span className="text-xs text-[#717171]">
-                {financialTimeframe === 'ALL_TIME'
-                  ? 'All-time lifetime financials & real-time occupancy'
-                  : "Today's financial & real-time occupancy"} (Administrator only)
-              </span>
             </div>
 
             {/* Timeframe Toggle Switcher */}
@@ -160,7 +155,7 @@ export function DashboardPage() {
                     : 'text-[#717171] hover:text-[#222222]'
                 }`}
               >
-                All-Time (Since Start)
+                All-Time
               </button>
               <button
                 type="button"
@@ -171,7 +166,7 @@ export function DashboardPage() {
                     : 'text-[#717171] hover:text-[#222222]'
                 }`}
               >
-                Today Only
+                Today
               </button>
             </div>
           </div>
@@ -272,7 +267,7 @@ export function DashboardPage() {
                 rooms.length > 0
                   ? Math.round((occupiedRooms.length / rooms.length) * 100)
                   : 0
-              }% occupancy rate`}
+              }% occupancy`}
               icon={BedDouble}
               tone="accent"
             />
@@ -280,7 +275,6 @@ export function DashboardPage() {
               loading={loading}
               label="Available Rooms"
               value={String(availableRooms.length)}
-              detail="Ready for instant check-in"
               icon={CheckCircle2}
               tone="success"
             />
@@ -288,44 +282,12 @@ export function DashboardPage() {
               loading={loading}
               label="Expected Arrivals"
               value={String(reservations.length)}
-              detail="Scheduled bookings pending"
               icon={CalendarDays}
               tone={reservations.length > 0 ? 'warning' : 'neutral'}
             />
           </div>
         </div>
       )}
-
-      {/* Quick Shift Audit & Daily Manifest Bar */}
-      <div className="bg-white rounded-xl border border-neutral-300 p-3.5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
-            <Printer size={18} />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-neutral-900">
-                Today's Guest Activity & Daily Manifest
-              </h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Live Audit
-              </span>
-            </div>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Review today's checked-in, checked-out, and reserved guests with stay durations and payment tracking.
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setDailyManifestOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
-        >
-          <Printer size={14} />
-          <span>View & Print Daily Manifest</span>
-        </button>
-      </div>
 
       {/* Primary Logbook Sheet View (Notebook Replica) */}
       {loading ? (

@@ -641,13 +641,8 @@ export function DailyManifestModal({
         onClose={onClose}
         title={
           effectiveType === 'STANDARD'
-            ? 'Daily Guest Manifest'
-            : "Today's Guest Activity & Shift Audit Report"
-        }
-        description={
-          effectiveType === 'STANDARD'
-            ? 'Official company register of guest names, phone numbers, and stay duration.'
-            : 'Daily overview of checked in, checked out, and reserved guests with stay durations and payment tracking.'
+            ? 'Daily Manifest'
+            : 'Audit Manifest'
         }
         size="5xl"
         footer={
@@ -678,7 +673,7 @@ export function DailyManifestModal({
                 className="gap-1.5 bg-stone-900 hover:bg-stone-800 text-white font-medium shadow-sm"
               >
                 <Printer size={15} />
-                {effectiveType === 'STANDARD' ? 'Print Daily Manifest' : 'Print Audit Manifest'}
+                {effectiveType === 'STANDARD' ? 'Print Manifest' : 'Print Audit'}
               </Button>
             </div>
           </div>

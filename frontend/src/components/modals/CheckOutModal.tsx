@@ -194,8 +194,7 @@ export function CheckOutModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={cleanRoom ? `Check Out — Room ${cleanRoom}` : 'Guest Check Out'}
-      description={guestName ? `Guest: ${guestName}` : 'Finalize checkout and free room immediately.'}
+      title={cleanRoom ? `Check Out — Room ${cleanRoom}` : 'Check Out'}
       maxWidth="md"
     >
       <div className="space-y-4 text-sm text-[#222222]">
@@ -209,29 +208,29 @@ export function CheckOutModal({
         {loading && (
           <div className="flex items-center justify-center p-4 text-sm text-[#717171] gap-2">
             <Loader2 size={18} className="animate-spin text-[#FF385C]" />
-            <span>Checking stay balance & checkout status...</span>
+            <span>Loading stay balance...</span>
           </div>
         )}
 
-        {/* 1. Unpaid Check-In Room Charge (if checked in on credit) */}
+        {/* 1. Unpaid Check-In Room Charge */}
         {!loading && initialRoomCredit > 0 && (
           <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
             <div className="flex items-center justify-between">
               <span className="font-bold flex items-center gap-1.5 text-amber-900">
                 <CreditCard size={15} className="text-amber-700" />
-                Unpaid Check-In (Credit):
+                Unpaid Check-In:
               </span>
               <span className="font-extrabold text-sm text-amber-950">
                 ETB {initialRoomCredit.toLocaleString()}
               </span>
             </div>
             <p className="text-amber-800">
-              Guest checked in on credit. Initial room charge must be settled before checkout.
+              Initial room charge unpaid.
             </p>
           </div>
         )}
 
-        {/* 2. Unpaid Stay Extension (if any) */}
+        {/* 2. Unpaid Stay Extension */}
         {!loading && extensionCredit > 0 && (
           <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
             <div className="flex items-center justify-between">
@@ -244,18 +243,18 @@ export function CheckOutModal({
               </span>
             </div>
             <p className="text-amber-800">
-              Guest stayed {extensionDays > 0 ? `${extensionDays} extra night${extensionDays > 1 ? 's' : ''}` : 'an extended stay'} on credit.
+              Extension balance unpaid.
             </p>
           </div>
         )}
 
-        {/* 3. Optional Late Checkout Penalty Question (Receptionist decides) */}
+        {/* 3. Optional Late Checkout Penalty */}
         {!loading && isLate && (
           <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-neutral-800 flex items-center gap-1.5">
                 <Clock size={15} className="text-neutral-500" />
-                Apply Late Checkout Penalty?
+                Late Checkout Penalty
               </span>
               <span className="text-[11px] font-semibold text-neutral-500">
                 Rate: ETB {penaltyRate.toLocaleString()}
@@ -286,17 +285,17 @@ export function CheckOutModal({
                 }`}
               >
                 {applyPenalty && <Check size={14} className="stroke-[3]" />}
-                <span>Yes (+ETB {penaltyRate.toLocaleString()})</span>
+                <span>Penalty (+ETB {penaltyRate.toLocaleString()})</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* 4. Total to Collect Box (Eliminates mental math) */}
+        {/* 4. Total to Collect Box */}
         {!loading && totalToCollect > 0 && (
           <div className="p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-rose-800">
-              Total to Collect from Guest:
+              Amount Due:
             </span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-black text-rose-600">
@@ -316,7 +315,7 @@ export function CheckOutModal({
         {!loading && totalToCollect > 0 && (
           <div className="p-3.5 rounded-2xl bg-white border border-neutral-200 space-y-2">
             <label htmlFor="checkout-received-via" className="block text-xs font-bold text-neutral-800">
-              Received Via
+              Payment Method
             </label>
             <select
               id="checkout-received-via"
@@ -347,32 +346,19 @@ export function CheckOutModal({
                 />
               </div>
             )}
-            <p className="text-[11px] text-neutral-500">
-              This checkout collection will be recorded via {
-                receivedVia === 'CBE_BIRR'
-                  ? 'CBE Birr'
-                  : receivedVia === 'BANK_TRANSFER'
-                  ? 'Bank Transfer'
-                  : receivedVia === 'TELEBIRR'
-                  ? 'Telebirr'
-                  : receivedVia === 'OTHER'
-                  ? (bankName.trim() || 'Other Bank')
-                  : 'Cash'
-              }.
-            </p>
           </div>
         )}
 
-        {/* 4. All Clear Status Banner (when 0 to collect) */}
+        {/* 4. All Clear Status Banner */}
         {!loading && totalToCollect === 0 && (
           <div className="p-3.5 rounded-2xl bg-emerald-50/90 border border-emerald-200 flex items-center gap-3 text-xs text-emerald-950">
             <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
               <CheckCircle2 size={20} />
             </div>
             <div className="min-w-0">
-              <p className="font-bold text-sm text-emerald-900">Ready for Checkout</p>
+              <p className="font-bold text-sm text-emerald-900">Balance Settled</p>
               <p className="text-emerald-700 text-xs">
-                All charges settled (0 ETB to collect). Room will be freed immediately.
+                No balance due.
               </p>
             </div>
           </div>
@@ -387,10 +373,10 @@ export function CheckOutModal({
                 onClose()
                 onOpenVoidModal(stay)
               }}
-              className="text-xs font-bold uppercase tracking-wider text-white bg-red-900 hover:bg-red-950 px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
+              className="text-xs font-bold uppercase tracking-wider text-rose-700 hover:text-rose-900 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 transition cursor-pointer"
               title="Void this check-in"
             >
-              VOID
+              Void Check-In
             </button>
           ) : (
             <div />
@@ -407,8 +393,8 @@ export function CheckOutModal({
               loading={submitting}
             >
               {totalToCollect > 0
-                ? `Collect ETB ${totalToCollect.toLocaleString()} & Check Out`
-                : 'Check Out & Free Room'}
+                ? 'Collect & Check Out'
+                : 'Check Out'}
             </Button>
           </div>
         </div>

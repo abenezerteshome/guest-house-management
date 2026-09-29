@@ -57,7 +57,7 @@ export function DeletePropertyModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={`Delete Property "${property.name}"`}
+      title="Delete Property"
       size="md"
     >
       <div className="space-y-4 pt-1">
@@ -67,13 +67,11 @@ export function DeletePropertyModal({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-rose-950 uppercase tracking-wide">
-              Permanent Deletion Warning
+            <h4 className="text-sm font-bold text-rose-950">
+              Delete {property.name}?
             </h4>
             <p className="text-xs text-rose-700 leading-relaxed">
-              This action <span className="font-bold underline">cannot be undone</span>. Deleting{' '}
-              <span className="font-semibold text-rose-950">{property.name}</span> will permanently purge
-              its rooms, guest reservation logs, and account credentials from the platform.
+              This action cannot be undone. All rooms, reservations, and accounts for this property will be removed.
             </p>
           </div>
         </div>
@@ -81,13 +79,13 @@ export function DeletePropertyModal({
         {/* Property Scope Summary */}
         <div className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-1.5 text-xs text-neutral-600">
           <div className="flex items-center justify-between">
-            <span className="text-neutral-500">Property Identifier:</span>
+            <span className="text-neutral-500">Code:</span>
             <span className="font-mono font-bold text-neutral-900 bg-neutral-200/70 px-2 py-0.5 rounded">
               {property.code}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-neutral-500">Rooms & Units:</span>
+            <span className="text-neutral-500">Rooms:</span>
             <span className="font-semibold text-neutral-900">{property.total_rooms ?? 0}</span>
           </div>
           <div className="flex items-center justify-between">
@@ -107,7 +105,7 @@ export function DeletePropertyModal({
         {/* Confirmation Input */}
         <div>
           <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-            Type <span className="font-mono font-bold text-rose-700">{property.code}</span> to confirm deletion:
+            Type <span className="font-mono font-bold text-rose-700">{property.code}</span> to confirm:
           </label>
           <input
             type="text"
@@ -138,7 +136,7 @@ export function DeletePropertyModal({
             className="gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete Permanently</span>
+            <span>Delete Property</span>
           </Button>
         </div>
       </div>

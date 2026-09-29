@@ -127,8 +127,7 @@ export function SettingsPage() {
   return (
     <div className="space-y-6 max-w-4xl">
       <PageHeader
-        title="Guest House Settings & Policies"
-        subtitle="Manage checkout cutoff deadlines, late check-out penalties, and manual payment channels."
+        title="Settings"
       />
 
       {successMsg && (
@@ -155,9 +154,6 @@ export function SettingsPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-neutral-900">Property Information</h3>
-              <p className="text-xs text-neutral-500">
-                General guest house details displayed on guest folios, receipts, and system headers.
-              </p>
             </div>
           </div>
 
@@ -231,9 +227,6 @@ export function SettingsPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-neutral-900">Late Checkout Penalty Rule</h3>
-              <p className="text-xs text-neutral-500">
-                Automated guest folio charge if check-out occurs after the deadline.
-              </p>
             </div>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#FF385C]/10 text-[#FF385C]">
@@ -296,9 +289,6 @@ export function SettingsPage() {
             />
             <span className="absolute right-3.5 top-2.5 text-xs font-bold text-neutral-400">ETB</span>
           </div>
-          <p className="text-[11px] text-neutral-400 mt-1">
-            Yonas specification: 600 ETB automatically added to folio upon late checkout.
-          </p>
         </div>
 
         {isAdmin ? (
@@ -324,9 +314,6 @@ export function SettingsPage() {
             </div>
             <div>
               <h3 className="text-base font-bold text-neutral-900">Manual Payment Recording Channels</h3>
-              <p className="text-xs text-neutral-500">
-                Authorized front-desk cashier logging channels for guest settlements.
-              </p>
             </div>
           </div>
           <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 flex items-center gap-1">
@@ -342,9 +329,6 @@ export function SettingsPage() {
                 Front Desk Drawer
               </span>
             </div>
-            <p className="text-xs text-neutral-600 leading-relaxed">
-              Standard cash receipts in Ethiopian Birr (ETB) verified and recorded immediately upon guest check-in or check-out.
-            </p>
             <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between text-xs">
               <span className="text-neutral-500">Receipt Logging</span>
               <span className="font-medium text-neutral-800">Direct Folio Settlement</span>
@@ -358,9 +342,6 @@ export function SettingsPage() {
                 Cashier Assisted
               </span>
             </div>
-            <p className="text-xs text-neutral-600 leading-relaxed">
-              Manual transaction logging for Telebirr QR/USSD, CBE Birr, and Bank Wire slips with durable reference tracking.
-            </p>
             <div className="mt-3 pt-3 border-t border-neutral-200 flex items-center justify-between text-xs">
               <span className="text-neutral-500">Supported Methods</span>
               <span className="font-medium text-neutral-800">CASH, TELEBIRR, CBE, BANK, CREDIT</span>
@@ -378,9 +359,6 @@ export function SettingsPage() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-neutral-900">Staff & Access Management</h3>
-                <p className="text-xs text-neutral-500">
-                  Manage employee login credentials, assigned roles, and access status.
-                </p>
               </div>
             </div>
             <Button

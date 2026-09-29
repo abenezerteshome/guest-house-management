@@ -296,7 +296,7 @@ export function ReservationModal({
 
         {/* Calculation badge */}
         <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-blue-50/80 border border-blue-200 text-xs">
-          <span className="text-blue-900 font-medium">Stay Duration & Calculated Total:</span>
+          <span className="text-blue-900 font-medium">Duration & Total:</span>
           <span className="font-bold text-blue-950 bg-white px-2.5 py-1 rounded-lg border border-blue-200">
             {durationDescription} = ETB {calculatedExpectedAmount.toLocaleString()}
           </span>
@@ -306,11 +306,11 @@ export function ReservationModal({
         <div className="border-t border-neutral-100 pt-3 space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-700">
-              Guest Information
+              Guest Details
             </h4>
             {selectedGuestObj && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span>✓ Existing Guest Profile</span>
+                <span>Registered Guest</span>
                 <button
                   type="button"
                   onClick={handleClearSelectedGuest}
@@ -328,7 +328,7 @@ export function ReservationModal({
             <div className="relative">
               <input
                 type="text"
-                placeholder="🔍 Search directory by name, phone, or ID to auto-fill..."
+                placeholder="Search guest by name, phone, or ID..."
                 value={guestSearch}
                 onChange={(e) => {
                   setGuestSearch(e.target.value)
@@ -362,7 +362,7 @@ export function ReservationModal({
                   >
                     <div>
                       <span className="font-bold text-neutral-900">{g.full_name}</span>
-                      <span className="text-neutral-500 ml-2">📱 {g.phone}</span>
+                      <span className="text-neutral-500 ml-2">{g.phone}</span>
                     </div>
                     <span className="text-[11px] text-neutral-400 font-mono">
                       {g.id_number}
@@ -375,24 +375,19 @@ export function ReservationModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Input
-              label="Guest Full Name *"
+              label="Guest Name *"
               placeholder="e.g. Hanna Girma"
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
-            <div>
-              <Input
-                label="Phone Number *"
-                placeholder="e.g. 0912 345678"
-                required
-                value={phone}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-              />
-              <p className="text-[10px] text-neutral-400 mt-1">
-                Typing a registered phone number auto-fills the guest details.
-              </p>
-            </div>
+            <Input
+              label="Phone *"
+              placeholder="e.g. 0912 345678"
+              required
+              value={phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+            />
           </div>
         </div>
 
@@ -409,7 +404,7 @@ export function ReservationModal({
           </Button>
           <Button variant="primary" type="submit" isLoading={loading} className="gap-2">
             <Calendar className="w-4 h-4" />
-            {loading ? 'Creating reservation...' : 'Confirm Reservation'}
+            {loading ? 'Saving...' : 'Save Reservation'}
           </Button>
         </div>
       </form>
