@@ -387,7 +387,7 @@ export function CheckOutModal({
                 onClose()
                 onOpenVoidModal(stay)
               }}
-              className="text-xs font-black uppercase tracking-wider text-red-900 hover:text-red-950 px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+              className="text-xs font-bold uppercase tracking-wider text-white bg-red-900 hover:bg-red-950 px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
               title="Void this check-in"
             >
               VOID
