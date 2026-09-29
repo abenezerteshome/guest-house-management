@@ -28,3 +28,8 @@ api_router.include_router(expenses.router)
 api_router.include_router(reports.router)
 api_router.include_router(settings.router)
 api_router.include_router(super_admin.router)
+
+
+@api_router.get("/health", tags=["system"])
+async def api_health() -> dict[str, str]:
+	return {"status": "ok"}

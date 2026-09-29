@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_current_user, require_admin, require_role
 from app.db.session import get_db
 from app.models.guest import Guest
-from app.models.user import UserRole
+from app.models.user import User, UserRole
 from app.repositories.guest import GuestRepository
 from app.schemas.guest import GuestCreate, GuestRead, GuestUpdate
 from app.services.guest import create_guest, delete_guest, update_guest

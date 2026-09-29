@@ -32,6 +32,7 @@ interface LogbookSheetProps {
   checkingInRoomId?: number | null
   onCheckOut: (stay: Stay) => void
   onExtendStay?: (stay: Stay) => void
+  onRecordPayment?: (stay: Stay) => void
   onRefresh?: () => void
   onOpenDailyManifest?: () => void
 }
@@ -68,6 +69,7 @@ export function LogbookSheet({
   checkingInRoomId = null,
   onCheckOut,
   onExtendStay,
+  onRecordPayment,
   onRefresh,
   onOpenDailyManifest,
 }: LogbookSheetProps) {
@@ -315,19 +317,26 @@ export function LogbookSheet({
           const nightStatusMap: Record<number, { isCredit: boolean; method: string }> = {}
 
           // 1. Initial Check-In Nights
-          const initialStatus = {
-            isCredit: isInitialCredit,
-            method: isInitialCredit ? 'CREDIT' : (initialMethod && initialMethod !== 'CREDIT' ? initialMethod : 'CASH'),
-          }
+          const initialNightRate = originalNights > 0 ? initialRoomChargesTotal / originalNights : 0
+          const paidInitialNights = initialNightRate > 0
+            ? Math.min(originalNights, Math.floor((initialRoomPaid + 0.01) / initialNightRate))
+            : (isInitialCredit ? 0 : originalNights)
+
+          const paidMethod = initialMethod && initialMethod !== 'CREDIT' ? initialMethod : 'CASH'
 
           const sCheckInDate = sCheckInRaw ? new Date(sCheckInRaw) : new Date()
           const checkInDateStr = toLocalDateStr(sCheckInDate)
           const [inY, inM, inD] = checkInDateStr.split('-').map(Number)
 
           for (let n = 1; n <= originalNights; n++) {
-            nightStatusMap[n] = initialStatus
+            const isNightPaid = n <= paidInitialNights
+            const statusObj = {
+              isCredit: !isNightPaid,
+              method: isNightPaid ? paidMethod : 'CREDIT',
+            }
+            nightStatusMap[n] = statusObj
             const nD = new Date(inY, inM - 1, inD + (n - 1))
-            dateStatusMap[toLocalDateStr(nD)] = initialStatus
+            dateStatusMap[toLocalDateStr(nD)] = statusObj
           }
 
           // 2. Extension Charges (chronologically sorted)
@@ -1269,16 +1278,16 @@ export function LogbookSheet({
                 </span>
                 {(() => {
                   const fin = stayFinancials[activeStayPopover.stay.id]
-                  // Only show credit for unpaid EXTENSION charges.
-                  // Initial check-in is assumed paid (Cash).
-                  const extensionCredit = fin
-                    ? fin.unpaidExtensionCredit
-                    : Number((activeStayPopover.stay as any).extension_credit || 0)
-                  return extensionCredit > 0.5 ? (
+                  const balance = fin ? Number(fin.balance || 0) : 0
+                  return balance > 0.5 ? (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                      Credit: {Math.round(extensionCredit).toLocaleString()} ETB
+                      Credit: {Math.round(balance).toLocaleString()} ETB
                     </span>
-                  ) : null
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      Paid ({fin?.method || 'CASH'})
+                    </span>
+                  )
                 })()}
               </div>
               <span className="text-xs text-neutral-400 block mt-0.5">
@@ -1288,6 +1297,29 @@ export function LogbookSheet({
           </div>
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
+            {onRecordPayment && (() => {
+              const fin = stayFinancials[activeStayPopover.stay.id]
+              const balance = fin ? Number(fin.balance || 0) : 0
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRecordPayment(activeStayPopover.stay)
+                    setActiveStayPopover(null)
+                  }}
+                  className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap ${
+                    balance > 0.01
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                  }`}
+                  title={balance > 0.01 ? `Settle outstanding credit (${Math.round(balance)} ETB)` : 'Record payment'}
+                >
+                  <Banknote className="w-3.5 h-3.5" />
+                  <span>{balance > 0.01 ? 'Settle Credit' : 'Record Payment'}</span>
+                </button>
+              )
+            })()}
+
             {onExtendStay && (
               <button
                 type="button"

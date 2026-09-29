@@ -38,6 +38,7 @@ export function CheckOutModal({
   onSuccess,
   onOpenVoidModal,
 }: CheckOutModalProps) {
+  const [initialRoomCredit, setInitialRoomCredit] = useState<number>(0)
   const [extensionCredit, setExtensionCredit] = useState<number>(0)
   const [extensionDays, setExtensionDays] = useState<number>(0)
   const [deadlineHour, setDeadlineHour] = useState<number>(4)
@@ -120,6 +121,17 @@ export function CheckOutModal({
           )
           .reduce((sum, c) => sum + Number(c.amount || 0) * (c.quantity || 1), 0)
 
+        const initialRoomPaid = payments
+          .filter(
+            (p) =>
+              p.status === 'SUCCESS' &&
+              !(p.reference || '').toLowerCase().includes('extension')
+          )
+          .reduce((sum, p) => sum + Number(p.amount || 0), 0)
+
+        const initialUnpaid = Math.max(0, initialRoomCharges - initialRoomPaid)
+        setInitialRoomCredit(initialUnpaid)
+
         const totalSuccessfulPayments = payments
           .filter((p) => p.status === 'SUCCESS')
           .reduce((sum, p) => sum + Number(p.amount || 0), 0)
@@ -141,7 +153,7 @@ export function CheckOutModal({
   }, [stay, isOpen, currentHour, currentMinute])
 
   const activePenalty = (isLate && applyPenalty) ? penaltyRate : 0
-  const totalToCollect = extensionCredit + activePenalty
+  const totalToCollect = initialRoomCredit + extensionCredit + activePenalty
 
   async function handleConfirmCheckout() {
     if (!stay) return
@@ -201,7 +213,25 @@ export function CheckOutModal({
           </div>
         )}
 
-        {/* 1. Unpaid Stay Extension (if any) */}
+        {/* 1. Unpaid Check-In Room Charge (if checked in on credit) */}
+        {!loading && initialRoomCredit > 0 && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold flex items-center gap-1.5 text-amber-900">
+                <CreditCard size={15} className="text-amber-700" />
+                Unpaid Check-In (Credit):
+              </span>
+              <span className="font-extrabold text-sm text-amber-950">
+                ETB {initialRoomCredit.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-amber-800">
+              Guest checked in on credit. Initial room charge must be settled before checkout.
+            </p>
+          </div>
+        )}
+
+        {/* 2. Unpaid Stay Extension (if any) */}
         {!loading && extensionCredit > 0 && (
           <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 text-xs text-amber-950 space-y-1">
             <div className="flex items-center justify-between">
@@ -219,7 +249,7 @@ export function CheckOutModal({
           </div>
         )}
 
-        {/* 2. Optional Late Checkout Penalty Question (Receptionist decides) */}
+        {/* 3. Optional Late Checkout Penalty Question (Receptionist decides) */}
         {!loading && isLate && (
           <div className="p-3.5 rounded-2xl bg-neutral-50 border border-neutral-200 space-y-2.5">
             <div className="flex items-center justify-between text-xs">
@@ -262,7 +292,7 @@ export function CheckOutModal({
           </div>
         )}
 
-        {/* 3. Total to Collect Box (Eliminates mental math) */}
+        {/* 4. Total to Collect Box (Eliminates mental math) */}
         {!loading && totalToCollect > 0 && (
           <div className="p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-rose-800">
@@ -273,11 +303,11 @@ export function CheckOutModal({
                 ETB {totalToCollect.toLocaleString()}
               </span>
               <span className="text-xs text-rose-700 font-medium">
-                {extensionCredit > 0 && activePenalty > 0
-                  ? `(${extensionCredit.toLocaleString()} ext + ${activePenalty.toLocaleString()} penalty)`
-                  : extensionCredit > 0
-                  ? '(unpaid extension)'
-                  : '(late penalty)'}
+                {[
+                  initialRoomCredit > 0 ? `${initialRoomCredit.toLocaleString()} check-in` : null,
+                  extensionCredit > 0 ? `${extensionCredit.toLocaleString()} ext` : null,
+                  activePenalty > 0 ? `${activePenalty.toLocaleString()} penalty` : null,
+                ].filter(Boolean).join(' + ')}
               </span>
             </div>
           </div>

@@ -9,6 +9,7 @@ from app.models.stay import Stay
 from app.models.user import User, UserRole
 from app.repositories.charge import ChargeRepository
 from app.repositories.payment import PaymentRepository
+from app.repositories.stay import StayRepository
 from app.schemas.charge import ChargeCreate, ChargeRead, FinancialSummary
 from app.schemas.payment import ManualPaymentCreate, PaymentRead
 from app.services.payment import (

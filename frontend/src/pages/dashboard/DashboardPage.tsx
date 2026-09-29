@@ -17,6 +17,7 @@ import { RecordExpenseModal } from '../../components/modals/RecordExpenseModal'
 import { CheckOutModal } from '../../components/modals/CheckOutModal'
 import { VoidCheckInModal } from '../../components/modals/VoidCheckInModal'
 import { ExtendStayModal } from '../../components/modals/ExtendStayModal'
+import { RecordPaymentModal } from '../../components/modals/RecordPaymentModal'
 import { DailyManifestModal } from '../../components/modals/DailyManifestModal'
 import { LogbookSheet } from '../../components/logbook/LogbookSheet'
 import { getDailyReport } from '../../api/reports'
@@ -57,6 +58,7 @@ export function DashboardPage() {
   const [checkOutOpen, setCheckOutOpen] = useState(false)
   const [voidCheckInOpen, setVoidCheckInOpen] = useState(false)
   const [extendOpen, setExtendOpen] = useState(false)
+  const [recordPaymentOpen, setRecordPaymentOpen] = useState(false)
   const [selectedRoomId, setSelectedRoomId] = useState<number | undefined>(undefined)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
   const [selectedStay, setSelectedStay] = useState<StayWithGuest | null>(null)
@@ -287,6 +289,11 @@ export function DashboardPage() {
             setSelectedRoomId(stay.room_id)
             setExtendOpen(true)
           }}
+          onRecordPayment={(stay) => {
+            setSelectedStay(stay as StayWithGuest)
+            setSelectedRoomId(stay.room_id)
+            setRecordPaymentOpen(true)
+          }}
           onRefresh={() => fetchDashboardData()}
         />
       )}
@@ -319,6 +326,18 @@ export function DashboardPage() {
       <RecordExpenseModal
         isOpen={expenseOpen}
         onClose={() => setExpenseOpen(false)}
+        onSuccess={() => fetchDashboardData()}
+      />
+
+      <RecordPaymentModal
+        isOpen={recordPaymentOpen}
+        onClose={() => {
+          setRecordPaymentOpen(false)
+          setSelectedStay(null)
+        }}
+        stayId={selectedStay?.id || null}
+        guestName={selectedStay?.guest?.full_name}
+        roomNumber={rooms.find((r) => r.id === selectedStay?.room_id)?.room_number}
         onSuccess={() => fetchDashboardData()}
       />
 

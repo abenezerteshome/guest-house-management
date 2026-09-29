@@ -81,6 +81,6 @@ app.add_middleware(
 app.include_router(api_router)
 
 
-@app.get("/health", tags=["system"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["system"])
 async def health() -> dict[str, str]:
 	return {"status": "ok"}

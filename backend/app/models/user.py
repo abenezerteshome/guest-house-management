@@ -6,6 +6,7 @@ from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, String, f
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.models.property import Property
 
 
 class UserRole(StrEnum):

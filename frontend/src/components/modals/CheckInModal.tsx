@@ -231,6 +231,7 @@ export function CheckInModal({
           })
         } catch (payErr) {
           console.error('Check-in was successful but recording payment failed:', payErr)
+          alert('Check-in was created, but recording payment failed: ' + getApiError(payErr, 'Payment error'))
         }
       }
 
