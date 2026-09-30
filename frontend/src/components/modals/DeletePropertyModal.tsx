@@ -68,7 +68,7 @@ export function DeletePropertyModal({
           </div>
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-rose-950">
-              Delete {property.name}?
+              Are you sure you want to delete {property.name}?
             </h4>
             <p className="text-xs text-rose-700 leading-relaxed">
               This action cannot be undone. All rooms, reservations, and accounts for this property will be removed.
@@ -136,7 +136,7 @@ export function DeletePropertyModal({
             className="gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete Property</span>
+            <span>Yes, Delete Property</span>
           </Button>
         </div>
       </div>

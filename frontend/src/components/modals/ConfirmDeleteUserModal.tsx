@@ -55,7 +55,7 @@ export function ConfirmDeleteUserModal({
           </div>
           <div className="space-y-1">
             <h4 className="text-sm font-bold text-rose-950">
-              Delete user @{user.username}?
+              Are you sure you want to delete user @{user.username}?
             </h4>
             <p className="text-xs text-rose-700 leading-relaxed">
               Delete account for <span className="font-semibold text-rose-950">{user.full_name}</span>? This action cannot be undone.
@@ -87,7 +87,7 @@ export function ConfirmDeleteUserModal({
             className="gap-2"
           >
             <Trash2 className="w-4 h-4" />
-            <span>Delete</span>
+            <span>Yes, Delete User</span>
           </Button>
         </div>
       </div>

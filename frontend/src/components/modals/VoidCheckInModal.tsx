@@ -415,35 +415,35 @@ export function VoidCheckInModal({
         </div>
 
         {/* Caution Notice */}
-        <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-xs text-amber-800">
-          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
-          <div className="text-[11px] leading-relaxed">
-            This action cannot be undone.
+        <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-rose-50 border border-rose-200">
+          <div className="w-9 h-9 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-rose-950">
+              Are you sure you want to void and cancel this check-in?
+            </h4>
+            <p className="text-xs text-rose-700 mt-1">
+              Room {cleanRoom ? cleanRoom : `#${stay.room_id}`} will immediately be released to {roomCondition === 'AVAILABLE' ? 'Available' : 'Cleaning'}, all stay charges will be voided, and any processed refund will be recorded. This action cannot be undone.
+            </p>
           </div>
         </div>
 
         {/* Modal Actions */}
         <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-200">
-          <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-            Cancel
+          <Button type="button" variant="outline" onClick={onClose} disabled={submitting} className="rounded-xl">
+            Keep Stay
           </Button>
-          <button
+          <Button
             type="submit"
+            variant="danger"
             disabled={submitting}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-xl transition shadow-xs"
+            loading={submitting}
+            leftIcon={<XCircle className="w-4 h-4" />}
+            className="rounded-xl font-bold"
           >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Voiding Check-In...</span>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-4 h-4" />
-                <span>Void Check-In</span>
-              </>
-            )}
-          </button>
+            Yes, Void & Cancel Check-In
+          </Button>
         </div>
       </form>
     </Modal>

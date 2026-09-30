@@ -59,10 +59,10 @@ export function ConfirmDeleteExpenseModal({
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-sm font-bold text-rose-950">
-              Delete expense #{expense.id}?
+              Are you sure you want to delete this expense record?
             </h4>
             <p className="text-xs text-rose-700 mt-1">
-              Delete this expense of{' '}
+              Delete expense #{expense.id} of{' '}
               <strong className="font-semibold text-rose-900">
                 {Number(expense.amount).toLocaleString()} ETB
               </strong>
@@ -122,7 +122,7 @@ export function ConfirmDeleteExpenseModal({
             className="gap-1.5"
           >
             <Trash2 size={13} />
-            Delete
+            Yes, Delete Expense
           </Button>
         </div>
       </div>

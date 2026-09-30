@@ -58,12 +58,12 @@ export function ConfirmDeleteModal({
           </div>
           <div>
             <h4 className="text-sm font-bold text-rose-950">
-              Delete Room {room.room_number}?
+              Are you sure you want to delete Room {room.room_number}?
             </h4>
             <p className="text-xs text-rose-700 mt-1">
               {isOccupied
                 ? 'This room is currently occupied. Check out the guest before deleting.'
-                : 'This action cannot be undone.'}
+                : 'This action cannot be undone. All history associated with this room may be affected.'}
             </p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export function ConfirmDeleteModal({
             leftIcon={<Trash2 size={13} />}
             onClick={handleDelete}
           >
-            Delete
+            Yes, Delete Room
           </Button>
         </div>
       </div>

@@ -24,6 +24,7 @@ import { Avatar } from '../../components/common/Avatar'
 import { ReservationCard } from '../../components/reservations/ReservationCard'
 import { ReservationModal } from '../../components/modals/ReservationModal'
 import { CheckInModal } from '../../components/modals/CheckInModal'
+import { ConfirmCancelReservationModal } from '../../components/modals/ConfirmCancelReservationModal'
 import {
   getReservations,
   cancelReservation,
@@ -89,6 +90,16 @@ export function ReservationsPage() {
   const [checkInModalOpen, setCheckInModalOpen] = useState(false)
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
 
+  const [cancelModalState, setCancelModalState] = useState<{
+    isOpen: boolean
+    reservation: Reservation | null
+    type: 'cancel' | 'no-show'
+  }>({
+    isOpen: false,
+    reservation: null,
+    type: 'cancel',
+  })
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
@@ -120,32 +131,50 @@ export function ReservationsPage() {
     setCheckInModalOpen(true)
   }
 
-  async function handleCancel(resId: number) {
-    if (!confirm('Cancel this reservation? The room will be released.')) return
-    setActionLoading({ id: resId, type: 'cancel' })
-    try {
-      await cancelReservation(resId)
-      fetchData()
-    } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to cancel reservation.'
-      alert(msg)
-    } finally {
-      setActionLoading(null)
-    }
+  function handleCancelPrompt(resIdOrRes: number | Reservation) {
+    const res =
+      typeof resIdOrRes === 'number'
+        ? reservations.find((r) => r.id === resIdOrRes) || null
+        : resIdOrRes
+    if (!res) return
+    setCancelModalState({
+      isOpen: true,
+      reservation: res,
+      type: 'cancel',
+    })
   }
 
-  async function handleNoShow(resId: number) {
-    if (!confirm('Mark reservation as no-show? The room will be released.')) return
-    setActionLoading({ id: resId, type: 'no-show' })
+  function handleNoShowPrompt(resIdOrRes: number | Reservation) {
+    const res =
+      typeof resIdOrRes === 'number'
+        ? reservations.find((r) => r.id === resIdOrRes) || null
+        : resIdOrRes
+    if (!res) return
+    setCancelModalState({
+      isOpen: true,
+      reservation: res,
+      type: 'no-show',
+    })
+  }
+
+  async function handleConfirmCancelOrNoShow() {
+    const res = cancelModalState.reservation
+    if (!res) return
+
+    const isCancel = cancelModalState.type === 'cancel'
+    setActionLoading({ id: res.id, type: cancelModalState.type })
     try {
-      await markReservationNoShow(resId)
+      if (isCancel) {
+        await cancelReservation(res.id)
+      } else {
+        await markReservationNoShow(res.id)
+      }
+      setCancelModalState({ isOpen: false, reservation: null, type: 'cancel' })
       fetchData()
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
-        'Failed to mark no-show.'
+        `Failed to ${isCancel ? 'cancel reservation' : 'mark no-show'}.`
       alert(msg)
     } finally {
       setActionLoading(null)
@@ -396,7 +425,7 @@ export function ReservationsPage() {
                 leftIcon={<X className="w-3.5 h-3.5" />}
                 isLoading={isActionLoading && actionLoading?.type === 'cancel'}
                 disabled={isActionLoading}
-                onClick={() => handleCancel(r.id)}
+                onClick={() => handleCancelPrompt(r)}
                 className="text-neutral-600 hover:text-rose-600"
               >
                 Cancel
@@ -407,7 +436,7 @@ export function ReservationsPage() {
                 leftIcon={<Ban className="w-3.5 h-3.5" />}
                 isLoading={isActionLoading && actionLoading?.type === 'no-show'}
                 disabled={isActionLoading}
-                onClick={() => handleNoShow(r.id)}
+                onClick={() => handleNoShowPrompt(r)}
                 className="text-neutral-400 hover:text-amber-600"
               >
                 No-Show
@@ -621,8 +650,8 @@ export function ReservationsPage() {
                 guest={guestMap.get(r.guest_id)}
                 room={roomMap.get(r.room_id)}
                 onCheckIn={handleCheckIn}
-                onCancel={handleCancel}
-                onNoShow={handleNoShow}
+                onCancel={handleCancelPrompt}
+                onNoShow={handleNoShowPrompt}
                 actionLoading={actionLoading}
               />
             ))}
@@ -663,6 +692,17 @@ export function ReservationsPage() {
         selectedRoomId={selectedReservation?.room_id}
         existingReservation={selectedReservation}
         onSuccess={() => fetchData()}
+      />
+
+      <ConfirmCancelReservationModal
+        isOpen={cancelModalState.isOpen}
+        onClose={() => setCancelModalState({ isOpen: false, reservation: null, type: 'cancel' })}
+        onConfirm={handleConfirmCancelOrNoShow}
+        reservation={cancelModalState.reservation}
+        guestName={cancelModalState.reservation ? guestMap.get(cancelModalState.reservation.guest_id)?.full_name : undefined}
+        roomNumber={cancelModalState.reservation ? roomMap.get(cancelModalState.reservation.room_id)?.room_number : undefined}
+        actionType={cancelModalState.type}
+        loading={Boolean(actionLoading && actionLoading.id === cancelModalState.reservation?.id)}
       />
     </div>
   )
