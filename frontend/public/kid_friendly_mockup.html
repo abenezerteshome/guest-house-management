@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ultra-Simple Front Desk Mockup — Family Guest House</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=Noto+Sans+Ethiopic:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', 'Noto Sans Ethiopic', -apple-system, sans-serif;
+      background-color: #F1F5F9;
+    }
+    .amharic {
+      font-family: 'Noto Sans Ethiopic', sans-serif;
+    }
+  </style>
+</head>
+<body class="p-4 sm:p-8 text-slate-800 antialiased min-h-screen">
+  <div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Top Reception Board Header -->
+    <header class="bg-white p-5 sm:p-6 rounded-3xl border-2 border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3.5">
+        <div class="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-rose-200">
+          🏨
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Family Guest House</h1>
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase">Live Reception</span>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+            Front Desk Room Board &bull; <span class="amharic text-slate-700 font-bold">የመስተንግዶ ክፍል ሰሌዳ</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Glance High-Contrast Status Counters (Universal Recognition) -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <!-- Available Count -->
+        <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-emerald-900">
+          <span class="w-4 h-4 rounded-full bg-emerald-500 shrink-0 shadow-sm"></span>
+          <div>
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Free / ክፍት</div>
+            <div class="text-xl font-black leading-tight">6 Rooms</div>
+          </div>
+        </div>
+
+        <!-- Occupied Count -->
+        <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-900">
+          <span class="w-4 h-4 rounded-full bg-rose-500 shrink-0 shadow-sm"></span>
+          <div>
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-rose-700">Taken / ተይዟል</div>
+            <div class="text-xl font-black leading-tight">4 Rooms</div>
+          </div>
+        </div>
+
+        <!-- Cleaning Count -->
+        <div class="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900">
+          <span class="w-4 h-4 rounded-full bg-amber-500 shrink-0 shadow-sm"></span>
+          <div>
+            <div class="text-[10px] font-extrabold uppercase tracking-wider text-amber-700">Cleaning / ጽዳት</div>
+            <div class="text-xl font-black leading-tight">1 Room</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Concept Explanation Banner -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-4 sm:p-5 rounded-2xl text-white shadow-md flex items-center justify-between gap-4 flex-wrap">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl">💡</span>
+        <div>
+          <h2 class="text-base sm:text-lg font-black tracking-tight">The 3-Color "Key Rack" Design Rule:</h2>
+          <p class="text-xs sm:text-sm text-blue-100 mt-0.5">
+            🟢 <strong>GREEN</strong> = Room is empty &rarr; One button: <strong>CHECK IN (አስገባ)</strong> &bull; 
+            🔴 <strong>RED</strong> = Guest inside &rarr; One button: <strong>CHECK OUT (አስወጣ)</strong>
+          </p>
+        </div>
+      </div>
+      <div class="px-3 py-1.5 rounded-xl bg-white/20 backdrop-blur-xs text-xs font-bold shrink-0">
+        No Training Needed
+      </div>
+    </div>
+
+    <!-- The Room Grid (Digital Key Rack) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- ================= 1. ROOM 101: AVAILABLE ================= -->
+      <div class="bg-white rounded-3xl border-3 border-emerald-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden group">
+        <!-- Top Status Bar -->
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-emerald-700">AVAILABLE &bull; ክፍት</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+            1,200 ETB / night
+          </span>
+        </div>
+
+        <!-- Room Number Centerpiece -->
+        <div class="my-4 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">101</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Ground Floor</p>
+        </div>
+
+        <!-- Visual State Details -->
+        <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 mb-5 text-center">
+          <span class="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Clean & Ready for Guest
+          </span>
+        </div>
+
+        <!-- Primary Action Button: BIG, TOUCH-FRIENDLY -->
+        <button onclick="openCheckIn('101', 1200)" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-base shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">🔑</span>
+          <span>CHECK IN</span>
+          <span class="amharic opacity-90 text-sm font-bold">(አስገባ)</span>
+        </button>
+      </div>
+
+      <!-- ================= 2. ROOM 102: OCCUPIED ================= -->
+      <div class="bg-white rounded-3xl border-3 border-rose-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden">
+        <!-- Top Status Bar -->
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-rose-500"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-rose-700">OCCUPIED &bull; ተይዟል</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-black">
+            2 Nights
+          </span>
+        </div>
+
+        <!-- Room Number Centerpiece -->
+        <div class="my-2 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">102</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Ground Floor</p>
+        </div>
+
+        <!-- Guest Information Box (Pictograms) -->
+        <div class="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 mb-5 space-y-1.5">
+          <div class="flex items-center gap-2 text-slate-900 font-extrabold text-sm truncate">
+            <span class="text-base">👤</span>
+            <span class="truncate">Abebe Kebede</span>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-600 font-semibold">
+            <span class="flex items-center gap-1.5">
+              <span>📞</span> 0911-23-45-67
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-black">
+              PAID &bull; ተከፍሏል
+            </span>
+          </div>
+        </div>
+
+        <!-- Primary Action Button: BIG, TOUCH-FRIENDLY -->
+        <button onclick="confirmCheckout('102', 'Abebe Kebede')" class="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-black text-base shadow-lg shadow-rose-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">🚪</span>
+          <span>CHECK OUT</span>
+          <span class="amharic opacity-90 text-sm font-bold">(አስወጣ)</span>
+        </button>
+      </div>
+
+      <!-- ================= 3. ROOM 103: CLEANING ================= -->
+      <div class="bg-white rounded-3xl border-3 border-amber-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden">
+        <!-- Top Status Bar -->
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-amber-500"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-amber-700">CLEANING &bull; ጽዳት</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-black">
+            Housekeeping
+          </span>
+        </div>
+
+        <!-- Room Number Centerpiece -->
+        <div class="my-4 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">103</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Ground Floor</p>
+        </div>
+
+        <!-- Visual State Details -->
+        <div class="p-3 rounded-2xl bg-amber-50 border border-amber-200 mb-5 text-center">
+          <span class="text-xs font-bold text-amber-900 flex items-center justify-center gap-1.5">
+            <span class="text-base">🧹</span>
+            <span>Sheets being changed</span>
+          </span>
+        </div>
+
+        <!-- Primary Action Button: BIG, TOUCH-FRIENDLY -->
+        <button onclick="markReady('103')" class="w-full py-4 rounded-2xl bg-amber-500 hover:bg-amber-600 active:scale-[0.98] text-slate-950 font-black text-base shadow-lg shadow-amber-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">✨</span>
+          <span>MAKE READY</span>
+          <span class="amharic opacity-90 text-sm font-bold">(ዝግጁ አድርግ)</span>
+        </button>
+      </div>
+
+      <!-- ================= 4. ROOM 201: AVAILABLE ================= -->
+      <div class="bg-white rounded-3xl border-3 border-emerald-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-emerald-700">AVAILABLE &bull; ክፍት</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+            1,500 ETB / night
+          </span>
+        </div>
+
+        <div class="my-4 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">201</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">1st Floor &bull; Balcony</p>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 mb-5 text-center">
+          <span class="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Clean & Ready for Guest
+          </span>
+        </div>
+
+        <button onclick="openCheckIn('201', 1500)" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-base shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">🔑</span>
+          <span>CHECK IN</span>
+          <span class="amharic opacity-90 text-sm font-bold">(አስገባ)</span>
+        </button>
+      </div>
+
+      <!-- ================= 5. ROOM 202: OCCUPIED (BALANCE DUE) ================= -->
+      <div class="bg-white rounded-3xl border-3 border-rose-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-rose-500"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-rose-700">OCCUPIED &bull; ተይዟል</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-black">
+            1 Night
+          </span>
+        </div>
+
+        <div class="my-2 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">202</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">1st Floor</p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-rose-50/70 border border-rose-200/80 mb-5 space-y-1.5">
+          <div class="flex items-center gap-2 text-slate-900 font-extrabold text-sm truncate">
+            <span class="text-base">👤</span>
+            <span class="truncate">Sara Tadesse</span>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-600 font-semibold">
+            <span class="flex items-center gap-1.5">
+              <span>📞</span> 0922-88-99-00
+            </span>
+            <span class="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 text-[10px] font-black">
+              OWES 500 ETB &bull; እዳ
+            </span>
+          </div>
+        </div>
+
+        <button onclick="confirmCheckout('202', 'Sara Tadesse', 500)" class="w-full py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 active:scale-[0.98] text-white font-black text-base shadow-lg shadow-rose-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">🚪</span>
+          <span>CHECK OUT</span>
+          <span class="amharic opacity-90 text-sm font-bold">(አስወጣ)</span>
+        </button>
+      </div>
+
+      <!-- ================= 6. ROOM 203: AVAILABLE ================= -->
+      <div class="bg-white rounded-3xl border-3 border-emerald-400 p-5 shadow-md hover:shadow-lg transition-all flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-black tracking-wider uppercase text-emerald-700">AVAILABLE &bull; ክፍት</span>
+          </div>
+          <span class="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black">
+            1,200 ETB / night
+          </span>
+        </div>
+
+        <div class="my-4 text-center">
+          <div class="text-5xl sm:text-6xl font-black text-slate-900 tracking-tight">203</div>
+          <p class="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">1st Floor</p>
+        </div>
+
+        <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 mb-5 text-center">
+          <span class="text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            Clean & Ready for Guest
+          </span>
+        </div>
+
+        <button onclick="openCheckIn('203', 1200)" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-base shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <span class="text-lg">🔑</span>
+          <span>CHECK IN</span>
+          <span class="amharic opacity-90 text-sm font-bold">(አስገባ)</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Quick Check-In Modal Simulation (Super simple, 3 fields only) -->
+    <div id="checkInModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex items-center gap-3">
+            <span class="text-3xl">🔑</span>
+            <div>
+              <h3 class="text-xl font-black text-slate-900">Check In Room <span id="modalRoomNum">101</span></h3>
+              <p class="text-xs font-bold text-emerald-700 amharic">እንግዳ አስገባ</p>
+            </div>
+          </div>
+          <button onclick="closeModal()" class="w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-lg">&times;</button>
+        </div>
+
+        <!-- 3 Big Simple Fields -->
+        <div class="space-y-4">
+          <!-- 1. Guest Name -->
+          <div>
+            <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <span>👤</span>
+              <span>Guest Name &bull; <span class="amharic text-slate-500 font-bold">የእንግዳው ስም</span></span>
+            </label>
+            <input type="text" id="guestNameInput" placeholder="e.g. Abebe Kebede" class="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-emerald-500 focus:bg-white text-base font-bold text-slate-900 outline-none transition" />
+          </div>
+
+          <!-- 2. Phone -->
+          <div>
+            <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <span>📞</span>
+              <span>Phone Number &bull; <span class="amharic text-slate-500 font-bold">ስልክ ቁጥር</span></span>
+            </label>
+            <input type="tel" id="guestPhoneInput" placeholder="0911..." class="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border-2 border-slate-200 focus:border-emerald-500 focus:bg-white text-base font-bold text-slate-900 outline-none transition" />
+          </div>
+
+          <!-- 3. Nights Stepper (Touch friendly: [-] 1 [+]) -->
+          <div>
+            <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <span>🌙</span>
+              <span>How Many Nights? &bull; <span class="amharic text-slate-500 font-bold">ስንት ቀን ያድራል?</span></span>
+            </label>
+            <div class="flex items-center gap-3">
+              <button onclick="changeNights(-1)" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-black text-2xl flex items-center justify-center border border-slate-300">-</button>
+              <div class="flex-1 text-center py-3 rounded-2xl bg-slate-50 border-2 border-slate-200 font-black text-2xl text-slate-900" id="nightsCountDisplay">1 Night</div>
+              <button onclick="changeNights(1)" class="w-14 h-14 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 font-black text-2xl flex items-center justify-center border border-slate-300">+</button>
+            </div>
+          </div>
+
+          <!-- Auto-Calculated Cash Amount in HUGE Numbers -->
+          <div class="p-4 rounded-2xl bg-emerald-50 border-2 border-emerald-300 text-center">
+            <span class="text-xs font-extrabold text-emerald-800 uppercase tracking-wider block">Total Cash to Collect &bull; የሚከፈል</span>
+            <span class="text-3xl font-black text-emerald-900 mt-0.5 block" id="totalPriceDisplay">1,200 ETB</span>
+          </div>
+        </div>
+
+        <!-- Big Confirm Button -->
+        <button onclick="saveCheckIn()" class="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-black text-lg shadow-xl shadow-emerald-200 transition flex items-center justify-center gap-2 cursor-pointer">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          <span>CONFIRM & PRINT KEY (ጨርስ)</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let activePrice = 1200;
+    let nights = 1;
+
+    function openCheckIn(roomNum, price) {
+      activePrice = price;
+      nights = 1;
+      document.getElementById('modalRoomNum').innerText = roomNum;
+      updateTotal();
+      document.getElementById('checkInModal').classList.remove('hidden');
+      document.getElementById('guestNameInput').focus();
+    }
+
+    function closeModal() {
+      document.getElementById('checkInModal').classList.add('hidden');
+    }
+
+    function changeNights(delta) {
+      nights = Math.max(1, nights + delta);
+      document.getElementById('nightsCountDisplay').innerText = nights + (nights === 1 ? ' Night' : ' Nights');
+      updateTotal();
+    }
+
+    function updateTotal() {
+      const total = activePrice * nights;
+      document.getElementById('totalPriceDisplay').innerText = total.toLocaleString() + ' ETB';
+    }
+
+    function saveCheckIn() {
+      const name = document.getElementById('guestNameInput').value || 'Guest';
+      alert('✅ Room ' + document.getElementById('modalRoomNum').innerText + ' checked in for ' + name + '!');
+      closeModal();
+    }
+
+    function confirmCheckout(roomNum, guestName, debt) {
+      if (debt) {
+        alert('⚠️ Room ' + roomNum + ' (' + guestName + ') has an unpaid balance of ' + debt + ' ETB. Collect before releasing key!');
+      } else {
+        alert('🚪 Room ' + roomNum + ' (' + guestName + ') checked out! Room now sent to Cleaning.');
+      }
+    }
+
+    function markReady(roomNum) {
+      alert('✨ Room ' + roomNum + ' is cleaned and now Green (Available)!');
+    }
+  </script>
+</body>
+</html>

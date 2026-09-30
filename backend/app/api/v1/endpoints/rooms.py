@@ -15,7 +15,10 @@ router = APIRouter(prefix="/rooms", tags=["rooms"])
 
 async def get_room_or_404(room_id: int, current_user: User, session: AsyncSession) -> Room:
 	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
-	room = await RoomRepository(session, property_id=prop_id).get_by_id(room_id)
+	repo = RoomRepository(session, property_id=prop_id)
+	await repo.release_expired_cleaning()
+	await repo.release_overdue_expected_rooms()
+	room = await repo.get_by_id(room_id)
 	if room is None:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
 	return room
@@ -31,6 +34,7 @@ async def list_rooms(
 	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
 	repo = RoomRepository(session, property_id=prop_id)
 	await repo.release_expired_cleaning()
+	await repo.release_overdue_expected_rooms()
 	return await repo.list(
 		status=room_status.value if room_status is not None else None,
 		is_active=is_active,

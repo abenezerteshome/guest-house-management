@@ -68,3 +68,28 @@ class RoomRepository:
 		result = await self.session.execute(stmt)
 		await self.session.commit()
 		return result.rowcount
+
+	async def release_overdue_expected_rooms(self) -> int:
+		"""Transition rooms from EXPECTED → AVAILABLE if their reservation date has passed without check-in."""
+		from app.models.reservation import Reservation, ReservationStatus
+
+		now = datetime.now(timezone.utc)
+		upcoming_reservations = (
+			select(Reservation.room_id)
+			.where(Reservation.status == ReservationStatus.RESERVED.value)
+			.where(Reservation.expected_arrival > now)
+		)
+		if self.property_id is not None:
+			upcoming_reservations = upcoming_reservations.where(Reservation.property_id == self.property_id)
+
+		stmt = (
+			update(Room)
+			.where(Room.status == RoomStatus.EXPECTED.value)
+			.where(Room.id.not_in(upcoming_reservations))
+			.values(status=RoomStatus.AVAILABLE.value)
+		)
+		if self.property_id is not None:
+			stmt = stmt.where(Room.property_id == self.property_id)
+		result = await self.session.execute(stmt)
+		await self.session.commit()
+		return result.rowcount

@@ -12,6 +12,7 @@ from app.models.payment import Payment, PaymentMethod, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
+from app.repositories.room import RoomRepository
 from app.schemas.reports import (
 	DailyManifestItem,
 	DailyManifestReport,
@@ -75,6 +76,9 @@ async def get_daily_report(
 	all_time_expenses = Decimal(str((await session.execute(all_time_expense_stmt)).scalar() or "0.00"))
 
 	# 3. Room Status Counts
+	room_repo = RoomRepository(session, property_id=property_id)
+	await room_repo.release_expired_cleaning()
+	await room_repo.release_overdue_expected_rooms()
 	rooms_stmt = select(Room.status, func.count(Room.id)).where(Room.is_active.is_(True))
 	if property_id is not None:
 		rooms_stmt = rooms_stmt.where(Room.property_id == property_id)

@@ -9,6 +9,7 @@ from app.models.reservation import Reservation, ReservationStatus
 from app.models.stay import Stay
 from app.models.user import User, UserRole
 from app.repositories.reservation import ReservationRepository
+from app.repositories.room import RoomRepository
 from app.schemas.reservation import ReservationCreate, ReservationRead, ReservationUpdate
 from app.schemas.stay import StayRead
 from app.services.reservation import (
@@ -55,6 +56,9 @@ async def list_reservations(
 	session: AsyncSession = Depends(get_db),
 ) -> list[Reservation]:
 	prop_id = None if current_user.role == UserRole.SUPER_ADMIN else current_user.property_id
+	room_repo = RoomRepository(session, property_id=prop_id)
+	await room_repo.release_expired_cleaning()
+	await room_repo.release_overdue_expected_rooms()
 	return await ReservationRepository(session, property_id=prop_id).list(
 		status=reservation_status.value if reservation_status else None,
 		room_id=room_id,

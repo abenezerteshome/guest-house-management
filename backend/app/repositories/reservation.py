@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.reservation import Reservation, ReservationStatus
@@ -53,10 +53,20 @@ class ReservationRepository:
 		checkout: datetime,
 		exclude_id: int | None = None,
 	) -> bool:
+		now = datetime.now(timezone.utc)
+		# Overdue reservations where the guest never checked in on the reserved arrival date
+		# do not block new bookings once the room has been freed.
+		active_conflict_condition = or_(
+			Reservation.status == ReservationStatus.CHECKED_IN.value,
+			and_(
+				Reservation.status == ReservationStatus.RESERVED.value,
+				Reservation.expected_arrival >= now,
+			),
+		)
 		query = select(Reservation.id).where(
 			and_(
 				Reservation.room_id == room_id,
-				Reservation.status.in_(ACTIVE_RESERVATION_STATUSES),
+				active_conflict_condition,
 				Reservation.expected_arrival < checkout,
 				Reservation.expected_checkout > arrival,
 			)
