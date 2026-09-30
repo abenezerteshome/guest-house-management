@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { KeyRound, ShieldAlert, UserCheck, Banknote } from 'lucide-react'
+import { KeyRound, ShieldAlert, UserCheck, Banknote, CheckCircle2 } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
@@ -147,6 +147,11 @@ export function CheckInModal({
   const totalRoomCharge = stayNights * roomPricePerNight
   const durationDescription = `${stayNights} Night${stayNights > 1 ? 's' : ''} (${stayNights} × ETB ${roomPricePerNight.toLocaleString()})`
 
+  // Advance deposit from existing reservation
+  const advanceDeposit = activeReservation?.deposit_amount ? Number(activeReservation.deposit_amount) : 0
+  const remainingDue = Math.max(0, totalRoomCharge - advanceDeposit)
+  const isFullyPrepaid = advanceDeposit > 0 && remainingDue === 0
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!roomId) {
@@ -216,16 +221,16 @@ export function CheckInModal({
         stay = await checkInReservation(reservation.id)
       }
 
-      // Record payment immediately if not on credit
-      if (stay && receivedVia !== 'CREDIT' && totalRoomCharge > 0) {
+      // Record payment immediately if not on credit and remaining balance > 0
+      if (stay && receivedVia !== 'CREDIT' && remainingDue > 0) {
         try {
           const paymentRef =
             receivedVia === 'OTHER'
-              ? `Check-in payment (Other: ${bankName.trim()})`
-              : `Check-in payment (${receivedVia})`
+              ? `Check-in balance payment (Other: ${bankName.trim()})`
+              : `Check-in balance payment (${receivedVia})`
           await recordManualPayment({
             stay_id: stay.id,
-            amount: totalRoomCharge,
+            amount: remainingDue,
             payment_method: receivedVia,
             reference: paymentRef,
           })
@@ -328,7 +333,7 @@ export function CheckInModal({
             <div className="flex items-center gap-2">
               <Banknote size={16} className="text-emerald-600" />
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
-                Payment Method
+                Payment & Billing
               </span>
             </div>
             <span className="text-xs font-bold text-neutral-800 bg-neutral-100 px-3 py-1 rounded-lg border border-neutral-200">
@@ -336,62 +341,99 @@ export function CheckInModal({
             </span>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-              Payment Method *
-            </label>
-            <select
-              value={receivedVia}
-              onChange={(e) =>
-                setReceivedVia(e.target.value as ReceivedViaMethod)
-              }
-              className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 focus:outline-none focus:border-neutral-900"
-              required
-            >
-              <option value="CASH">Cash</option>
-              <option value="TELEBIRR">Telebirr</option>
-              <option value="CBE_BIRR">CBE Birr</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
-              <option value="OTHER">Other</option>
-              <option value="CREDIT">On Credit</option>
-            </select>
-          </div>
-
-          {receivedVia === 'OTHER' && (
-            <div>
-              <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
-                Bank Name *
-              </label>
-              <Input
-                placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
-                value={bankName}
-                onChange={(e) => setBankName(e.target.value)}
-                required
-                autoFocus
-              />
+          {/* Advance Deposit credit breakdown if present */}
+          {advanceDeposit > 0 && (
+            <div className="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2 text-xs">
+              <div className="flex items-center justify-between text-emerald-950">
+                <span>Total Stay Charges:</span>
+                <span className="font-semibold">ETB {totalRoomCharge.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center justify-between text-emerald-800 font-medium">
+                <span>
+                  Advance Deposit Paid ({activeReservation?.deposit_method || 'Deposit'}
+                  {activeReservation?.deposit_reference ? ` • ${activeReservation.deposit_reference}` : ''}):
+                </span>
+                <span className="font-bold text-emerald-700">- ETB {advanceDeposit.toLocaleString()}</span>
+              </div>
+              <div className="pt-1.5 border-t border-emerald-200 flex items-center justify-between">
+                <span className="font-bold text-neutral-900">Remaining Balance Due:</span>
+                <span className="font-bold text-sm text-neutral-900 font-mono">
+                  ETB {remainingDue.toLocaleString()}
+                </span>
+              </div>
             </div>
           )}
 
-          {receivedVia === 'CREDIT' ? (
-            <p className="text-[11px] text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
-              Room charge of ETB {totalRoomCharge.toLocaleString()} will remain on credit to be settled at checkout.
-            </p>
+          {isFullyPrepaid ? (
+            <div className="p-3.5 rounded-xl bg-emerald-100/70 border border-emerald-300 text-xs text-emerald-900 flex items-start gap-2.5">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-emerald-950">Fully Prepaid in Advance</p>
+                <p className="text-emerald-800 text-[11px] mt-0.5">
+                  The advance deposit of ETB {advanceDeposit.toLocaleString()} covers the full stay charge. No additional payment collection is required at check-in.
+                </p>
+              </div>
+            </div>
           ) : (
-            <p className="text-[11px] text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
-              Payment of ETB {totalRoomCharge.toLocaleString()} will be recorded as received via {
-                receivedVia === 'CASH'
-                  ? 'Cash'
-                  : receivedVia === 'TELEBIRR'
-                  ? 'Telebirr'
-                  : receivedVia === 'CBE_BIRR'
-                  ? 'CBE Birr'
-                  : receivedVia === 'BANK_TRANSFER'
-                  ? 'Bank Transfer'
-                  : bankName.trim()
-                  ? bankName.trim()
-                  : 'Other Bank'
-              }.
-            </p>
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                  {advanceDeposit > 0 ? 'Pay Remaining Balance Via *' : 'Received Via *'}
+                </label>
+                <select
+                  value={receivedVia}
+                  onChange={(e) =>
+                    setReceivedVia(e.target.value as ReceivedViaMethod)
+                  }
+                  className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 focus:outline-none focus:border-neutral-900"
+                  required
+                >
+                  <option value="CASH">Cash</option>
+                  <option value="TELEBIRR">Telebirr</option>
+                  <option value="CBE_BIRR">CBE Birr</option>
+                  <option value="BANK_TRANSFER">Bank Transfer</option>
+                  <option value="OTHER">Other</option>
+                  <option value="CREDIT">On Credit</option>
+                </select>
+              </div>
+
+              {receivedVia === 'OTHER' && (
+                <div>
+                  <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                    Bank Name *
+                  </label>
+                  <Input
+                    placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </div>
+              )}
+
+              {receivedVia === 'CREDIT' ? (
+                <p className="text-[11px] text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                  Remaining balance of ETB {remainingDue.toLocaleString()} will remain on credit to be settled at checkout.
+                </p>
+              ) : (
+                <p className="text-[11px] text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                  Payment of ETB {remainingDue.toLocaleString()} will be recorded as received via {
+                    receivedVia === 'CASH'
+                      ? 'Cash'
+                      : receivedVia === 'TELEBIRR'
+                      ? 'Telebirr'
+                      : receivedVia === 'CBE_BIRR'
+                      ? 'CBE Birr'
+                      : receivedVia === 'BANK_TRANSFER'
+                      ? 'Bank Transfer'
+                      : bankName.trim()
+                      ? bankName.trim()
+                      : 'Other Bank'
+                  }.
+                </p>
+              )}
+            </>
           )}
         </div>
 

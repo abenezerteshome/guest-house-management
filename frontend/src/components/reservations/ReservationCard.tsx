@@ -184,11 +184,25 @@ export function ReservationCard({
         </div>
 
         {Number(r.expected_amount) > 0 && (
-          <div className="mt-2 pt-1.5 border-t border-[#EAE4DC] flex items-center justify-between text-[11px]">
-            <span className="text-neutral-500">Rate</span>
-            <span className="font-bold text-neutral-900">
-              ETB {Number(r.expected_amount).toLocaleString()}
-            </span>
+          <div className="mt-2 pt-1.5 border-t border-[#EAE4DC] space-y-1 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="text-neutral-500">Total Rate</span>
+              <span className="font-bold text-neutral-900">
+                ETB {Number(r.expected_amount).toLocaleString()}
+              </span>
+            </div>
+            {Number(r.deposit_amount) > 0 && (
+              <div className="flex items-center justify-between text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-semibold">
+                <span>Deposit ({r.deposit_method || 'Paid'}):</span>
+                <span>
+                  {Number(r.deposit_amount) >= Number(r.expected_amount) ? (
+                    '✓ Fully Prepaid'
+                  ) : (
+                    `ETB ${Number(r.deposit_amount).toLocaleString()} • Due: ETB ${(Number(r.expected_amount) - Number(r.deposit_amount)).toLocaleString()}`
+                  )}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

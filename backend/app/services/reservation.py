@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy.exc import IntegrityError
@@ -8,10 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.audit_log import AuditLog
 from app.models.charge import ChargeType
 from app.models.guest import Guest
+from app.models.payment import Payment, PaymentMethod, PaymentStatus
 from app.models.reservation import Reservation, ReservationStatus
 from app.models.room import Room, RoomStatus
 from app.models.stay import Stay, StayStatus
+from app.repositories.payment import PaymentRepository
 from app.repositories.reservation import ReservationRepository
+from app.repositories.room import RoomRepository
 from app.repositories.stay import StayRepository
 
 
@@ -74,6 +77,9 @@ async def create_reservation(
 	expected_arrival: datetime,
 	expected_checkout: datetime,
 	expected_amount: Decimal,
+	deposit_amount: Decimal = Decimal("0.00"),
+	deposit_method: str | None = None,
+	deposit_reference: str | None = None,
 	reason: str | None,
 	notes: str | None,
 ) -> Reservation:
@@ -91,6 +97,8 @@ async def create_reservation(
 		room_id=room_id, arrival=expected_arrival, checkout=expected_checkout
 	):
 		raise ConflictError("Room has a conflicting reservation")
+	dep_amount = deposit_amount or Decimal("0.00")
+	deposit_paid_at = datetime.now(timezone.utc) if dep_amount > Decimal("0.00") else None
 	reservation = Reservation(
 		property_id=room.property_id,
 		guest_id=guest_id,
@@ -98,6 +106,10 @@ async def create_reservation(
 		expected_arrival=expected_arrival,
 		expected_checkout=expected_checkout,
 		expected_amount=expected_amount,
+		deposit_amount=dep_amount,
+		deposit_method=deposit_method if dep_amount > Decimal("0.00") else None,
+		deposit_reference=deposit_reference if dep_amount > Decimal("0.00") else None,
+		deposit_paid_at=deposit_paid_at,
 		reason=reason,
 		notes=notes,
 		status=ReservationStatus.RESERVED.value,
@@ -147,6 +159,15 @@ async def update_reservation(
 	):
 		raise ConflictError("Room has a conflicting reservation or is unavailable")
 	old_room = await session.get(Room, reservation.room_id)
+	if "deposit_amount" in values:
+		dep_val = values.get("deposit_amount")
+		if dep_val and Decimal(str(dep_val)) > 0:
+			if not reservation.deposit_paid_at:
+				reservation.deposit_paid_at = datetime.now(timezone.utc)
+		else:
+			reservation.deposit_paid_at = None
+			values["deposit_method"] = None
+			values["deposit_reference"] = None
 	for field, value in values.items():
 		setattr(reservation, field, value)
 	if new_room_id != old_room_id and old_room is not None:
@@ -238,6 +259,28 @@ async def check_in(
 			amount=total_charge,
 			created_by=user_id,
 		)
+		if reservation.deposit_amount and reservation.deposit_amount > Decimal("0.00"):
+			dep_method = reservation.deposit_method or PaymentMethod.CASH.value
+			deposit_payment = Payment(
+				property_id=stay.property_id,
+				stay_id=stay.id,
+				amount=reservation.deposit_amount,
+				payment_method=dep_method,
+				status=PaymentStatus.SUCCESS.value,
+				reference=reservation.deposit_reference or f"Advance deposit (Reservation #{reservation.id})",
+				paid_at=reservation.deposit_paid_at or now,
+				created_by=user_id,
+			)
+			await PaymentRepository(session).add(deposit_payment)
+			_audit(
+				session,
+				property_id=stay.property_id,
+				user_id=user_id,
+				action="PAYMENT_CREATED",
+				entity_type="Payment",
+				entity_id=deposit_payment.id,
+				details={"deposit_from_reservation": reservation.id, "amount": str(reservation.deposit_amount)},
+			)
 		_audit(session, property_id=reservation.property_id, user_id=user_id, action="CHECK_IN", entity_type="Stay", entity_id=stay.id)
 		await session.commit()
 	except IntegrityError as exc:

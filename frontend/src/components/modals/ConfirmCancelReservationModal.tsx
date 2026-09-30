@@ -1,4 +1,4 @@
-import { AlertTriangle, Ban, X, BedDouble, Calendar, User } from 'lucide-react'
+import { AlertTriangle, Ban, X, BedDouble, Calendar, User, Banknote } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import type { Reservation } from '../../types/api'
@@ -41,6 +41,7 @@ export function ConfirmCancelReservationModal({
   const title = isCancel ? 'Cancel Reservation' : 'Mark as No-Show'
   const actionLabel = isCancel ? 'Cancel Reservation' : 'Mark No-Show'
   const confirmButtonText = isCancel ? 'Yes, Cancel' : 'Yes, Mark No-Show'
+  const hasDeposit = Boolean(reservation.deposit_amount && Number(reservation.deposit_amount) > 0)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
@@ -101,6 +102,26 @@ export function ConfirmCancelReservationModal({
             </span>
           </div>
         </div>
+
+        {/* Advance Deposit Warning if Paid */}
+        {hasDeposit && (
+          <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-xs text-amber-950 space-y-1.5">
+            <div className="flex items-center justify-between font-bold">
+              <span className="flex items-center gap-1.5 text-amber-900">
+                <Banknote className="w-4 h-4 text-emerald-600" />
+                Advance Deposit Paid:
+              </span>
+              <span className="font-mono text-sm text-emerald-800 bg-white px-2 py-0.5 rounded border border-amber-200 font-bold">
+                ETB {Number(reservation.deposit_amount).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800 leading-relaxed">
+              Customer has already paid this deposit via <strong>{reservation.deposit_method || 'Cash'}</strong>
+              {reservation.deposit_reference ? ` (Ref: ${reservation.deposit_reference})` : ''}.
+              Please coordinate any required customer refund per house policy.
+            </p>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="pt-2 border-t border-neutral-100 flex items-center justify-end gap-2">

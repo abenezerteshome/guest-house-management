@@ -38,6 +38,10 @@ class Reservation(Base):
 	expected_arrival: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 	expected_checkout: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
 	expected_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, server_default="0.00")
+	deposit_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, server_default="0.00")
+	deposit_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
+	deposit_reference: Mapped[str | None] = mapped_column(String(200), nullable=True)
+	deposit_paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 	reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 	notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 	created_at: Mapped[datetime] = mapped_column(

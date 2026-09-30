@@ -12,12 +12,16 @@ export async function createReservation(data: {
   expected_arrival: string
   expected_checkout: string
   expected_amount?: number | string
+  deposit_amount?: number | string
+  deposit_method?: string | null
+  deposit_reference?: string | null
   reason?: string
   notes?: string
 }): Promise<Reservation> {
   const res = await api.post<Reservation>('/reservations', {
     ...data,
     expected_amount: data.expected_amount === undefined ? '0.00' : String(data.expected_amount),
+    deposit_amount: data.deposit_amount === undefined ? '0.00' : String(data.deposit_amount),
   })
   return res.data
 }
@@ -30,6 +34,9 @@ export async function updateReservation(
     expected_arrival: string
     expected_checkout: string
     expected_amount: number | string
+    deposit_amount: number | string
+    deposit_method: string | null
+    deposit_reference: string | null
     reason: string
     notes: string
   }>
@@ -37,6 +44,7 @@ export async function updateReservation(
   const res = await api.patch<Reservation>(`/reservations/${id}`, {
     ...data,
     expected_amount: data.expected_amount !== undefined ? String(data.expected_amount) : undefined,
+    deposit_amount: data.deposit_amount !== undefined ? String(data.deposit_amount) : undefined,
   })
   return res.data
 }

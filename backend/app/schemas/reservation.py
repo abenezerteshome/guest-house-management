@@ -19,6 +19,9 @@ class ReservationCreate(BaseModel):
 	expected_arrival: datetime
 	expected_checkout: datetime
 	expected_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
+	deposit_amount: Decimal = Field(default=Decimal("0.00"), ge=0, decimal_places=2)
+	deposit_method: str | None = None
+	deposit_reference: str | None = None
 	reason: str | None = None
 	notes: str | None = None
 
@@ -39,6 +42,9 @@ class ReservationUpdate(BaseModel):
 	expected_arrival: datetime | None = None
 	expected_checkout: datetime | None = None
 	expected_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+	deposit_amount: Decimal | None = Field(default=None, ge=0, decimal_places=2)
+	deposit_method: str | None = None
+	deposit_reference: str | None = None
 	reason: str | None = None
 	notes: str | None = None
 
@@ -55,6 +61,10 @@ class ReservationRead(BaseModel):
 	expected_arrival: datetime
 	expected_checkout: datetime
 	expected_amount: Decimal
+	deposit_amount: Decimal
+	deposit_method: str | None
+	deposit_reference: str | None
+	deposit_paid_at: datetime | None
 	reason: str | None
 	notes: str | None
 	created_at: datetime

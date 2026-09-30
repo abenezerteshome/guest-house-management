@@ -73,6 +73,10 @@ export interface Reservation {
   expected_arrival: string
   expected_checkout: string
   expected_amount: string
+  deposit_amount?: string | number
+  deposit_method?: string | null
+  deposit_reference?: string | null
+  deposit_paid_at?: string | null
   reason: string | null
   notes: string | null
   created_at: string

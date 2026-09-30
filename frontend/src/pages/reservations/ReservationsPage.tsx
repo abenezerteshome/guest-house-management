@@ -381,12 +381,19 @@ export function ReservationsPage() {
       key: 'notes',
       header: 'Amount / Notes',
       render: (r) => (
-        <div className="max-w-[180px] text-xs space-y-0.5">
+        <div className="max-w-[200px] text-xs space-y-1">
           {Number(r.expected_amount) > 0 && (
             <p className="font-semibold text-neutral-900 flex items-center gap-1">
               <Wallet className="w-3 h-3 text-neutral-500" />
               ETB {Number(r.expected_amount).toLocaleString()}
             </p>
+          )}
+          {Number(r.deposit_amount) > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              {Number(r.deposit_amount) >= Number(r.expected_amount)
+                ? '✓ Fully Prepaid'
+                : `Deposit: ETB ${Number(r.deposit_amount).toLocaleString()}`}
+            </span>
           )}
           {r.notes ? (
             <p className="text-neutral-500 italic truncate flex items-center gap-1" title={r.notes}>
@@ -394,7 +401,7 @@ export function ReservationsPage() {
               {r.notes}
             </p>
           ) : (
-            !Number(r.expected_amount) && <span className="text-neutral-300">—</span>
+            !Number(r.expected_amount) && !Number(r.deposit_amount) && <span className="text-neutral-300">—</span>
           )}
         </div>
       ),

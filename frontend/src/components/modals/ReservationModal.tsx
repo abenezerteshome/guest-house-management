@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Calendar, AlertCircle, Building2 } from 'lucide-react'
+import { Calendar, AlertCircle, Building2, Banknote, Check } from 'lucide-react'
 import { Modal } from '../common/Modal'
 import { Button } from '../common/Button'
 import { Input } from '../common/Input'
@@ -59,6 +59,13 @@ export function ReservationModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Payment Method & Advance Deposit fields
+  type ReceivedViaMethod = 'CREDIT' | 'CASH' | 'TELEBIRR' | 'CBE_BIRR' | 'BANK_TRANSFER' | 'OTHER'
+  const [receivedVia, setReceivedVia] = useState<ReceivedViaMethod>('CREDIT')
+  const [depositAmount, setDepositAmount] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [depositReference, setDepositReference] = useState('')
+
   useEffect(() => {
     if (selectedRoomId && sortedAvailableRooms.some((r) => r.id === selectedRoomId)) {
       setRoomId(selectedRoomId)
@@ -84,6 +91,10 @@ export function ReservationModal({
       }
       setGuestSearch('')
       setShowSearchDropdown(false)
+      setReceivedVia('CREDIT')
+      setDepositAmount('')
+      setBankName('')
+      setDepositReference('')
       setError('')
     }
   }, [isOpen, initialGuest])
@@ -199,12 +210,39 @@ export function ReservationModal({
         }
       }
 
+      const isAdvancePaid = receivedVia !== 'CREDIT'
+      const numericDeposit = isAdvancePaid
+        ? (depositAmount ? parseFloat(depositAmount) : calculatedExpectedAmount)
+        : 0
+
+      if (isAdvancePaid && (isNaN(numericDeposit) || numericDeposit <= 0)) {
+        setError('Please enter a valid amount paid or select "Pay at Check-In".')
+        setLoading(false)
+        return
+      }
+
+      if (isAdvancePaid && receivedVia === 'OTHER' && !bankName.trim()) {
+        setError('Please enter the name of the bank.')
+        setLoading(false)
+        return
+      }
+
+      const finalDepositRef =
+        isAdvancePaid && receivedVia === 'OTHER'
+          ? depositReference.trim()
+            ? `${bankName.trim()} - ${depositReference.trim()}`
+            : `Other: ${bankName.trim()}`
+          : depositReference.trim() || undefined
+
       await createReservation({
         guest_id: guestId,
         room_id: roomId,
         expected_arrival: arr.toISOString(),
         expected_checkout: dep.toISOString(),
         expected_amount: calculatedExpectedAmount,
+        deposit_amount: isAdvancePaid ? numericDeposit : 0,
+        deposit_method: isAdvancePaid ? receivedVia : undefined,
+        deposit_reference: isAdvancePaid ? finalDepositRef : undefined,
         reason: 'Reservation',
       })
 
@@ -212,6 +250,10 @@ export function ReservationModal({
       setFullName('')
       setPhone('')
       setSelectedGuestId(null)
+      setReceivedVia('CREDIT')
+      setDepositAmount('')
+      setBankName('')
+      setDepositReference('')
       onSuccess()
       onClose()
     } catch (err: unknown) {
@@ -389,6 +431,137 @@ export function ReservationModal({
               onChange={(e) => handlePhoneChange(e.target.value)}
             />
           </div>
+        </div>
+
+        {/* Payment Method Card - identical to CheckInModal */}
+        <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Banknote size={16} className="text-emerald-600" />
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-800">
+                Payment Method
+              </span>
+            </div>
+            <span className="text-xs font-bold text-neutral-800 bg-neutral-100 px-3 py-1 rounded-lg border border-neutral-200">
+              Total Charge: ETB {calculatedExpectedAmount.toLocaleString()}
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+              Received Via *
+            </label>
+            <select
+              value={receivedVia}
+              onChange={(e) => {
+                const next = e.target.value as ReceivedViaMethod
+                setReceivedVia(next)
+                if (next !== 'CREDIT' && (!depositAmount || Number(depositAmount) === 0)) {
+                  setDepositAmount(String(calculatedExpectedAmount))
+                }
+              }}
+              className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 focus:outline-none focus:border-neutral-900"
+              required
+            >
+              <option value="CREDIT">Pay on Arrival / On Credit</option>
+              <option value="CASH">Cash</option>
+              <option value="TELEBIRR">Telebirr</option>
+              <option value="CBE_BIRR">CBE Birr</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          {receivedVia === 'OTHER' && (
+            <div>
+              <label className="block text-xs font-semibold text-neutral-700 mb-1.5">
+                Bank Name *
+              </label>
+              <Input
+                placeholder="e.g. Awash Bank, Dashen Bank, Bank of Abyssinia"
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+          )}
+
+          {receivedVia === 'CREDIT' ? (
+            <p className="text-[11px] text-amber-700 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+              Room charge of ETB {calculatedExpectedAmount.toLocaleString()} will remain on credit to be settled at check-in.
+            </p>
+          ) : (
+            <div className="space-y-3 pt-1">
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-neutral-700">
+                    Amount Paid (ETB) *
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setDepositAmount(String(calculatedExpectedAmount))}
+                      className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                        parseFloat(depositAmount) === calculatedExpectedAmount
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                    >
+                      Full Amount (ETB {calculatedExpectedAmount.toLocaleString()})
+                    </button>
+                    {resNights > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setDepositAmount(String(roomPricePerNight))}
+                        className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
+                          parseFloat(depositAmount) === roomPricePerNight
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                            : 'bg-neutral-100 text-neutral-700 border-neutral-200 hover:bg-neutral-200'
+                        }`}
+                      >
+                        1 Night (ETB {roomPricePerNight.toLocaleString()})
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder={String(calculatedExpectedAmount)}
+                  value={depositAmount}
+                  onChange={(e) => setDepositAmount(e.target.value)}
+                  className="w-full h-11 px-3.5 rounded-xl border border-neutral-300 bg-white text-sm font-semibold text-neutral-900 focus:outline-none focus:border-neutral-900"
+                  required
+                />
+              </div>
+
+              <Input
+                label="Reference / Transaction Note"
+                placeholder="e.g. Telebirr Txn # / Receipt / Transfer Ref (Optional)"
+                value={depositReference}
+                onChange={(e) => setDepositReference(e.target.value)}
+              />
+
+              <p className="text-[11px] text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-200">
+                Payment of ETB {Number(depositAmount || calculatedExpectedAmount).toLocaleString()} will be recorded as received via {
+                  receivedVia === 'CASH'
+                    ? 'Cash'
+                    : receivedVia === 'TELEBIRR'
+                    ? 'Telebirr'
+                    : receivedVia === 'CBE_BIRR'
+                    ? 'CBE Birr'
+                    : receivedVia === 'BANK_TRANSFER'
+                    ? 'Bank Transfer'
+                    : bankName.trim()
+                    ? bankName.trim()
+                    : 'Other Bank'
+                }.
+              </p>
+            </div>
+          )}
         </div>
 
         {error && (
