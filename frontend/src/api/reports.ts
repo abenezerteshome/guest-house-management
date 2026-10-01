@@ -36,6 +36,7 @@ export async function getDailyReport(
 
 export async function getIncomeAnalysis(params?: {
   period?: string
+  month?: string
   start_date?: string
   end_date?: string
   property_id?: number | null
@@ -51,6 +52,7 @@ export async function getIncomeAnalysis(params?: {
 
 export async function getExpensesAnalysis(params?: {
   period?: string
+  month?: string
   start_date?: string
   end_date?: string
   property_id?: number | null

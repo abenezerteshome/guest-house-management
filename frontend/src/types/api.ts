@@ -177,8 +177,8 @@ export interface PaymentMethodIncome {
 
 export interface IncomeAnalysisReport {
   period: string
-  start_date: string
-  end_date: string
+  start_date: string | null
+  end_date: string | null
   by_method: PaymentMethodIncome[]
   total_income: string
 }
@@ -191,8 +191,8 @@ export interface ExpenseCategoryItem {
 
 export interface ExpenseAnalysisReport {
   period: string
-  start_date: string
-  end_date: string
+  start_date: string | null
+  end_date: string | null
   by_category: ExpenseCategoryItem[]
   total_expenses: string
 }

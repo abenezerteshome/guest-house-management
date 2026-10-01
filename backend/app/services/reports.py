@@ -156,12 +156,37 @@ async def get_income_analysis(
 	session: AsyncSession,
 	*,
 	period: str = "this_month",
+	month: str | None = None,
 	start_date: datetime | None = None,
 	end_date: datetime | None = None,
 	property_id: int | None = None,
 ) -> IncomeAnalysisReport:
 	now = datetime.now(timezone.utc)
-	if start_date is None or end_date is None:
+	if month:
+		try:
+			parts = month.strip().split("-")
+			y, m = int(parts[0]), int(parts[1])
+			first_day = date(y, m, 1)
+			last_day = date(y, m, monthrange(y, m)[1])
+			start_date = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
+			end_date = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+			period = f"{y}-{m:02d}"
+		except Exception:
+			pass
+	elif "-" in period and len(period.strip().split("-")) == 2 and period.strip().split("-")[0].isdigit():
+		try:
+			parts = period.strip().split("-")
+			y, m = int(parts[0]), int(parts[1])
+			first_day = date(y, m, 1)
+			last_day = date(y, m, monthrange(y, m)[1])
+			start_date = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
+			end_date = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+		except Exception:
+			pass
+	elif period == "all":
+		start_date = None
+		end_date = None
+	elif start_date is None or end_date is None:
 		if period == "today":
 			start_date, end_date = _to_utc_range(now.date())
 		elif period == "this_week":
@@ -177,10 +202,12 @@ async def get_income_analysis(
 		select(Payment.payment_method, func.coalesce(func.sum(Payment.amount), Decimal("0.00")), func.count(Payment.id))
 		.where(
 			Payment.status == PaymentStatus.SUCCESS.value,
-			Payment.created_at >= start_date,
-			Payment.created_at <= end_date,
 		)
 	)
+	if start_date is not None:
+		stmt = stmt.where(Payment.created_at >= start_date)
+	if end_date is not None:
+		stmt = stmt.where(Payment.created_at <= end_date)
 	if property_id is not None:
 		stmt = stmt.where(Payment.property_id == property_id)
 	stmt = stmt.group_by(Payment.payment_method)
@@ -215,12 +242,37 @@ async def get_expenses_analysis(
 	session: AsyncSession,
 	*,
 	period: str = "this_month",
+	month: str | None = None,
 	start_date: datetime | None = None,
 	end_date: datetime | None = None,
 	property_id: int | None = None,
 ) -> ExpenseAnalysisReport:
 	now = datetime.now(timezone.utc)
-	if start_date is None or end_date is None:
+	if month:
+		try:
+			parts = month.strip().split("-")
+			y, m = int(parts[0]), int(parts[1])
+			first_day = date(y, m, 1)
+			last_day = date(y, m, monthrange(y, m)[1])
+			start_date = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
+			end_date = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+			period = f"{y}-{m:02d}"
+		except Exception:
+			pass
+	elif "-" in period and len(period.strip().split("-")) == 2 and period.strip().split("-")[0].isdigit():
+		try:
+			parts = period.strip().split("-")
+			y, m = int(parts[0]), int(parts[1])
+			first_day = date(y, m, 1)
+			last_day = date(y, m, monthrange(y, m)[1])
+			start_date = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
+			end_date = datetime.combine(last_day, time.max, tzinfo=timezone.utc)
+		except Exception:
+			pass
+	elif period == "all":
+		start_date = None
+		end_date = None
+	elif start_date is None or end_date is None:
 		if period == "today":
 			start_date, end_date = _to_utc_range(now.date())
 		elif period == "this_week":
@@ -232,13 +284,11 @@ async def get_expenses_analysis(
 			start_date = datetime.combine(first_day, time.min, tzinfo=timezone.utc)
 			end_date = datetime.combine(now.date(), time.max, tzinfo=timezone.utc)
 
-	stmt = (
-		select(Expense.category, func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
-		.where(
-			Expense.expense_date >= start_date,
-			Expense.expense_date <= end_date,
-		)
-	)
+	stmt = select(Expense.category, func.coalesce(func.sum(Expense.amount), Decimal("0.00")))
+	if start_date is not None:
+		stmt = stmt.where(Expense.expense_date >= start_date)
+	if end_date is not None:
+		stmt = stmt.where(Expense.expense_date <= end_date)
 	if property_id is not None:
 		stmt = stmt.where(Expense.property_id == property_id)
 	stmt = stmt.group_by(Expense.category).order_by(func.sum(Expense.amount).desc())

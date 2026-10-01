@@ -57,6 +57,14 @@ export function ReportsPage() {
   const [statementMonth, setStatementMonth] = useState(() => new Date().toISOString().slice(0, 7))
   const [statementMetric, setStatementMetric] = useState<StatementMetric>('GROSS_INCOME')
 
+  // Income by Payment Method states
+  const [incomePeriod, setIncomePeriod] = useState<'month' | 'all'>('month')
+  const [incomeMonth, setIncomeMonth] = useState(() => new Date().toISOString().slice(0, 7))
+
+  // Expense Distribution states
+  const [expensePeriod, setExpensePeriod] = useState<'month' | 'all'>('month')
+  const [expenseMonth, setExpenseMonth] = useState(() => new Date().toISOString().slice(0, 7))
+
   // Report states
   const [dailyData, setDailyData] = useState<DailyReport | null>(null)
   const [incomeData, setIncomeData] = useState<IncomeAnalysisReport | null>(null)
@@ -79,10 +87,18 @@ export function ReportsPage() {
         const data = await getDailyReport(selectedDate, propId)
         setDailyData(data)
       } else if (activeTab === 'income') {
-        const data = await getIncomeAnalysis({ period: 'all', property_id: propId })
+        const data = await getIncomeAnalysis(
+          incomePeriod === 'all'
+            ? { period: 'all', property_id: propId }
+            : { period: 'month', month: incomeMonth, property_id: propId }
+        )
         setIncomeData(data)
       } else if (activeTab === 'expenses') {
-        const data = await getExpensesAnalysis({ period: 'all', property_id: propId })
+        const data = await getExpensesAnalysis(
+          expensePeriod === 'all'
+            ? { period: 'all', property_id: propId }
+            : { period: 'month', month: expenseMonth, property_id: propId }
+        )
         setExpenseData(data)
       } else if (activeTab === 'weekly') {
         const data = await getWeeklyReport(selectedDate, propId)
@@ -102,7 +118,18 @@ export function ReportsPage() {
     } finally {
       setLoading(false)
     }
-  }, [activeTab, selectedDate, statementPeriod, statementMonth, selectedPropertyId, user?.role])
+  }, [
+    activeTab,
+    selectedDate,
+    statementPeriod,
+    statementMonth,
+    incomePeriod,
+    incomeMonth,
+    expensePeriod,
+    expenseMonth,
+    selectedPropertyId,
+    user?.role,
+  ])
 
   useEffect(() => {
     fetchReports()
@@ -191,6 +218,84 @@ export function ReportsPage() {
                       type="month"
                       value={statementMonth}
                       onChange={(e) => setStatementMonth(e.target.value)}
+                      className="text-xs text-neutral-800 bg-transparent focus:outline-none font-medium cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'income' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-xl border border-neutral-200 bg-neutral-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setIncomePeriod('month')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      incomePeriod === 'month'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    By Month
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIncomePeriod('all')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      incomePeriod === 'all'
+                        ? 'bg-white text-[#FF385C] shadow-xs font-bold'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    All-Time Total
+                  </button>
+                </div>
+
+                {incomePeriod === 'month' && (
+                  <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-3 py-1 text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                    <input
+                      type="month"
+                      value={incomeMonth}
+                      onChange={(e) => setIncomeMonth(e.target.value)}
+                      className="text-xs text-neutral-800 bg-transparent focus:outline-none font-medium cursor-pointer"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'expenses' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex rounded-xl border border-neutral-200 bg-neutral-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setExpensePeriod('month')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      expensePeriod === 'month'
+                        ? 'bg-white text-neutral-900 shadow-xs'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    By Month
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExpensePeriod('all')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+                      expensePeriod === 'all'
+                        ? 'bg-white text-[#FF385C] shadow-xs font-bold'
+                        : 'text-neutral-600 hover:text-neutral-900'
+                    }`}
+                  >
+                    All-Time Total
+                  </button>
+                </div>
+
+                {expensePeriod === 'month' && (
+                  <div className="flex items-center gap-1.5 bg-white border border-neutral-200 rounded-xl px-3 py-1 text-xs">
+                    <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+                    <input
+                      type="month"
+                      value={expenseMonth}
+                      onChange={(e) => setExpenseMonth(e.target.value)}
                       className="text-xs text-neutral-800 bg-transparent focus:outline-none font-medium cursor-pointer"
                     />
                   </div>
@@ -317,7 +422,7 @@ export function ReportsPage() {
           <div className="p-5 rounded-2xl bg-neutral-900 text-white flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
-                Total Gross Collections
+                Total Gross Collections ({incomePeriod === 'all' ? 'All Time' : new Date(incomeMonth + '-02').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
               </p>
               <h2 className="text-3xl font-extrabold mt-1">
                 {Number(incomeData.total_income).toLocaleString()} ETB
@@ -376,7 +481,7 @@ export function ReportsPage() {
           <div className="p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                Total Operational Expenses
+                Total Operational Expenses ({expensePeriod === 'all' ? 'All Time' : new Date(expenseMonth + '-02').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })})
               </p>
               <h2 className="text-3xl font-extrabold text-neutral-900 mt-1">
                 {Number(expenseData.total_expenses).toLocaleString()} ETB

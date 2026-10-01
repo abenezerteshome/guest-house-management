@@ -59,6 +59,7 @@ async def daily_report(
 @router.get("/income-analysis", response_model=IncomeAnalysisReport)
 async def income_analysis(
 	period: str = Query(default="this_month"),
+	month: str | None = Query(default=None),
 	start_date: datetime | None = Query(default=None),
 	end_date: datetime | None = Query(default=None),
 	property_id: int | None = Query(default=None),
@@ -67,13 +68,14 @@ async def income_analysis(
 ) -> IncomeAnalysisReport:
 	prop_id = _target_property_id(current_user, property_id)
 	return await get_income_analysis(
-		session, period=period, start_date=start_date, end_date=end_date, property_id=prop_id
+		session, period=period, month=month, start_date=start_date, end_date=end_date, property_id=prop_id
 	)
 
 
 @router.get("/expenses-analysis", response_model=ExpenseAnalysisReport)
 async def expenses_analysis(
 	period: str = Query(default="this_month"),
+	month: str | None = Query(default=None),
 	start_date: datetime | None = Query(default=None),
 	end_date: datetime | None = Query(default=None),
 	property_id: int | None = Query(default=None),
@@ -82,7 +84,7 @@ async def expenses_analysis(
 ) -> ExpenseAnalysisReport:
 	prop_id = _target_property_id(current_user, property_id)
 	return await get_expenses_analysis(
-		session, period=period, start_date=start_date, end_date=end_date, property_id=prop_id
+		session, period=period, month=month, start_date=start_date, end_date=end_date, property_id=prop_id
 	)
 
 

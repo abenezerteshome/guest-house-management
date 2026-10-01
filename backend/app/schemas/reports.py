@@ -31,8 +31,8 @@ class PaymentMethodIncome(BaseModel):
 
 class IncomeAnalysisReport(BaseModel):
 	period: str
-	start_date: datetime
-	end_date: datetime
+	start_date: datetime | None = None
+	end_date: datetime | None = None
 	by_method: list[PaymentMethodIncome]
 	total_income: Decimal
 
@@ -45,8 +45,8 @@ class ExpenseCategoryItem(BaseModel):
 
 class ExpenseAnalysisReport(BaseModel):
 	period: str
-	start_date: datetime
-	end_date: datetime
+	start_date: datetime | None = None
+	end_date: datetime | None = None
 	by_category: list[ExpenseCategoryItem]
 	total_expenses: Decimal
 
